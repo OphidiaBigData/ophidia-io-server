@@ -1,0 +1,316 @@
+[oph_abs_array]
+LIB	@PLUGIN_PATH@/liboph_abs_array.so
+FUN SIMPLE
+RET STRING
+[oph_accumulate]
+LIB	@PLUGIN_PATH@/liboph_accumulate.so
+FUN SIMPLE
+RET STRING
+[oph_aggregate_operator]
+LIB	@PLUGIN_PATH@/liboph_aggregate_operator.so
+FUN AGGREGATE
+RET STRING
+[oph_aggregate_stats]
+LIB	@PLUGIN_PATH@/liboph_aggregate_stats.so
+FUN AGGREGATE
+RET STRING
+[oph_aggregate_stats_final]
+LIB	@PLUGIN_PATH@/liboph_aggregate_stats_final.so
+FUN AGGREGATE
+RET STRING
+[oph_aggregate_stats_partial]
+LIB	@PLUGIN_PATH@/liboph_aggregate_stats_partial.so
+FUN AGGREGATE
+RET STRING
+[oph_arg_array]
+LIB	@PLUGIN_PATH@/liboph_arg_array.so
+FUN SIMPLE
+RET STRING
+[oph_cast]
+LIB	@PLUGIN_PATH@/liboph_cast.so
+FUN SIMPLE
+RET STRING
+[oph_ccluster_kcluster]
+LIB	@PLUGIN_PATH@/liboph_ccluster_kcluster.so
+FUN SIMPLE
+RET STRING
+[oph_compare]
+LIB	@PLUGIN_PATH@/liboph_compare.so
+FUN SIMPLE
+RET INTEGER
+[oph_compress]
+LIB	@PLUGIN_PATH@/liboph_compress.so
+FUN SIMPLE
+RET STRING
+[oph_concat]
+LIB	@PLUGIN_PATH@/liboph_concat.so
+FUN SIMPLE
+RET STRING
+[oph_convert_d]
+LIB	@PLUGIN_PATH@/liboph_convert_d.so
+FUN SIMPLE
+RET REAL
+[oph_convert_l]
+LIB	@PLUGIN_PATH@/liboph_convert_l.so
+FUN SIMPLE
+RET INTEGER
+[oph_count_array]
+LIB	@PLUGIN_PATH@/liboph_count_array.so
+FUN SIMPLE
+RET INTEGER
+[oph_deaccumulate]
+LIB	@PLUGIN_PATH@/liboph_deaccumulate.so
+FUN SIMPLE
+RET STRING
+[oph_div_array]
+LIB	@PLUGIN_PATH@/liboph_div_array.so
+FUN SIMPLE
+RET STRING
+[oph_dump]
+LIB	@PLUGIN_PATH@/liboph_dump.so
+FUN SIMPLE
+RET STRING
+[oph_expand]
+LIB	@PLUGIN_PATH@/liboph_expand.so
+FUN SIMPLE
+RET STRING
+[oph_extend]
+LIB	@PLUGIN_PATH@/liboph_extend.so
+FUN SIMPLE
+RET STRING
+[oph_extract]
+LIB	@PLUGIN_PATH@/liboph_extract.so
+FUN SIMPLE
+RET STRING
+[oph_find]
+LIB	@PLUGIN_PATH@/liboph_find.so
+FUN SIMPLE
+RET INTEGER
+[oph_get_index]
+LIB	@PLUGIN_PATH@/liboph_get_index.so
+FUN SIMPLE
+RET STRING
+[oph_get_subarray]
+LIB	@PLUGIN_PATH@/liboph_get_subarray.so
+FUN SIMPLE
+RET STRING
+[oph_get_subarray2]
+LIB	@PLUGIN_PATH@/liboph_get_subarray2.so
+FUN SIMPLE
+RET STRING
+[oph_get_subarray3]
+LIB	@PLUGIN_PATH@/liboph_get_subarray3.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_boxplot]
+LIB	@PLUGIN_PATH@/liboph_gsl_boxplot.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_complex_get_abs]
+LIB	@PLUGIN_PATH@/liboph_gsl_complex_get_abs.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_complex_get_arg]
+LIB	@PLUGIN_PATH@/liboph_gsl_complex_get_arg.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_complex_get_imag]
+LIB	@PLUGIN_PATH@/liboph_gsl_complex_get_imag.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_complex_get_real]
+LIB	@PLUGIN_PATH@/liboph_gsl_complex_get_real.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_complex_to_polar]
+LIB	@PLUGIN_PATH@/liboph_gsl_complex_to_polar.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_complex_to_rect]
+LIB	@PLUGIN_PATH@/liboph_gsl_complex_to_rect.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_correlation]
+LIB	@PLUGIN_PATH@/liboph_gsl_correlation.so
+FUN SIMPLE
+RET STRING 
+[oph_gsl_dwt]
+LIB	@PLUGIN_PATH@/liboph_gsl_dwt.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_fft]
+LIB	@PLUGIN_PATH@/liboph_gsl_fft.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_fit_linear_coeff]
+LIB	@PLUGIN_PATH@/liboph_gsl_fit_linear_coeff.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_fit_linear]
+LIB	@PLUGIN_PATH@/liboph_gsl_fit_linear.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_histogram]
+LIB	@PLUGIN_PATH@/liboph_gsl_histogram.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_idwt]
+LIB	@PLUGIN_PATH@/liboph_gsl_idwt.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_ifft]
+LIB	@PLUGIN_PATH@/liboph_gsl_ifft.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_quantile]
+LIB	@PLUGIN_PATH@/liboph_gsl_quantile.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_sort]
+LIB	@PLUGIN_PATH@/liboph_gsl_sort.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_stats]
+LIB	@PLUGIN_PATH@/liboph_gsl_stats.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_sd]
+LIB	@PLUGIN_PATH@/liboph_gsl_sd.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_spline]
+LIB	@PLUGIN_PATH@/liboph_gsl_spline.so
+FUN SIMPLE
+RET STRING
+[oph_id_to_index]
+LIB	@PLUGIN_PATH@/liboph_id_to_index.so
+FUN SIMPLE
+RET INTEGER
+[oph_id3]
+LIB	@PLUGIN_PATH@/liboph_id3.so
+FUN SIMPLE
+RET INTEGER
+[oph_id_of_subset]
+LIB	@PLUGIN_PATH@/liboph_id_of_subset.so
+FUN SIMPLE
+RET INTEGER
+[oph_interlace]
+LIB	@PLUGIN_PATH@/lib_oph_interlace.so
+FUN SIMPLE
+RET STRING
+[oph_mask_array]
+LIB	@PLUGIN_PATH@/liboph_mask_array.so
+FUN SIMPLE
+RET STRING
+[oph_math]
+LIB	@PLUGIN_PATH@/liboph_math.so
+FUN SIMPLE
+RET STRING
+[oph_max_array]
+LIB	@PLUGIN_PATH@/liboph_max_array.so
+FUN SIMPLE
+RET STRING
+[oph_min_array]
+LIB	@PLUGIN_PATH@/liboph_min_array.so
+FUN SIMPLE
+RET STRING
+[oph_moving_avg]
+LIB	@PLUGIN_PATH@/liboph_moving_avg.so
+FUN SIMPLE
+RET STRING
+[oph_mul_array]
+LIB	@PLUGIN_PATH@/liboph_mul_array.so
+FUN SIMPLE
+RET STRING
+[oph_mul_scalar]
+LIB	@PLUGIN_PATH@/liboph_mul_scalar.so
+FUN SIMPLE
+RET STRING
+[oph_mul_scalar2]
+LIB	@PLUGIN_PATH@/liboph_mul_scalar2.so
+FUN SIMPLE
+RET STRING
+[oph_operator_array]
+LIB	@PLUGIN_PATH@/liboph_operator_array.so
+FUN SIMPLE
+RET STRING
+[oph_operator]
+LIB	@PLUGIN_PATH@/liboph_operator.so
+FUN SIMPLE
+RET STRING
+[oph_permute]
+LIB	@PLUGIN_PATH@/liboph_permute.so
+FUN SIMPLE
+RET STRING
+[oph_predicate]
+LIB	@PLUGIN_PATH@/liboph_predicate.so
+FUN SIMPLE
+RET STRING
+[oph_predicate2]
+LIB	@PLUGIN_PATH@/liboph_predicate2.so
+FUN SIMPLE
+RET STRING
+[oph_quantize]
+LIB	@PLUGIN_PATH@/liboph_quantize.so
+FUN SIMPLE
+RET STRING
+[oph_reduce]
+LIB	@PLUGIN_PATH@/liboph_reduce.so
+FUN SIMPLE
+RET STRING
+[oph_reduce2]
+LIB	@PLUGIN_PATH@/liboph_reduce2.so
+FUN SIMPLE
+RET STRING
+[oph_reduce3]
+LIB	@PLUGIN_PATH@/liboph_reduce3.so
+FUN SIMPLE
+RET STRING
+[oph_reverse]
+LIB	@PLUGIN_PATH@/liboph_reverse.so
+FUN SIMPLE
+RET STRING
+[oph_roll_up]
+LIB	@PLUGIN_PATH@/liboph_roll_up.so
+FUN AGGREGATE
+RET STRING
+[oph_rotate]
+LIB	@PLUGIN_PATH@/liboph_rotate.so
+FUN SIMPLE
+RET STRING
+[oph_shift]
+LIB	@PLUGIN_PATH@/liboph_shift.so
+FUN SIMPLE
+RET STRING
+[oph_size_array]
+LIB	@PLUGIN_PATH@/liboph_size_array.so
+FUN SIMPLE
+RET INTEGER
+[oph_sub_array]
+LIB	@PLUGIN_PATH@/liboph_sub_array.so
+FUN SIMPLE
+RET STRING
+[oph_sum_scalar]
+LIB	@PLUGIN_PATH@/liboph_sum_scalar.so
+FUN SIMPLE
+RET STRING
+[oph_sum_array]
+LIB	@PLUGIN_PATH@/liboph_sum_array.so
+FUN SIMPLE
+RET STRING
+[oph_sum_scalar2]
+LIB	@PLUGIN_PATH@/liboph_sum_scalar2.so
+FUN SIMPLE
+RET STRING
+[oph_to_bin]
+LIB	@PLUGIN_PATH@/liboph_to_bin.so
+FUN SIMPLE
+RET STRING
+[oph_uncompress]
+LIB	@PLUGIN_PATH@/liboph_uncompress.so
+FUN SIMPLE
+RET STRING
+[oph_value_to_bin]
+LIB	@PLUGIN_PATH@/liboph_value_to_bin.so
+FUN SIMPLE
+RET STRING

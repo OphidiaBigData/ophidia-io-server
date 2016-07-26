@@ -1,0 +1,3 @@
+[MEMORY]
+@DEVICE_PATH@/libmemory_device.so
+TRANSIENT
