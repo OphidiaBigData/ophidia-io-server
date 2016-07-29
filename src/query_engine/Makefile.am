@@ -16,6 +16,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+SUBDIRS = expression_evaluator .
+
 if DEBUG 
 OPT+=-DDEBUG
 endif

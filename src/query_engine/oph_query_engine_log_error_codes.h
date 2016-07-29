@@ -40,4 +40,10 @@
 #define OPH_QUERY_ENGINE_LOG_QUERY_ARG_LOAD_ERROR   "Unable to load query args in table\n"
 #define OPH_QUERY_ENGINE_LOG_PLUGIN_EXEC_ERROR      "Error while executing %s\n"
 
+/* QUERY EVALUATOR LOG ERRORS */
+#define OPH_QUERY_ENGINE_LOG_LEXER_INIT_ERROR       "Error while initializing the lexer\n"
+#define OPH_QUERY_ENGINE_LOG_EVAL_ERROR       		"Error while evaluating the expression\n"
+#define OPH_QUERY_ENGINE_LOG_FULL_SYMTABLE       	"Symtable is full\n"
+#define OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR 			"Wrong number of arguments for function '%s.' Expected %d args. \n"
+
 #endif  //__OPH_QUERY_ENGINE_LOG_ERROR_CODES_H

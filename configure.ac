@@ -96,6 +96,7 @@ CXXFLAGS=""
 # Checks for library.
 AC_CHECK_LIB(nsl, t_open)
 AC_CHECK_LIB(socket, socket)
+AC_CHECK_LIB([m],[floor])
 
 AC_CHECK_LIB(pthread, pthread_create)
 if test "$ac_cv_lib_pthread_pthread_create" = yes ; then
@@ -113,6 +114,24 @@ if test "x$enable_openmp" = xyes; then
 fi
 AM_CONDITIONAL([HAVE_OPENMP], [test -n "$OPENMP_CFLAGS"])
 AC_SUBST(OPENMP_CFLAGS)
+
+AC_MSG_CHECKING(for Bison)
+AC_PROG_YACC
+if test "$YACC" != "bison -y"; then
+	AC_MSG_ERROR([No bison found])
+else
+	AC_PATH_PROG([BISON],[bison])
+	AX_PROG_BISON_VERSION([2.3],[ENABLE_YACCLEX=yes],AC_MSG_ERROR([Bison version 2.3 is the minimum required]))
+fi
+
+AC_MSG_CHECKING(for Flex)
+AC_PROG_LEX
+if test "x$LEX" != xflex; then
+	LEX="$SHELL $missing_dir/missing flex"
+else 
+	AC_PATH_PROG([FLEX],[flex])
+	AX_PROG_FLEX_VERSION([2.5],[ENABLE_YACCLEX=yes],AC_MSG_ERROR([Flex version 2.5 is the minimum required]))
+fi
 
 # Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html
 AC_MSG_CHECKING(for IPv4 support)
@@ -307,6 +326,7 @@ AC_OUTPUT([Makefile
            src/metadb/Makefile           
            src/network/Makefile           
            src/query_engine/Makefile
+           src/query_engine/expression_evaluator/Makefile
            src/client/Makefile      
            src/server/Makefile
            etc/oph_primitives_list

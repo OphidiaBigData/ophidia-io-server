@@ -29,6 +29,8 @@ http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 Creative Commons CC0 1.0</br>
 http://en.literateprograms.org/Hash_table_(C)
 
+Source code generated with GNU Bison (https://www.gnu.org/software/bison/) and flex (http://flex.sourceforge.net) is included.</br>
+
 Additionally some source code (in src/oph_network.c) and configuration lines (in configure.ac) have been adapted from the example source code available from Unix Network Programming, Volume 1, 3rd ed., by W. R. Stevens, B. Fenner, A. M. Rudoff. </br>
 http://www.unpbook.com/src.html 
 

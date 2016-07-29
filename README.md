@@ -10,6 +10,7 @@ In order to compile and run the IO Server, make sure you have the following pack
 
 1. mysql-community-devel
 2. optionally an OpenMP implementation
+3. optionally bison and flex 
 
 ### How to Install
 
