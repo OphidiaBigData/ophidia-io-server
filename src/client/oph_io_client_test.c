@@ -319,10 +319,8 @@ int main(int argc, char *argv[])
         //Output the result set (assuming array of double is gathered)
         oph_io_client_record *current_row = NULL;
         oph_io_client_fetch_row(result_set, &current_row);
-        int num_elems = 0;
 
         while(current_row){
-          num_elems = (int)current_row->field_length[1]/sizeof(double); 
           printf("ID: %s ", current_row->field[0]);
           printf(" %s ", current_row->field[1]);
           oph_io_client_fetch_row(result_set, &current_row);

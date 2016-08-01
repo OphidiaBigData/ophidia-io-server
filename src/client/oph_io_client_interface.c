@@ -583,79 +583,81 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
   }
   unsigned long long i = 0, j = 0;
 
+  //If result set does contain rows
+  if(num_rows > 0){
+	  char *sub_reply = (char *)calloc(payload_len ,sizeof(char));
+	  if (!sub_reply)
+	  {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error allocation memory\n");
+		free(reply);
+		return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
+	  }
+	  unsigned long long string_head = 0;
 
-  char *sub_reply = (char *)calloc(payload_len ,sizeof(char));
-  if (!sub_reply)
-  {
-    pmesg(LOG_ERROR, __FILE__, __LINE__, "Error allocation memory\n");
-    free(reply);
-    return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
-  }
-  unsigned long long string_head = 0;
+  	//Setup each row
+	  for(i = 0; i < num_rows; i++){
+		  (*result_set)->result_set[i] = (oph_io_client_record *)calloc(1, sizeof(oph_io_client_record));
+		  if(!((*result_set)->result_set[i]))
+		  {
+		    pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
+		    free(reply);
+		    free(sub_reply);
+		    oph_io_client_free_result(*result_set);
+		    *result_set = NULL;
+		    return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
+		  }
 
-  //Setup each row
-  for(i = 0; i < num_rows; i++){
-      (*result_set)->result_set[i] = (oph_io_client_record *)calloc(1, sizeof(oph_io_client_record));
-      if(!((*result_set)->result_set[i]))
-      {
-        pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-        free(reply);
-        free(sub_reply);
-        oph_io_client_free_result(*result_set);
-        *result_set = NULL;
-        return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
-      }
+		  (*result_set)->result_set[i]->field_length = (unsigned long *)calloc(num_fields, sizeof(unsigned long));
+		  if(!((*result_set)->result_set[i]->field_length))
+		  {
+		    pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
+		    free(reply);
+		    free(sub_reply);
+		    oph_io_client_free_result(*result_set);
+		    *result_set = NULL;
+		    return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
+		  }
 
-      (*result_set)->result_set[i]->field_length = (unsigned long *)calloc(num_fields, sizeof(unsigned long));
-      if(!((*result_set)->result_set[i]->field_length))
-      {
-        pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-        free(reply);
-        free(sub_reply);
-        oph_io_client_free_result(*result_set);
-        *result_set = NULL;
-        return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
-      }
+		  (*result_set)->result_set[i]->field = (char **)calloc(num_fields+1, sizeof(char *)); 
+		  if(!((*result_set)->result_set[i]->field))
+		  {
+		    pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
+		    free(reply);
+		    free(sub_reply);
+		    oph_io_client_free_result(*result_set);
+		    *result_set = NULL;
+		    return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
+		  }
 
-      (*result_set)->result_set[i]->field = (char **)calloc(num_fields+1, sizeof(char *)); 
-      if(!((*result_set)->result_set[i]->field))
-      {
-        pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-        free(reply);
-        free(sub_reply);
-        oph_io_client_free_result(*result_set);
-        *result_set = NULL;
-        return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
-      }
+		  for(j = 0; j < num_fields; j++){
+		    //Setup each field
+	 
+		   //Extract field length
+		    memcpy(sub_reply, reply + string_head, sizeof(unsigned long));
+		    (*result_set)->result_set[i]->field_length[j] = *((unsigned long*)sub_reply);
+		    string_head += sizeof(unsigned long);
+		    pmesg(LOG_DEBUG,__FILE__,__LINE__,"Field %llu, row %llu length is: %lu\n",j,i,(*result_set)->result_set[i]->field_length[j]);
 
-      for(j = 0; j < num_fields; j++){
-        //Setup each field
- 
-       //Extract field length
-        memcpy(sub_reply, reply + string_head, sizeof(unsigned long));
-        (*result_set)->result_set[i]->field_length[j] = *((unsigned long*)sub_reply);
-        string_head += sizeof(unsigned long);
-        pmesg(LOG_DEBUG,__FILE__,__LINE__,"Field %llu, row %llu length is: %lu\n",j,i,(*result_set)->result_set[i]->field_length[j]);
+		    (*result_set)->result_set[i]->field[j] = (char *)calloc((*result_set)->result_set[i]->field_length[j],sizeof(char));
+		    if(!((*result_set)->result_set[i]->field[j]))
+		    {
+		      pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
+		      free(reply);
+		      free(sub_reply);
+		      oph_io_client_free_result(*result_set);
+		      *result_set = NULL;
+		      return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
+		    }
+		    memcpy((*result_set)->result_set[i]->field[j], reply + string_head, (*result_set)->result_set[i]->field_length[j]);
+		    string_head += (*result_set)->result_set[i]->field_length[j];
 
-        (*result_set)->result_set[i]->field[j] = (char *)calloc((*result_set)->result_set[i]->field_length[j],sizeof(char));
-        if(!((*result_set)->result_set[i]->field[j]))
-        {
-          pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-          free(reply);
-          free(sub_reply);
-          oph_io_client_free_result(*result_set);
-          *result_set = NULL;
-          return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
-        }
-        memcpy((*result_set)->result_set[i]->field[j], reply + string_head, (*result_set)->result_set[i]->field_length[j]);
-        string_head += (*result_set)->result_set[i]->field_length[j];
-
-        //Set max field length
-        if((*result_set)->max_field_length[j] < (*result_set)->result_set[i]->field_length[j]) (*result_set)->max_field_length[j] = (*result_set)->result_set[i]->field_length[j];
-      }
+		    //Set max field length
+		    if((*result_set)->max_field_length[j] < (*result_set)->result_set[i]->field_length[j]) (*result_set)->max_field_length[j] = (*result_set)->result_set[i]->field_length[j];
+		  }
+	}
+	free(sub_reply);
   }  
   free(reply);
-  free(sub_reply);
 
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }

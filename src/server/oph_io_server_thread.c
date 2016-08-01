@@ -87,8 +87,6 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 	int res;
   int m = 0;
 
-  unsigned long long time = 0;
-
 #ifdef DEBUG
 	//Total Exec time evaluate
 	struct timeval start_time, end_time, total_time;
@@ -155,7 +153,7 @@ gettimeofday(&start_time, NULL);
 		if (res > 0)
 		{
       //Request Manager section: handle request and call the correct function
-      time = 0;
+
       m = 0;
       payload_len = 0;
       memset(header, 0, OPH_IO_SERVER_MSG_TYPE_LEN + 1);

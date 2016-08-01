@@ -108,6 +108,15 @@ int oph_iostore_copy_frag_record_set(oph_iostore_frag_record_set *input_record_s
  */
 int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset);
 
+/**
+ * \brief			              Copy a fragment record_set structure only by specifying a limit (it does not copy the frag_name and the internal record set)
+ * \param input_record_set  Record to be copied
+ * \param output_record_set  Record copied
+ * \param limit Copy up to 'limit' rows; all the rows are extracted using '0'
+ * \param limit Discard the first 'offset' rows
+ * \return                  0 if successfull, non-0 otherwise
+ */
+int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset);
 
 /**
  * \brief			        Destroy a record and release resources
@@ -131,6 +140,13 @@ int oph_iostore_create_frag_record(oph_iostore_frag_record **record, short int f
  * \return            0 if successfull, non-0 otherwise
  */
 int oph_iostore_destroy_frag_recordset(oph_iostore_frag_record_set **record_set);
+
+/**
+ * \brief			        Destroy a record set and release resources (it does not destroy internal record set)
+ * \param record_set  Record set to be freed
+ * \return            0 if successfull, non-0 otherwise
+ */
+int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record_set);
 
 /**
  * \brief			        Create an empty recordset

@@ -116,6 +116,50 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_re
 	return OPH_IOSTORAGE_NULL_PARAM;
   }
 
+	if(oph_iostore_copy_frag_record_set_only(input_record_set, output_record_set, limit, offset)){
+      pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+      logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);        
+      oph_iostore_destroy_frag_recordset(output_record_set);
+      return OPH_IOSTORAGE_MEMORY_ERR;
+	}
+
+  long long j, total_size = 0, set_size = 0;
+  oph_iostore_frag_record *tmp_record = NULL;
+  if (offset)
+  {
+	tmp_record = input_record_set->record_set[0];
+	while(tmp_record) tmp_record = input_record_set->record_set[++total_size];
+  }
+  if (!offset || (offset<total_size))
+  {
+	tmp_record = input_record_set->record_set[offset];
+	while(tmp_record && (!limit || (set_size<limit))) tmp_record = input_record_set->record_set[++set_size];
+  }
+
+  if(set_size != 0){
+    oph_iostore_frag_record **new = (*output_record_set)->record_set;
+	for(j = 0; j < set_size; j++){
+		if(oph_iostore_copy_frag_record(input_record_set->record_set[j], input_record_set->field_num, &new[j]) || !new[j])
+		{
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);        
+			oph_iostore_destroy_frag_recordset(output_record_set);
+			return OPH_IOSTORAGE_MEMORY_ERR;
+		}
+	}
+	new[j] = NULL;
+  }
+  return OPH_IOSTORAGE_SUCCESS;
+}
+
+int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset){
+  if( !input_record_set || !output_record_set || (limit<0) || (offset<0))
+  {
+	pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);		
+	logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);    
+	return OPH_IOSTORAGE_NULL_PARAM;
+  }
+
   //Copy frag record set content
 	*output_record_set = (oph_iostore_frag_record_set*)malloc(1*sizeof(oph_iostore_frag_record_set));
   if(!*output_record_set)
@@ -158,7 +202,7 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_re
     return OPH_IOSTORAGE_MEMORY_ERR;
   }
 
-  long long j, total_size = 0, set_size = 0;
+  long long total_size = 0, set_size = 0;
   oph_iostore_frag_record *tmp_record = NULL;
   if (offset)
   {
@@ -180,18 +224,6 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_re
       oph_iostore_destroy_frag_recordset(output_record_set);
       return OPH_IOSTORAGE_MEMORY_ERR;
     }
-
-    oph_iostore_frag_record **new = (*output_record_set)->record_set;
-	for(j = 0; j < set_size; j++){
-		if(oph_iostore_copy_frag_record(input_record_set->record_set[j], input_record_set->field_num, &new[j]) || !new[j])
-		{
-			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);        
-			oph_iostore_destroy_frag_recordset(output_record_set);
-			return OPH_IOSTORAGE_MEMORY_ERR;
-		}
-	}
-	new[j] = NULL;
   }
   return OPH_IOSTORAGE_SUCCESS;
 }
@@ -259,18 +291,35 @@ int oph_iostore_destroy_frag_recordset(oph_iostore_frag_record_set **record_set)
     return OPH_IOSTORAGE_NULL_PARAM;
   }
 
-	long long i = 0, j = 0;
-  
-  if((*record_set)->frag_name) free((*record_set)->frag_name);
+	long long i = 0;
 
   if((*record_set)->record_set != NULL){
     while((*record_set)->record_set[i]){
-      oph_iostore_destroy_frag_record(&(*record_set)->record_set[i], (*record_set)->field_num);
+      	oph_iostore_destroy_frag_record(&(*record_set)->record_set[i], (*record_set)->field_num);
 		  i++;		
 	  }
+  }
+
+	oph_iostore_destroy_frag_recordset_only(record_set);
+
+	return OPH_IOSTORAGE_SUCCESS;
+} 
+
+int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record_set){
+	if( !*record_set) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);
+  	logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);    
+    return OPH_IOSTORAGE_NULL_PARAM;
+  }
+
+	long long j = 0;
+  
+  if((*record_set)->record_set != NULL){
 	  free((*record_set)->record_set);
 	  (*record_set)->record_set = NULL;
   }
+
+  if((*record_set)->frag_name) free((*record_set)->frag_name);
 
   if((*record_set)->field_name){
     for(j = 0; j < (*record_set)->field_num; j++){
@@ -286,6 +335,8 @@ int oph_iostore_destroy_frag_recordset(oph_iostore_frag_record_set **record_set)
 
 	return OPH_IOSTORAGE_SUCCESS;
 } 
+
+
 
 int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num){
 	if( !record_set || !field_num){
