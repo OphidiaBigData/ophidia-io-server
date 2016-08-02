@@ -1,8 +1,10 @@
-/* A Bison parser, made by GNU Bison 2.7.  */
 
-/* Bison interface for Yacc-like parsers in C
+/* A Bison parser, made by GNU Bison 2.4.1.  */
+
+/* Skeleton interface for Bison's Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,17 +32,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_YY_OPH_QUERY_EXPRESSION_PARSER_H_INCLUDED
-# define YY_YY_OPH_QUERY_EXPRESSION_PARSER_H_INCLUDED
-/* Enabling traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-#if YYDEBUG
-extern int yydebug;
-#endif
 /* "%code requires" blocks.  */
-/* Line 2058 of yacc.c  */
+
+/* Line 1676 of yacc.c  */
 #line 13 "oph_query_expression_parser.y"
 
 
@@ -50,8 +44,9 @@ typedef void* yyscan_t;
 #endif
 
 
-/* Line 2058 of yacc.c  */
-#line 55 "oph_query_expression_parser.h"
+
+/* Line 1676 of yacc.c  */
+#line 50 "oph_query_expression_parser.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -59,29 +54,31 @@ typedef void* yyscan_t;
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
    enum yytokentype {
-     NUMBER = 258,
-     SYMBOL = 259
+     SYMBOL = 258,
+     STRING = 259,
+     DECIMAL = 260,
+     INTEGER = 261
    };
 #endif
-/* Tokens.  */
-#define NUMBER 258
-#define SYMBOL 259
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
 {
-/* Line 2058 of yacc.c  */
+
+/* Line 1676 of yacc.c  */
 #line 32 "oph_query_expression_parser.y"
 
-    double value;
+    double double_value;
+    long long long_value;
     char* sym;
     oph_query_expr_node *expression;
 
 
-/* Line 2058 of yacc.c  */
-#line 85 "oph_query_expression_parser.h"
+
+/* Line 1676 of yacc.c  */
+#line 82 "oph_query_expression_parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -89,18 +86,5 @@ typedef union YYSTYPE
 #endif
 
 
-#ifdef YYPARSE_PARAM
-#if defined __STDC__ || defined __cplusplus
-int yyparse (void *YYPARSE_PARAM);
-#else
-int yyparse ();
-#endif
-#else /* ! YYPARSE_PARAM */
-#if defined __STDC__ || defined __cplusplus
-int yyparse (int mode, oph_query_expr_node **expression, yyscan_t scanner);
-#else
-int yyparse ();
-#endif
-#endif /* ! YYPARSE_PARAM */
 
-#endif /* !YY_YY_OPH_QUERY_EXPRESSION_PARSER_H_INCLUDED  */
+

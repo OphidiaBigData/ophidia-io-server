@@ -551,7 +551,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 	if (!offset || (offset<total_row_number))
 	{
 		j=offset;
-		while(orig_record_set->record_set[j] && (!limit || (row_number<limit))) { j++; row_number++; }
+		while(orig_record_set->record_set[j] && (!limit || (row_number<limit))) {j++; row_number++;}
 	}
 
 	oph_iostore_frag_record_set *record_set = NULL;
@@ -587,6 +587,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			{
 				id = offset + 1;
 				oph_query_expr_node *e; 
+        e = NULL;
 				if(oph_query_expr_get_ast(where, &e) != 0){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where);
@@ -607,14 +608,30 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 					return OPH_IO_SERVER_MEMORY_ERROR;
 				}
 
-				double res;
+				oph_query_expr_value* res;
+        res = NULL;
 				long long k = 0;
 				for (j = 0; j < total_row_number; j++, id++)
 				{
-					oph_query_expr_add_variable("id_dim",id,table);    
+					oph_query_expr_add_long("id_dim",id,table);    
 					if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
 						//Create index record
-						if(res){
+            long long result;
+						if(res->type == OPH_QUERY_EXPR_TYPE_DOUBLE){
+              result = (long long) res->data.double_value;
+              free(res);
+            }else if(res->type == OPH_QUERY_EXPR_TYPE_LONG){
+              result = res->data.long_value;
+              free(res);
+            }else {
+              //this error message is not that accurate change it. means that the result of the evaluation was not a number
+              free(res);
+              pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where);
+              logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where);
+              return OPH_IO_SERVER_PARSE_ERROR;
+            }
+
+            if(result){
 							record_set->record_set[k++] = orig_record_set->record_set[j];  
 							pmesg(LOG_DEBUG, __FILE__, __LINE__, "id_dim = %d has been considered in where condition\n", id);
 							logging(LOG_DEBUG, __FILE__, __LINE__, "id_dim = %d has been considered in where condition\n", id);

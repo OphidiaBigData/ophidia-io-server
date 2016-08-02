@@ -20,7 +20,6 @@ WS          [ \r\n\t]*
 %%
  
 {WS}            { /* Skip blanks. */ }
-
 "mysql."
 "*"			    { return '*'; }
 "+"	            { return '+'; }
@@ -30,20 +29,33 @@ WS          [ \r\n\t]*
 ")"		        { return ')'; }
 ","				{ return ','; }
 "~"				{ return '~'; }
+"="			    { return '='; }
 "and"			{ return '&'; }
 "AND"			{ return '&'; }
 "&&" 			{ return '&'; }
 "|"|OR|OR   	{ return '|'; }
 MOD|% 			{ return '%'; }  
 !|NOT 			{ return '!'; }
-
+[0-9]+	{
+				yylval->long_value = strtoll(yytext, NULL, 10); 
+				return INTEGER;
+		}
 [0-9]+"."[0-9]*{EXP}? |
-"."?[0-9]+{EXP}? {yylval->value = atof(yytext); 
-				  return NUMBER;}
-
-[a-zA-Z_$][a-zA-Z0-9_$]*	{
-				yylval->sym = strdup(yytext);
-				return SYMBOL;
-			}
+"."[0-9]+{EXP}? |
+"."?[0-9]+{EXP}  {
+				  yylval->double_value = strtod(yytext, NULL); 
+				  return DECIMAL;
+				 }
+[a-zA-Z_$][a-zA-Z0-9_$]* {
+						  yylval->sym = strdup(yytext);
+						  return SYMBOL;
+					     }
+'([^']*)' |
+\"[^"\\]*(?s:\\.[^"\\]*)*\" {		
+							yylval->sym = strndup(yytext+1, strlen(yytext)-2);
+							yylval->sym[strlen(yytext)-2] = 0;
+							return STRING;
+							}
 . {}
+
 %%

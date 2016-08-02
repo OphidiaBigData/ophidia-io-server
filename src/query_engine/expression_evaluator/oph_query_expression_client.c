@@ -17,6 +17,7 @@
 */
 
 #include "oph_query_expression_evaluator.h"
+#include "oph_query_parser.h"    
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -33,52 +34,71 @@ int main(void)
     char test_syntax_error[] = "mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),1,1,3) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),6,1,8)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),2,2,6) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),9,1,9))";
     char test_eval_error1[] = "(mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10,2),1,1,3) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),6,1,8)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),2,2,6) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),9,1,9))";
     char test_eval_error2[] = "oph_id_to_index(1)";
-    char test_right1[] = "(mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),1,1,3) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),6,1,8)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),2,2,6) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),9,1,9))";
-    char test_right2[] = "oph_id_to_index(2,1,1,3)";
-
-    oph_query_expr_node *e; 
+    char test_right1[] = "(mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),1,1,1)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),1,1,1))";
+    char test_right2[] = "(mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),1,1,1) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),2,1,2)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),1,1,1) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),7,1,8))";
+    oph_query_expr_node *e;
+    e = NULL;
 
 	//Test 1
+    printf("\nTest 1\n");
+    printf("Expected result: syntax error.\n");
     oph_query_expr_get_ast(test_syntax_error, &e);
 
     oph_query_expr_symtable *table;
     oph_query_expr_create_symtable(&table, 1);
-    double res;
+    oph_query_expr_value *res;
+    res = NULL;
+
 
     //Test 2
+    printf("\nTest 2\n");
     oph_query_expr_get_ast(test_eval_error1, &e);
 
-	oph_query_expr_add_variable("id_dim",1,table);    
-	if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%f\n",res);
-
+	oph_query_expr_add_long("id_dim",1,table);    
+    printf("Expected result: eval error.\n");
+	if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%lld\n",res->data.long_value);
     oph_query_expr_delete_node(e);
 	e = NULL;
 
     //Test 3
+    printf("\nTest 3\n");
     oph_query_expr_get_ast(test_eval_error2, &e);
 
-    oph_query_expr_add_variable("id_dim",1,table);    
-    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%f\n",res);
-
+    oph_query_expr_add_long("id_dim",1,table);
+    printf("Expected result: eval error.\n");
+    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%lld\n",res->data.long_value);
+    printf("");
     oph_query_expr_delete_node(e);
     e = NULL;
 
 	//Test 4
+    printf("\nTest 4\n");
     oph_query_expr_get_ast(test_right1, &e);
-
-	oph_query_expr_add_variable("id_dim",2,table);    
-	if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%f\n",res);
+    oph_query_expr_add_long("id_dim",1,table);    
+	if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 1. Actual result: %lld\n",res->data.long_value);
+    if(res != NULL) free(res);
+    oph_query_expr_add_long("id_dim",2,table);    
+    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 0. Actual result: %lld\n",res->data.long_value);
+    if(res != NULL) free(res);
     oph_query_expr_delete_node(e);
     e = NULL;
 
     //Test 5
+    printf("\nTest 5\n");
     oph_query_expr_get_ast(test_right2, &e);
+    oph_query_expr_add_long("id_dim",1,table);    
+    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 1. Actual result: %lld\n",res->data.long_value);
+    if(res != NULL) free(res);
+    oph_query_expr_add_long("id_dim",11,table);    
+    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 1. Actual result: %lld\n",res->data.long_value);
+    if(res != NULL) free(res);
+    oph_query_expr_add_long("id_dim",2,table);    
+    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 0. Actual result: %lld\n",res->data.long_value);
 
-    oph_query_expr_add_variable("id_dim",2,table);    
-    if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%f\n",res);
-
+    if(res != NULL) free(res);
     oph_query_expr_delete_node(e);
+    e = NULL;
     oph_query_expr_destroy_symtable(table);
-    
+
 	return 1;
 }
