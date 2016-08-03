@@ -626,6 +626,11 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
             }else {
               //this error message is not that accurate change it. means that the result of the evaluation was not a number
               free(res);
+              oph_query_expr_delete_node(e);
+              oph_query_expr_destroy_symtable(table);
+              if(field_list) free(field_list);
+              if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
+              oph_iostore_destroy_frag_recordset_only(&record_set);
               pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where);
               logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where);
               return OPH_IO_SERVER_PARSE_ERROR;
