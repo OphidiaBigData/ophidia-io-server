@@ -19,6 +19,8 @@
 #ifndef __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 #define __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 
+#include "oph_query_parser.h"  
+
 /* Definition of the structure/functions used to contruct and use the symtable (1), 
 build the syntax tree (2), execute type chacks(3) and interact with the library (4).*/
 
@@ -46,7 +48,7 @@ typedef struct _oph_query_expr_value
         double double_value;
         long long long_value;
         char* string_value;
-        struct oph_query_arg* binary_value; 
+        oph_query_arg* binary_value; 
     }data;
 }oph_query_expr_value;
 
@@ -129,7 +131,7 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \param table         The reference to the target symtable 
  * \return              0 if succesfull; non-0 otherwise
  */
- int oph_query_expr_add_binary(const char* name, struct oph_query_arg* value, oph_query_expr_symtable *table);
+ int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_expr_symtable *table);
 
 
 /**
@@ -286,7 +288,7 @@ char* get_string_value(oph_query_expr_value value, int *er, const char* fun_name
 * \param fun_name      The name of the function that is being parsed.
 * \return              Returns the correct binary_value; -1 in case of type error
 */
-struct oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char* fun_name);
+oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char* fun_name);
 
 
 

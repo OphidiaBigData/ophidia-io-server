@@ -92,13 +92,50 @@ int main(void)
     oph_query_expr_add_long("id_dim",11,table);    
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 1. Actual result: %lld\n",res->data.long_value);
     if(res != NULL) free(res);
-    oph_query_expr_add_long("id_dim",2,table);    
+    oph_query_expr_add_long("id_dim",2,table);
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 0. Actual result: %lld\n",res->data.long_value);
 
     if(res != NULL) free(res);
     oph_query_expr_delete_node(e);
     e = NULL;
     oph_query_expr_destroy_symtable(table);
+
+
+    //binary tests
+    printf("\nTest 6\n");
+    char* test_right3 = "oph_id3(id_dim,binary,1)";
+    oph_query_expr_node *e1;
+    e1 = NULL;
+    oph_query_expr_symtable *table1;
+    oph_query_expr_create_symtable(&table1, 2);
+    oph_query_expr_value *res1;
+    res1 = NULL;
+
+    //creation of binary
+    long long a[3] = {7,8,5};
+    char *v = (char*)malloc(3*sizeof(long long));
+    memcpy((void*) v, (long long*) &a, 3*sizeof(long long));
+    oph_query_arg b;
+    b.arg_length = 3*sizeof(long long);
+    b.arg = v;
+    oph_query_expr_add_binary("binary", &b, table1);
+
+    oph_query_expr_get_ast(test_right3, &e1);
+
+    oph_query_expr_add_long("id_dim",2, table1);
+    if(e1 != NULL && !oph_query_expr_eval_expression(e1,&res1,table1)) printf("Expected result: 1. Actual result: %lld\n",res1->data.long_value);
+    if(res1 != NULL) free(res1);
+    oph_query_expr_add_long("id_dim",8, table1);
+    if(e1 != NULL && !oph_query_expr_eval_expression(e1,&res1,table1)) printf("Expected result: 2. Actual result: %lld\n",res1->data.long_value);
+    if(res1 != NULL) free(res1);
+    oph_query_expr_add_long("id_dim",16, table1);
+    if(e1 != NULL && !oph_query_expr_eval_expression(e1,&res1,table1)) printf("Expected result: 3. Actual result: %lld\n",res1->data.long_value);
+    if(res1 != NULL) free(res1);
+
+
+    oph_query_expr_delete_node(e1);
+    oph_query_expr_destroy_symtable(table1);
+    free(v);
 
 	return 1;
 }

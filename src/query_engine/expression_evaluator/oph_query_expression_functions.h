@@ -20,6 +20,7 @@
 #define __OPH_QUERY_EXPRESSION_FUNCTIONS_H__
 
 #include "oph_query_expression_evaluator.h"
+#include "oph_query_parser.h"  
 
 /*These are all the functions that are automatically added to the symtable*/ 
 
@@ -36,6 +37,13 @@ oph_query_expr_value oph_id(oph_query_expr_value* args, int num_args, int *er);
  * \param num_args      Number of arguments
  */
 oph_query_expr_value oph_id2(oph_query_expr_value* args, int num_args, int *er);
+
+/**
+ * \brief               One of the functions that can apper in the parsed query
+ * \param args          A 3 element array (args[0]=id, args[1]=list, args[2]=block_size)
+ * \param num_args      Number of arguments
+ */
+oph_query_expr_value oph_id3(oph_query_expr_value* args, int num_args, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query

@@ -21,7 +21,6 @@
 #include "oph_query_expression_parser.h"
 #include "oph_query_expression_lexer.h"
 #include "oph_query_engine_log_error_codes.h"
-#include "oph_query_parser.h"    
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -171,7 +170,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
         logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
         return OPH_QUERY_ENGINE_NULL_PARAM;  
     }
-    int MIN_SIZE = 5; ///<< should equal be equal to number of built-in functions added to symtable
+    int MIN_SIZE = 6; ///<< should equal be equal to number of built-in functions added to symtable
     (*table) = (oph_query_expr_symtable *)malloc(sizeof (oph_query_expr_symtable));
 
     if((*table) == NULL)
@@ -202,6 +201,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
 
     oph_query_expr_add_function("oph_id", 0, 2, oph_id, (*table));
     oph_query_expr_add_function("oph_id2", 0, 3, oph_id2, (*table));
+    oph_query_expr_add_function("oph_id3", 0, 3, oph_id3, (*table));
     oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, (*table));
     oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2,(*table));
     oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index,(*table));
@@ -308,7 +308,7 @@ int oph_query_expr_add_function(const char* name, int fun_type, int args_num, op
 }
 
 int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_type, double double_value, long long long_value, 
-                                char* string_value, struct oph_query_arg* binary_value, oph_query_expr_symtable *table)
+                                char* string_value, oph_query_arg* binary_value, oph_query_expr_symtable *table)
 {   
     
     if(table == NULL)
@@ -409,9 +409,9 @@ int oph_query_expr_add_string(const char* name, char* value, oph_query_expr_symt
     return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_STRING, 0, 0, value, NULL, table);
 }
 
-int oph_query_expr_add_binary(const char* name, struct oph_query_arg* value, oph_query_expr_symtable *table)
+int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_expr_symtable *table)
 {
-    return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_DOUBLE, 0, 0, NULL, value, table);
+    return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_BINARY, 0, 0, NULL, value, table);
 }
 
 int yyparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
@@ -466,7 +466,7 @@ double get_double_value(oph_query_expr_value value, int *er, const char* fun_nam
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "double or long");
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "double or long");
         *er = -1;
-        return -1;
+        return 1;
     }
 }
 
@@ -479,7 +479,7 @@ long long get_long_value(oph_query_expr_value value, int *er, const char* fun_na
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "long");
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "long");
         *er = -1;
-        return -1;
+        return 1;
     }
 }
 
@@ -497,14 +497,14 @@ char* get_string_value(oph_query_expr_value value, int *er, const char* fun_name
     }
 }
 
-struct oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char* fun_name)
+oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char* fun_name)
 {
     if(value.type == OPH_QUERY_EXPR_TYPE_BINARY)
     {   
        return value.data.binary_value;
     }else{
-        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "string");
-        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "string");
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "binary");
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "binary");
         *er = -1;
         return NULL;
     }
