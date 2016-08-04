@@ -414,7 +414,7 @@ int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_
     return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_BINARY, 0, 0, NULL, value, table);
 }
 
-int yyparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
+int eeparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
 oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type, int *numArgs, int* er, oph_query_expr_symtable *table);
 
 int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
@@ -430,26 +430,26 @@ int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
     YY_BUFFER_STATE state;
 
     //initiate scanner
-    if (yylex_init(&scanner)) {
+    if (eelex_init(&scanner)) {
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_LEXER_INIT_ERROR);
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_LEXER_INIT_ERROR);    
         return OPH_QUERY_ENGINE_ERROR;
     }
  
-    state = yy_scan_string(expr, scanner);
+    state = ee_scan_string(expr, scanner);
  
-    if (yyparse(0, &expression,  scanner)) {
-        yy_delete_buffer(state, scanner);
-        yylex_destroy(scanner);
+    if (eeparse(0, &expression,  scanner)) {
+        ee_delete_buffer(state, scanner);
+        eelex_destroy(scanner);
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, expr);
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, expr);  
         return OPH_QUERY_ENGINE_PARSE_ERROR;
     }
-    yy_delete_buffer(state, scanner);
-    state = yy_scan_string(expr, scanner);
-    yyparse(1, &expression,  scanner);    
-    yy_delete_buffer(state, scanner);
-    yylex_destroy(scanner);
+    ee_delete_buffer(state, scanner);
+    state = ee_scan_string(expr, scanner);
+    eeparse(1, &expression,  scanner);    
+    ee_delete_buffer(state, scanner);
+    eelex_destroy(scanner);
     (*e) = expression;
     return OPH_QUERY_ENGINE_SUCCESS;
 }

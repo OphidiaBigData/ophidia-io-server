@@ -60,6 +60,12 @@ typedef void* yyscan_t;
      INTEGER = 261
    };
 #endif
+/* Tokens.  */
+#define SYMBOL 258
+#define STRING 259
+#define DECIMAL 260
+#define INTEGER 261
+
 
 
 
@@ -68,7 +74,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 32 "oph_query_expression_parser.y"
+#line 27 "oph_query_expression_parser.y"
 
     double double_value;
     long long long_value;
@@ -78,7 +84,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 82 "oph_query_expression_parser.h"
+#line 88 "oph_query_expression_parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

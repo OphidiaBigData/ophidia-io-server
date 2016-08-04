@@ -4,7 +4,7 @@
 #include "oph_query_expression_parser.h"
 #include "oph_query_expression_lexer.h"
 
-int yyerror(int mode, oph_query_expr_node **expression, yyscan_t scanner, const char *msg) {
+int eeerror(int mode, oph_query_expr_node **expression, yyscan_t scanner, const char *msg) {
     printf("%s\n", msg);
 }
 
@@ -18,16 +18,11 @@ typedef void* yyscan_t;
 #endif
 }
 
-%output  "oph_query_expression_parser.c"
-%defines "oph_query_expression_parser.h"
- 
 %define api.pure
 %lex-param   { yyscan_t scanner }
 %parse-param { int mode }
 %parse-param { oph_query_expr_node **expression }
 %parse-param { yyscan_t scanner }
-
-
 
 %union {
     double double_value;

@@ -63,6 +63,14 @@
 /* Using locations.  */
 #define YYLSP_NEEDED 0
 
+/* Substitute the variable and function names.  */
+#define yyparse         eeparse
+#define yylex           eelex
+#define yyerror         eeerror
+#define yylval          eelval
+#define yychar          eechar
+#define yydebug         eedebug
+#define yynerrs         eenerrs
 
 
 /* Copy the first part of user declarations.  */
@@ -75,14 +83,14 @@
 #include "oph_query_expression_parser.h"
 #include "oph_query_expression_lexer.h"
 
-int yyerror(int mode, oph_query_expr_node **expression, yyscan_t scanner, const char *msg) {
+int eeerror(int mode, oph_query_expr_node **expression, yyscan_t scanner, const char *msg) {
     printf("%s\n", msg);
 }
 
 
 
 /* Line 189 of yacc.c  */
-#line 86 "oph_query_expression_parser.c"
+#line 94 "oph_query_expression_parser.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -116,7 +124,7 @@ typedef void* yyscan_t;
 
 
 /* Line 209 of yacc.c  */
-#line 120 "oph_query_expression_parser.c"
+#line 128 "oph_query_expression_parser.c"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -130,6 +138,12 @@ typedef void* yyscan_t;
      INTEGER = 261
    };
 #endif
+/* Tokens.  */
+#define SYMBOL 258
+#define STRING 259
+#define DECIMAL 260
+#define INTEGER 261
+
 
 
 
@@ -138,7 +152,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 32 "oph_query_expression_parser.y"
+#line 27 "oph_query_expression_parser.y"
 
     double double_value;
     long long long_value;
@@ -148,7 +162,7 @@ typedef union YYSTYPE
 
 
 /* Line 214 of yacc.c  */
-#line 152 "oph_query_expression_parser.c"
+#line 166 "oph_query_expression_parser.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -160,7 +174,7 @@ typedef union YYSTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 164 "oph_query_expression_parser.c"
+#line 178 "oph_query_expression_parser.c"
 
 #ifdef short
 # undef short
@@ -450,9 +464,9 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    55,    55,    56,    60,    61,    62,    63,    64,    65,
-      66,    67,    68,    69,    70,    71,    72,    73,    75,    77,
-      82,    83
+       0,    50,    50,    51,    55,    56,    57,    58,    59,    60,
+      61,    62,    63,    64,    65,    66,    67,    68,    70,    72,
+      77,    78
 };
 #endif
 
@@ -1396,150 +1410,150 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 55 "oph_query_expression_parser.y"
-    {if(mode) *expression = (yyvsp[(1) - (1)].expression);;}
+#line 50 "oph_query_expression_parser.y"
+    {if(mode) *expression = (yyvsp[(1) - (1)].expression);}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 56 "oph_query_expression_parser.y"
-    {*expression = NULL; return 1;;}
+#line 51 "oph_query_expression_parser.y"
+    {*expression = NULL; return 1;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 60 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( ePLUS, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) );;}
+#line 55 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( ePLUS, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) );}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 61 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eMULTIPLY, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 56 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eMULTIPLY, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 62 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eMINUS, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 57 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eMINUS, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 63 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eDIVIDE, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 58 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eDIVIDE, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 64 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eEQUAL, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 59 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eEQUAL, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 65 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eMOD, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 60 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eMOD, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 66 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eAND, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 61 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eAND, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 67 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eOR, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); ;}
+#line 62 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eOR, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression) ); }
     break;
 
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 68 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eNOT, NULL, (yyvsp[(2) - (2)].expression) ); ;}
+#line 63 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation( eNOT, NULL, (yyvsp[(2) - (2)].expression) ); }
     break;
 
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 69 "oph_query_expression_parser.y"
-    { (yyval.expression) = oph_query_expr_create_operation( eNEG, NULL, (yyvsp[(2) - (2)].expression) ); ;}
+#line 64 "oph_query_expression_parser.y"
+    { (yyval.expression) = oph_query_expr_create_operation( eNEG, NULL, (yyvsp[(2) - (2)].expression) ); }
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 70 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = (yyvsp[(2) - (3)].expression); ;}
+#line 65 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = (yyvsp[(2) - (3)].expression); }
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 71 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_double((yyvsp[(1) - (1)].double_value));;}
+#line 66 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_double((yyvsp[(1) - (1)].double_value));}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 72 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_long((yyvsp[(1) - (1)].long_value));;}
+#line 67 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_long((yyvsp[(1) - (1)].long_value));}
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 73 "oph_query_expression_parser.y"
+#line 68 "oph_query_expression_parser.y"
     {if(mode) (yyval.expression) = oph_query_expr_create_variable((yyvsp[(1) - (1)].sym));
-              else free((yyvsp[(1) - (1)].sym));;}
+              else free((yyvsp[(1) - (1)].sym));}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 75 "oph_query_expression_parser.y"
+#line 70 "oph_query_expression_parser.y"
     {if(mode) (yyval.expression) = oph_query_expr_create_function((yyvsp[(1) - (4)].sym),(yyvsp[(3) - (4)].expression));
-                               else free((yyvsp[(1) - (4)].sym));;}
+                               else free((yyvsp[(1) - (4)].sym));}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 77 "oph_query_expression_parser.y"
+#line 72 "oph_query_expression_parser.y"
     {if(mode) (yyval.expression) = oph_query_expr_create_string((yyvsp[(1) - (1)].sym));
-              else free((yyvsp[(1) - (1)].sym));;}
+              else free((yyvsp[(1) - (1)].sym));}
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 82 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation(eARG, (yyvsp[(1) - (1)].expression), NULL);;}
+#line 77 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation(eARG, (yyvsp[(1) - (1)].expression), NULL);}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 83 "oph_query_expression_parser.y"
-    {if(mode) (yyval.expression) = oph_query_expr_create_operation(eARG, (yyvsp[(3) - (3)].expression), (yyvsp[(1) - (3)].expression));;}
+#line 78 "oph_query_expression_parser.y"
+    {if(mode) (yyval.expression) = oph_query_expr_create_operation(eARG, (yyvsp[(3) - (3)].expression), (yyvsp[(1) - (3)].expression));}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 1543 "oph_query_expression_parser.c"
+#line 1557 "oph_query_expression_parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1751,6 +1765,6 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 85 "oph_query_expression_parser.y"
+#line 80 "oph_query_expression_parser.y"
 
 
