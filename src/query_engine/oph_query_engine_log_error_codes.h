@@ -45,5 +45,9 @@
 #define OPH_QUERY_ENGINE_LOG_EVAL_ERROR       		"Error while evaluating the expression\n"
 #define OPH_QUERY_ENGINE_LOG_FULL_SYMTABLE       	"Symtable is full\n"
 #define OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR 			"Wrong number of arguments for function '%s.' Expected %d args. \n"
+#define OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR         "Wrong argument type for function '%s.' Expected %s. \n"
+#define OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL         "Unknown  symbol '%s'. \n"
+
+
 
 #endif  //__OPH_QUERY_ENGINE_LOG_ERROR_CODES_H

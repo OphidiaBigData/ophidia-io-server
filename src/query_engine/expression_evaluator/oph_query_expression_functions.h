@@ -19,6 +19,9 @@
 #ifndef __OPH_QUERY_EXPRESSION_FUNCTIONS_H__
 #define __OPH_QUERY_EXPRESSION_FUNCTIONS_H__
 
+#include "oph_query_expression_evaluator.h"
+#include "oph_query_parser.h"  
+
 /*These are all the functions that are automatically added to the symtable*/ 
 
 /**
@@ -26,41 +29,44 @@
  * \param args          A 2 element array (args[0]=id, args[1]=size)
  * \param num_args      Number of arguments
  */
-double oph_id(double* args, int num_args);
+oph_query_expr_value oph_id(oph_query_expr_value* args, int num_args, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
  * \param args          A 3 element array (args[0]=id, args[1]=size, args[2]=block_size)
  * \param num_args      Number of arguments
  */
-double oph_id2(double* args, int num_args);
+oph_query_expr_value oph_id2(oph_query_expr_value* args, int num_args, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
- * \param args          A 4 element array (args[0]=id, args[1]=start, args[2]=step, args[3]=size)
+ * \param args          A 3 element array (args[0]=id, args[1]=list, args[2]=block_size)
  * \param num_args      Number of arguments
  */
-double oph_is_in_subset(double* args, int num_args);
-
-/**
- * \brief               One of the functions that can apper in the parsed query
- * \param args          A 3 element array (args[0]=id, args[1]=block_size, args[2]=size)
- * \param num_args      Number of arguments
- */
-double oph_id_to_index2(double* args, int num_args);
+oph_query_expr_value oph_id3(oph_query_expr_value* args, int num_args, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
  * \param args          An array of at least 2 elements (args[0]=id,args[1]=size,...)
  * \param num_args      Number of arguments
  */
-double oph_id_to_index (double* args, int num_args);
+oph_query_expr_value oph_id_to_index (oph_query_expr_value* args, int num_args, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
- * \param args          An array of at least 2 elements (args[0]=val1,args[1]=val2,...)
+ * \param args          A 3 element array (args[0]=id, args[1]=block_size, args[2]=size)
  * \param num_args      Number of arguments
  */
-double sum(double* args, int num_args);
+oph_query_expr_value oph_id_to_index2(oph_query_expr_value* args, int num_args, int *er);
+
+/**
+ * \brief               One of the functions that can apper in the parsed query
+ * \param args          A 4 element array (args[0]=id, args[1]=start, args[2]=step, args[3]=size)
+ * \param num_args      Number of arguments
+ */
+oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, int *er);
 
 #endif // __OPH_QUERY_EXPRESSION_FUNCTIONS_H__
+
+//id3
+//id_of_subset

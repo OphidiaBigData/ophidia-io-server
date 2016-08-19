@@ -22,7 +22,12 @@ endif
 
 noinst_LTLIBRARIES=liboph_query_expression_evaluator.la
 
-BUILT_SOURCES = oph_query_expression_parser.h oph_query_expression_parser.c oph_query_expression_lexer.h oph_query_expression_lexer.c  
+BUILT_SOURCES = oph_query_expression_parser.h oph_query_expression_parser.c oph_query_expression_lexer.h oph_query_expression_lexer.c
+AM_YFLAGS = -d --name-prefix=ee
+AM_LFLAGS = --prefix=ee
+
+.l.c:
+	$(LEXCOMPILE) oph_query_expression_lexer.l
 
 liboph_query_expression_evaluator_la_SOURCES = oph_query_expression_functions.c oph_query_expression_parser.y oph_query_expression_lexer.l oph_query_expression_evaluator.c
 liboph_query_expression_evaluator_la_CFLAGS = $(OPT) -I../../common -I.. -fPIC @INCLTDL@ -DOPH_IO_SERVER_PREFIX=\"${prefix}\"

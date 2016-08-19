@@ -42,15 +42,13 @@ static oph_query_expr_node *allocate_node()
 
     //set a temporary value and type
     b->type = eVALUE;
-    b->value = 0;
-
     b->left = NULL;
     b->right = NULL;
 
     return b;
 }
 
-oph_query_expr_node *oph_query_expr_create_number(double value)
+oph_query_expr_node *oph_query_expr_create_double(double value)
 {
     oph_query_expr_node *b = allocate_node();
 
@@ -59,7 +57,52 @@ oph_query_expr_node *oph_query_expr_create_number(double value)
         return NULL;
 
     b->type = eVALUE;
-    b->value = value;
+    b->value.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+    b->value.data.double_value = value;
+
+    return b;
+}
+
+oph_query_expr_node *oph_query_expr_create_long(long long value)
+{
+    oph_query_expr_node *b = allocate_node();
+
+    if (b == NULL)
+        //no space for allocation
+        return NULL;
+
+    b->type = eVALUE;
+    b->value.type = OPH_QUERY_EXPR_TYPE_LONG;
+    b->value.data.long_value = value;
+
+    return b;
+}
+
+oph_query_expr_node *oph_query_expr_create_string(char* value)
+{
+    oph_query_expr_node *b = allocate_node();
+
+    if (b == NULL)
+        //no space for allocation
+        return NULL;
+
+    b->type = eVALUE;
+    b->value.type = OPH_QUERY_EXPR_TYPE_STRING;
+    b->value.data.string_value = value;
+
+    return b;
+}
+
+oph_query_expr_node *oph_query_expr_create_variable(char* name){
+
+    oph_query_expr_node *b = allocate_node();
+
+    if (b == NULL)
+        //no space for allocation
+        return NULL;
+
+    b->type = eVAR;
+    b->name = name;
 
     return b;
 }
@@ -69,6 +112,7 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
     oph_query_expr_node *b = allocate_node();
 
     if (b == NULL)
+        //no space for allocation
         return NULL;
 
     b->type = eFUN;
@@ -79,24 +123,12 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
 	return b;
 }
 
-oph_query_expr_node *oph_query_expr_create_variable(char* name){
-
-    oph_query_expr_node *b = allocate_node();
-
-    if (b == NULL)
-        return NULL;
-
-    b->type = eVAR;
-    b->name = name;
-
-    return b;
-}
-
 oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type type, oph_query_expr_node *left, oph_query_expr_node *right)
 {
     oph_query_expr_node *b = allocate_node();
 
     if (b == NULL)
+        //no space for allocation
         return NULL;
 
     b->type = type;
@@ -117,6 +149,10 @@ int oph_query_expr_delete_node(oph_query_expr_node *b)
         free(b->name);
     }
 
+    if(b->type == eVALUE && b->value.type == OPH_QUERY_EXPR_TYPE_STRING){
+        free(b->value.data.string_value);
+    }
+
     //call function recursevely nodes
     oph_query_expr_delete_node(b->left);
     oph_query_expr_delete_node(b->right);
@@ -134,7 +170,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
         logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
         return OPH_QUERY_ENGINE_NULL_PARAM;  
     }
-    int MIN_SIZE = 5; ///<< should equal be equal to number of built-in functions added to symtable
+    int MIN_SIZE = 6; ///<< should equal be equal to number of built-in functions added to symtable
     (*table) = (oph_query_expr_symtable *)malloc(sizeof (oph_query_expr_symtable));
 
     if((*table) == NULL)
@@ -162,15 +198,17 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
 
     //add all the built-in variable and functions (if adding new built-in remember to change MIN_SIZE)
     //oph_query_expr_add_variable("b",-1,(*table));
-    oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index, (*table));
+
     oph_query_expr_add_function("oph_id", 0, 2, oph_id, (*table));
     oph_query_expr_add_function("oph_id2", 0, 3, oph_id2, (*table));
+    oph_query_expr_add_function("oph_id3", 0, 3, oph_id3, (*table));
     oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, (*table));
     oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2,(*table));
+    oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index,(*table));
     return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_expr_destroy_symtable(oph_query_expr_symtable* table)
+int oph_query_expr_destroy_symtable(oph_query_expr_symtable* table) //essere sicuro di non perdere bits
 {   
     if(table == NULL)
     {
@@ -186,6 +224,10 @@ int oph_query_expr_destroy_symtable(oph_query_expr_symtable* table)
         if (table->array[i] != NULL) 
             {   
                 free(table->array[i]->name);
+                if(table->array[i]->type == 1 && table->array[i]->value.type == OPH_QUERY_EXPR_TYPE_STRING)
+                {   
+                    free(table->array[i]->value.data.string_value);
+                }
                 free(table->array[i]);
             }
     }
@@ -213,7 +255,7 @@ oph_query_expr_record* oph_query_expr_lookup(const char *s, oph_query_expr_symta
 }
 
 
-int oph_query_expr_add_function(const char* name, int fun_type, int args_num, double (*value_fun)(double*, int), oph_query_expr_symtable *table)
+int oph_query_expr_add_function(const char* name, int fun_type, int args_num, oph_query_expr_value (*value_fun)(oph_query_expr_value*, int, int*), oph_query_expr_symtable *table)
 {   
     if(table == NULL || args_num < 0 || value_fun == NULL)
     {
@@ -265,8 +307,10 @@ int oph_query_expr_add_function(const char* name, int fun_type, int args_num, do
     return OPH_QUERY_ENGINE_MEMORY_ERROR;
 }
 
-int oph_query_expr_add_variable(const char* name, double value, oph_query_expr_symtable *table)
+int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_type, double double_value, long long long_value, 
+                                char* string_value, oph_query_arg* binary_value, oph_query_expr_symtable *table)
 {   
+    
     if(table == NULL)
     {
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -274,7 +318,7 @@ int oph_query_expr_add_variable(const char* name, double value, oph_query_expr_s
         return OPH_QUERY_ENGINE_NULL_PARAM;  
     }
 
-    //create a record using the parameters infos
+    //create a record
     oph_query_expr_record *sp;
     sp = (oph_query_expr_record *)malloc(sizeof (oph_query_expr_record));
     if(sp == NULL)
@@ -291,8 +335,44 @@ int oph_query_expr_add_variable(const char* name, double value, oph_query_expr_s
         free(sp);
         return OPH_QUERY_ENGINE_MEMORY_ERROR;
     }
+
     sp->type = 1;
-    sp->value = value; 
+
+    switch(var_type) 
+    {
+        case OPH_QUERY_EXPR_TYPE_DOUBLE: 
+            {
+                sp->value.data.double_value = double_value;
+                sp->value.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                break;
+            }
+        case OPH_QUERY_EXPR_TYPE_LONG: 
+            {
+                sp->value.data.long_value = long_value;
+                sp->value.type = OPH_QUERY_EXPR_TYPE_LONG;
+                break;
+
+            }
+        case OPH_QUERY_EXPR_TYPE_STRING: 
+            {
+                sp->value.data.string_value = strdup(string_value);
+                sp->value.type = OPH_QUERY_EXPR_TYPE_STRING;
+                break;
+            } 
+        case OPH_QUERY_EXPR_TYPE_BINARY: 
+            {
+                sp->value.data.binary_value = binary_value;
+                sp->value.type = OPH_QUERY_EXPR_TYPE_BINARY;
+                break;
+            }
+        default: 
+            {
+                //cambiare il tipo di errore per essere piu'descrittivo
+                pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+                logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+                return OPH_QUERY_ENGINE_MEMORY_ERROR;
+            }     
+    }
 
     int max = table->maxSize;
     int i = 0;
@@ -305,21 +385,37 @@ int oph_query_expr_add_variable(const char* name, double value, oph_query_expr_s
             }
 
         if(table->array[i]->type == 1 && strcmp(table->array[i]->name, name) == 0){
-            table->array[i]->value = value;
+            table->array[i]->value = sp->value;
             free(sp->name);
             free(sp);
             return OPH_QUERY_ENGINE_SUCCESS;
         }
     }
-
-    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_FULL_SYMTABLE);
-    logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_FULL_SYMTABLE);
-    return OPH_QUERY_ENGINE_MEMORY_ERROR;
 }
 
+int oph_query_expr_add_double(const char* name, double value, oph_query_expr_symtable *table)
+{
+    return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_DOUBLE, value, 0, NULL, NULL, table);
+}
 
-int yyparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
-double* get_array_args(char* name, oph_query_expr_node *e, int fun_type, int *numArgs, int* er, oph_query_expr_symtable *table);
+int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_symtable *table)
+{
+    return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_LONG, 0, value, NULL, NULL, table);
+}
+
+int oph_query_expr_add_string(const char* name, char* value, oph_query_expr_symtable *table)
+{
+    //redirect to more general function
+    return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_STRING, 0, 0, value, NULL, table);
+}
+
+int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_expr_symtable *table)
+{
+    return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_BINARY, 0, 0, NULL, value, table);
+}
+
+int eeparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
+oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type, int *numArgs, int* er, oph_query_expr_symtable *table);
 
 int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
 {   
@@ -334,93 +430,267 @@ int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
     YY_BUFFER_STATE state;
 
     //initiate scanner
-    if (yylex_init(&scanner)) {
+    if (eelex_init(&scanner)) {
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_LEXER_INIT_ERROR);
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_LEXER_INIT_ERROR);    
         return OPH_QUERY_ENGINE_ERROR;
     }
  
-    state = yy_scan_string(expr, scanner);
+    state = ee_scan_string(expr, scanner);
  
-    if (yyparse(0, &expression,  scanner)) {
-        yy_delete_buffer(state, scanner);
-        yylex_destroy(scanner);
+    if (eeparse(0, &expression,  scanner)) {
+        ee_delete_buffer(state, scanner);
+        eelex_destroy(scanner);
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, expr);
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, expr);  
         return OPH_QUERY_ENGINE_PARSE_ERROR;
     }
-    yy_delete_buffer(state, scanner);
-    state = yy_scan_string(expr, scanner);
-    yyparse(1, &expression,  scanner);    
-    yy_delete_buffer(state, scanner);
-    yylex_destroy(scanner);
+    ee_delete_buffer(state, scanner);
+    state = ee_scan_string(expr, scanner);
+    eeparse(1, &expression,  scanner);    
+    ee_delete_buffer(state, scanner);
+    eelex_destroy(scanner);
     (*e) = expression;
     return OPH_QUERY_ENGINE_SUCCESS;
 }
- 
-double evaluate(oph_query_expr_node *e, int *er, oph_query_expr_symtable *table)
+
+double get_double_value(oph_query_expr_value value, int *er, const char* fun_name)
 {
-    switch (e->type) {
-        case eVALUE:
-            return e->value;
-        case eMULTIPLY:
-            return evaluate(e->left,er, table) * evaluate(e->right, er, table);
-        case ePLUS:
-            return evaluate(e->left, er, table) + evaluate(e->right, er, table);
-        case eMINUS:
-            return evaluate(e->left, er, table) - evaluate(e->right, er, table);
-        case eDIVIDE:
-            return evaluate(e->left, er, table) / evaluate(e->right, er, table);
-        case eMOD:
-            return (int) evaluate(e->left, er, table) % (int) evaluate(e->right, er, table);
-        case eAND:
-            return evaluate(e->left, er, table) && evaluate(e->right, er, table);
-        case eOR:
-            return evaluate(e->left, er, table) || evaluate(e->right, er, table);
-        case eNOT:
-            return  !evaluate(e->right, er, table);
-        case eNEG:
-            return  -evaluate(e->right, er, table); 
-        case eVAR:
-            { oph_query_expr_record* r = oph_query_expr_lookup(e->name, table);
-              if(r != NULL && r->type == 1){
-                return r->value;
-              }else{
-                *er = -1;
-                return 0;
-              }
-            }
-        case eFUN: 
-            {   oph_query_expr_record* r = oph_query_expr_lookup(e->name, table);
-                if(r != NULL && r->type == 2)
-                {
-                    double *args = get_array_args(e->name, e->left, r->fun_type, &(r->numArgs), er, table);
-                    if(args != NULL)
-                    {   
-                        double res = r->function (args, r->numArgs); 
-                        free(args);
-                        return res;
-                    }
-                    else{
-                        *er = -1;
-                        free(args);
-                        return 0;
-                    }
-                }
-                else
-                {   
-                    *er = -1;
-                    return 0; 
-                }
-            }
-        default:
-            *er = -1;
-            return 0;
+    if(value.type == OPH_QUERY_EXPR_TYPE_DOUBLE)
+    {   
+        return value.data.double_value;
+    }else if(value.type == OPH_QUERY_EXPR_TYPE_LONG)
+    {
+        return (double) value.data.long_value;
+    }else{
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "double or long");
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "double or long");
+        *er = -1;
+        return 1;
+    }
+}
+
+long long get_long_value(oph_query_expr_value value, int *er, const char* fun_name)
+{
+    if(value.type == OPH_QUERY_EXPR_TYPE_LONG)
+    {   
+        return value.data.long_value;
+    }else{
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "long");
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "long");
+        *er = -1;
+        return 1;
     }
 }
 
 
-double* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *num_args_required, int* er, oph_query_expr_symtable *table)
+char* get_string_value(oph_query_expr_value value, int *er, const char* fun_name)
+{
+    if(value.type == OPH_QUERY_EXPR_TYPE_STRING)
+    { 
+        return value.data.string_value;
+    }else{
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "string");
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "string");
+        *er = -1;
+        return "";
+    }
+}
+
+oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char* fun_name)
+{
+    if(value.type == OPH_QUERY_EXPR_TYPE_BINARY)
+    {   
+       return value.data.binary_value;
+    }else{
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "binary");
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR, fun_name, "binary");
+        *er = -1;
+        return NULL;
+    }
+}
+ 
+oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_symtable *table)
+{
+    switch (e->type)
+    {
+        case eVALUE:
+            {
+                return e->value;            
+            }
+        case eMULTIPLY:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "*");
+                double r = get_double_value(right, er,"*");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                res.data.double_value = l * r;
+                return res;
+            }
+        case ePLUS:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "+");
+                double r = get_double_value(right, er, "+");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                res.data.double_value = l + r;
+                return res;
+            }  
+        case eMINUS:    
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "-");
+                double r = get_double_value(right, er, "-");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                res.data.double_value = l - r;
+                return res;
+            }   
+        case eDIVIDE:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "/");
+                double r = get_double_value(right, er, "/");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                res.data.double_value = l * r;
+                return res;
+            }    
+        case eEQUAL:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "=");
+                double r = get_double_value(right, er, "=");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_LONG;
+                res.data.long_value = (long long)(l == r);
+                return res;
+            }    
+        case eMOD:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "MOD");
+                double r = get_double_value(right, er, "MOD");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_LONG;
+                res.data.long_value = ((int) l % (int) r);
+                return res;
+            }   
+         case eAND:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "AND");
+                double r = get_double_value(right, er, "AND");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_LONG;
+                res.data.long_value = (long long) l && r;
+                return res;
+            }  
+        case eOR:
+            {
+                oph_query_expr_value left = evaluate(e->left,er, table);
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double l = get_double_value(left, er, "OR");
+                double r = get_double_value(right, er, "OR");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_LONG;
+                res.data.long_value = (long long) (l || r);
+                return res;
+            }
+        case eNOT:
+            {
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double r = get_double_value(right, er, "NOT");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_LONG;
+                res.data.long_value = (long long) !r;
+                return res;
+            }
+        case eNEG:
+            {
+                oph_query_expr_value right = evaluate(e->right, er, table);
+                double r = get_double_value(right, er, "NEG");
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                res.data.double_value = -r;
+                return res;
+            } 
+         case eVAR:
+            { 
+                oph_query_expr_record* r = oph_query_expr_lookup(e->name, table);
+                if(r != NULL && r->type == 1)
+                {
+                    return r->value;
+                }else
+                {
+                    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL, e->name);
+                    logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL, e->name);
+                    *er = -1;
+                    oph_query_expr_value res;
+                    res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                    res.data.double_value = 0;
+                    return res;
+                }
+            }
+        case eFUN: 
+            {   
+                oph_query_expr_record* r = oph_query_expr_lookup(e->name, table);
+                if(r != NULL && r->type == 2)
+                {   
+                    double record_args_num = r->numArgs;
+                    oph_query_expr_value* args = get_array_args(e->name, e->left, r->fun_type, &(r->numArgs), er, table);
+                    if(args != NULL)
+                    {   
+                        oph_query_expr_value res = r->function (args, r->numArgs, er);
+                        r->numArgs = record_args_num; 
+                        free(args);
+                        return res;
+                    }
+                    else
+                    {
+                        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+                        logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM); 
+                        *er = -1;
+                        free(args);
+                        oph_query_expr_value res;
+                        res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                        res.data.double_value = 0;
+                        return res;
+                    }
+                }
+                else
+                {   
+                    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL, e->name);
+                    logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL, e->name);
+                    *er = -1;
+                    oph_query_expr_value res;
+                    res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                    res.data.double_value = 0;
+                    return res; 
+                }
+            }
+        default:
+            {
+                *er = -1;
+                oph_query_expr_value res;
+                res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                res.data.double_value = 0;
+                return res;
+            }
+    }
+}
+
+//helper of evaluate
+oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *num_args_required, int *er, oph_query_expr_symtable *table)
 {   
     int num_args_provided = 0;
     oph_query_expr_node *cur = e;
@@ -433,7 +703,7 @@ double* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *n
     if(!fun_type && num_args_provided != (*num_args_required))
     {
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
-        // logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
         return NULL;
     //if the function has variable num of param (type 1), error if required is less then provided
     }else if(fun_type && num_args_provided < *num_args_required)
@@ -444,7 +714,7 @@ double* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *n
     }
 
 
-    double* arr = (double *)calloc(num_args_provided, sizeof(double));
+    oph_query_expr_value* arr = (oph_query_expr_value *)calloc(num_args_provided, sizeof(oph_query_expr_value));
     cur = e;
     //the loop is reversed so they are put in the array in the same order they appeared in the query
     int i = num_args_provided-1;
@@ -457,8 +727,8 @@ double* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *n
 }
 
 
-int oph_query_expr_eval_expression(oph_query_expr_node *e, double *res, oph_query_expr_symtable *table){
-
+int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value **res, oph_query_expr_symtable *table)
+{
     if(e == NULL || res == NULL || table == NULL)
     {
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -466,7 +736,7 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, double *res, oph_quer
         return OPH_QUERY_ENGINE_NULL_PARAM;  
     }
 
-    double result = 0;
+    oph_query_expr_value* result = (oph_query_expr_value*)malloc(sizeof(oph_query_expr_value));
     int *er = (int *)malloc(sizeof(int));
     if(er == NULL)
     {
@@ -476,23 +746,28 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, double *res, oph_quer
     }
     *er = 0;
 
-    if(e != NULL){
-        result = evaluate(e, er, table);
+    if(e != NULL)
+    {
+        *result = evaluate(e, er, table);
         if(*er != -1)
         {   
-            *res = result;
+            (*res) = result;
             free(er);
             return OPH_QUERY_ENGINE_SUCCESS;  
         }
-        else{
+        else
+        {
             free(er);
+            free(result);
             pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_EVAL_ERROR);
             logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_EVAL_ERROR);    
             return OPH_QUERY_ENGINE_PARSE_ERROR;
         }
  
-    }else{
+    }else
+    {
         free(er);
+        free(result);
         pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_EVAL_ERROR);
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_EVAL_ERROR);    
         return OPH_QUERY_ENGINE_PARSE_ERROR;
