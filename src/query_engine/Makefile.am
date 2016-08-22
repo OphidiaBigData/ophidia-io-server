@@ -19,7 +19,7 @@
 SUBDIRS = expression_evaluator .
 
 if DEBUG 
-OPT+=-DDEBUG
+OPT+=-DDEBUG -DOPH_WITH_VALGRIND 
 endif
 
 noinst_LTLIBRARIES=liboph_query_parser.la liboph_query_engine.la

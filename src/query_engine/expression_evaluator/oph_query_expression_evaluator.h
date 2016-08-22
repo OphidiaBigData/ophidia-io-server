@@ -38,7 +38,6 @@ typedef enum _oph_query_expr_value_type
 
 
 //the value struct, used to store the type of every value
-
 typedef struct _oph_query_expr_value 
 {
     oph_query_expr_value_type type;
@@ -52,23 +51,36 @@ typedef struct _oph_query_expr_value
     }data;
 }oph_query_expr_value;
 
-//the symble table
+/**
+* \brief			Symble table record structure
+* \param name 		name of the object stored	
+* \param type 		type of object (1 for constant, 2 for Function)
+* \param value		Constant or variable value. (only with type 1)
+* \parm  fun_type  	function type: 0 for constant parameters; 1 otherwise; (only with type 2)
+* \param numArgs	Number of function arguments (only with type 2)
+* \param function	Pointer to function (only with type 2)
+*/
 typedef struct _oph_query_expr_record {
-    char *name; /*name of the object stored*/
-    int   type; /* (1 for constant, 2 for Function")*/
+    char *name;
+    int   type;
     
     //ONLY with type 1
-    oph_query_expr_value value;  /* Constant or variable value.  */       //TODO: need to 
+    oph_query_expr_value value;
     
     //ONLY with type 2
-    int fun_type; //0 for constant paramenters; 1 otherwise;   
-    int numArgs;//number of arguments
+    int fun_type;
+    int numArgs;
     oph_query_expr_value (*function) (oph_query_expr_value*, int, int*);
 } oph_query_expr_record;
 
+/**		
+* \brief			Symble table structure		
+* \param maxSize 	size of symtable array		
+* \param array 		array of pointer to oph_query_expr_records. NULL if pointer is not there		
+*/
 typedef struct _oph_query_expr_symtable {
-    int maxSize;//size of symtable array
-    oph_query_expr_record **array;//array of pointer to oph_query_expr_records. NULL if poiter is not there
+    int maxSize;
+    oph_query_expr_record **array;
 } oph_query_expr_symtable;
 
 //functions to interact with symtable
@@ -98,7 +110,7 @@ oph_query_expr_record* oph_query_expr_lookup(const char* name, oph_query_expr_sy
 
 /**
  * \brief               Add to the symtable a variable of type OPH_QUERY_EXPR_TYPE_DOUBLE 
- * \param name          The name of the rew variable
+ * \param name          The name of the new variable
  * \param value         The double_value of the new variable
  * \param table         The reference to the target symtable 
  * \return              0 if succesfull; non-0 otherwise
@@ -140,7 +152,7 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \param fun_type      0 if the funtion takes a fized param number; 1 otherwhise;
  * \param numArgs       The number of args accepted by the fuction
  * \param function      A reference to an implementation of the function
- * \param table         A reference to the target symtable
+ * \param symtable      A reference to the target symtable
  * \return              0 if succesfull; non-0 otherwise
  */
 int oph_query_expr_add_function(const char* name, int fun_type, int numArgs, oph_query_expr_value (*function) (oph_query_expr_value *, int, int*), oph_query_expr_symtable* symtable);
@@ -173,17 +185,22 @@ typedef enum _oph_query_expr_node_type
 
 
 /**
- * The node structure
- */	
+* \brief			The node structure
+* \param type 		type of node	
+* \param left 		left side of the tree		
+* \param right		right side of the tree		
+* \param value		node value; valid only when type is eVALUE		
+* \param name		node name; valid only when type is eVAR e eFUN		
+*/
 typedef struct _oph_query_expr_node
 {
-    oph_query_expr_node_type type;///< type of node
-    struct _oph_query_expr_node *left; ///< left side of the tree
-    struct _oph_query_expr_node *right;///< right side of the tree
+    oph_query_expr_node_type type;
+    struct _oph_query_expr_node *left;
+    struct _oph_query_expr_node *right;
 
-    oph_query_expr_value value;///< valid only when type is eVALUE
+    oph_query_expr_value value;
 
-    char* name;///<valid only when type is eVAR e eFUN
+    char* name;
 } oph_query_expr_node;
 
 /**
@@ -272,7 +289,7 @@ long long get_long_value(oph_query_expr_value value, int *er, const char* fun_na
 * \brief               Given an oph_query_expr_value returns its string_value if possible. 
                        If the oph_query_expr_value is of the wrong type, it sets *er equal to -1
                        returns NULL.  
-* \param value         The target oph_query_expr_valueS
+* \param value         The target oph_query_expr_value
 * \param er            A pointer to an error flag. Is set to -1 to comunicate an evaluation error
 * \param fun_name      The name of the function that is being parsed.
 * \return              Returns the correct string_value; -1 in case of type error

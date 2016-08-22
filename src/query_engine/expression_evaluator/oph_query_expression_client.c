@@ -67,7 +67,7 @@ int main(void)
     oph_query_expr_add_long("id_dim",1,table);
     printf("Expected result: eval error.\n");
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%lld\n",res->data.long_value);
-    printf("");
+
     oph_query_expr_delete_node(e);
     e = NULL;
 

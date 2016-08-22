@@ -431,10 +431,6 @@ omp_set_num_threads(omp_thread_num);
 
 	*message=0;
 	if(_oph_plugin_init (&initid, &tmp_args, message)){
-		pthread_mutex_lock(&libtool_lock);
-		lt_dlclose(dlh);
-		lt_dlexit();
-		pthread_mutex_unlock(&libtool_lock);
 		free_udf_arg(&tmp_args);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
 		free(message);
@@ -502,6 +498,7 @@ omp_set_num_threads(omp_thread_num);
 
 
   //Release functions
+#ifndef OPH_WITH_VALGRIND
 	//Close dynamic loaded library
 pthread_mutex_lock(&libtool_lock);
 	if ((lt_dlclose(dlh)))
@@ -523,7 +520,7 @@ pthread_mutex_unlock(&libtool_lock);
 		return -1;
 	}
 pthread_mutex_unlock(&libtool_lock);
-
+#endif
 	return 0;
 }
 
@@ -789,10 +786,6 @@ omp_set_num_threads(omp_thread_num);
 
 	*message=0;
 	if(_oph_plugin_init (&initid, &tmp_args, message)){
-		pthread_mutex_lock(&libtool_lock);
-		lt_dlclose(dlh);
-		lt_dlexit();
-		pthread_mutex_unlock(&libtool_lock);
 		free_udf_arg(&tmp_args);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
 		free(message);
@@ -860,6 +853,7 @@ omp_set_num_threads(omp_thread_num);
   }
 
   //Release functions
+#ifndef OPH_WITH_VALGRIND
 	//Close dynamic loaded library
 pthread_mutex_lock(&libtool_lock);
 	if ((lt_dlclose(dlh)))
@@ -879,6 +873,7 @@ pthread_mutex_unlock(&libtool_lock);
 		return -1;
 	}
 pthread_mutex_unlock(&libtool_lock);
+#endif
 
 	return 0;
 }

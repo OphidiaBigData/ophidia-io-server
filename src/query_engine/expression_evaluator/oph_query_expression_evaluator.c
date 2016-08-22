@@ -208,7 +208,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
     return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_expr_destroy_symtable(oph_query_expr_symtable* table) //essere sicuro di non perdere bits
+int oph_query_expr_destroy_symtable(oph_query_expr_symtable* table)
 {   
     if(table == NULL)
     {
@@ -367,9 +367,8 @@ int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_
             }
         default: 
             {
-                //cambiare il tipo di errore per essere piu'descrittivo
-                pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
-                logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+                pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_TYPE);
+                logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_TYPE);
                 return OPH_QUERY_ENGINE_MEMORY_ERROR;
             }     
     }
