@@ -58,6 +58,8 @@
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR       "Unable to perform INSERT operation due to missing table info\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR       "Unable to perform INSERT: field name not found in table\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_TYPE_ERROR  "Unable to perform INSERT: field type does not correspond to table\n"
+#define OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR						"Unable to perform SELECTION\n"
+#define OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR								"Unable to compute LIMIT values\n"
 #define OPH_IO_SERVER_LOG_API_SETUP_ERROR                 "Unable to setup specified device: %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR              "Error while executing %s API\n"
 #define OPH_IO_SERVER_LOG_LOCK_ERROR                      "Unable to execute mutex lock\n"
@@ -133,6 +135,7 @@ typedef struct{
 /**
  * \brief               Function used to dispatch query and execute the correct operation
  * \param meta_db       Pointer to metadb
+ * \param dev_handle 		Handler to current IO server device
  * \param thread_status Status of thread executing the query
  * \param args          Additional query arguments
  * \param query_args    Hash table containing args to be selected
@@ -140,6 +143,43 @@ typedef struct{
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, HASHTBL *plugin_table);
+
+//Internal functions used to execute query main blocks
+
+/**
+ * \brief               Internal function used to compute offset and limit of a query (LIMIT block)
+ * \param query_args    Hash table containing args to be selected
+ * \param offset       	Arg to be filled with offset value
+ * \param limit 		Arg to be filled with limit value
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, long long *limit);
+
+/**
+ * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of create as select. 
+ * \param query_args    Hash table containing args to be selected
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 		Handler to current IO server device
+ * \param thread_status Status of thread executing the query
+ * \param stored_rs    	Pointer to be filled with original stored recordset
+ * \param input_row_num Arg to be filled with total number of rows in filtered recordset
+ * \param input_rs 		Pointer to be filled with filtered recordset
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs);
+
+/**
+ * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of select. 
+ * \param query_args    Hash table containing args to be selected
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 		Handler to current IO server device
+ * \param thread_status Status of thread executing the query
+ * \param stored_rs    	Pointer to be filled with original stored recordset
+ * \param input_row_num Arg to be filled with total number of rows in filtered recordset
+ * \param input_rs 		Pointer to be filled with filtered recordset
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs);
 
 /**
  * \brief               Function used to release thread status resources
