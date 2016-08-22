@@ -383,6 +383,9 @@ gettimeofday(&start_time, NULL);
           result_buffer = tmp_buffer;
         }
 
+		//If non-empty record set
+      if(global_status.last_result_set->record_set != NULL){
+
 	      while(global_status.last_result_set->record_set[i]){
 		  //Send each row of result set
 		  for(j = 0; j < num_fields; j++){
@@ -457,7 +460,7 @@ gettimeofday(&start_time, NULL);
 		  }
 		  i++;
 	      }
-
+		}
         payload_len = k - (m + sizeof(unsigned long long) + sizeof(unsigned long long) + sizeof(unsigned int));
         memcpy(result_buffer+m,(void *)&payload_len,sizeof(unsigned long long));
         m += sizeof(unsigned long long);
