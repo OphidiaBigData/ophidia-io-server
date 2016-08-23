@@ -28,9 +28,16 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 
 //---------- 1
 
+/**
+* \brief             Descriptor of udf primitives
+* \param initialized The descriptor is already beein initialized through an init function   
+* \param dlh         Pointer to the structures initialized by an init function
+* \param plugin_api  plugin information
+* \param initid      Pointer used by udf primitives
+*/
 typedef struct _oph_query_expr_udf_descriptor
 {   
-    int initialized;    
+    int initialized;
     void* dlh;
     plugin_api function;
     UDF_INIT initid;
@@ -45,8 +52,15 @@ typedef enum _oph_query_expr_value_type
     OPH_QUERY_EXPR_TYPE_BINARY
 } oph_query_expr_value_type;
 
-
-//the value struct, used to store the type of every value
+//
+/**
+* \brief              Struct used to store the values of every type
+* \param type         Type of the value stored   
+* \param double_value Value if type is double
+* \param long_value   Value if type is long
+* \param string_value Value if type is string
+* \param binary_value Pointer to value if type is binary
+*/
 typedef struct _oph_query_expr_value 
 {
     oph_query_expr_value_type type;
@@ -56,7 +70,7 @@ typedef struct _oph_query_expr_value
         double double_value;
         long long long_value;
         char* string_value;
-        oph_query_arg* binary_value; 
+        oph_query_arg* binary_value;
     }data;
 }oph_query_expr_value;
 

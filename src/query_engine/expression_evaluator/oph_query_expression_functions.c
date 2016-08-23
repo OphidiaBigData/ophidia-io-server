@@ -184,7 +184,7 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, 
     return res;
 }
 
-oph_query_expr_value oph_query_function_long(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
+oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;

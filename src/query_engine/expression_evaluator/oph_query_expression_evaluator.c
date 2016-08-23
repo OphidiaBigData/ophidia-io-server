@@ -5,7 +5,7 @@
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.x
+    (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -156,7 +156,8 @@ int oph_query_expr_delete_node(oph_query_expr_node *b, oph_query_expr_symtable* 
         oph_query_expr_record* r = oph_query_expr_lookup(b->name, table);
         if(table != NULL && r != NULL && r->type == 2)
         {
-            r->function (NULL, 0, b->name, &(b->descriptor), 1, 1);
+            int er = 1; 
+            r->function (NULL, 0, b->name, &(b->descriptor), 1, &er);
         }
     }
 

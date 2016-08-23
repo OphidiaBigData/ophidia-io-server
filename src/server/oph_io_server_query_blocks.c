@@ -243,7 +243,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 				if(oph_query_expr_create_symtable(&table, 1)){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-					oph_query_expr_delete_node(e);
+					oph_query_expr_delete_node(e, table);
 					if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
 					oph_iostore_destroy_frag_recordset_only(&record_set);
 					return OPH_IO_SERVER_MEMORY_ERROR;
@@ -267,7 +267,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 						}else {
 						  //this error message is not that accurate change it. means that the result of the evaluation was not a number
 						  free(res);
-						  oph_query_expr_delete_node(e);
+						  oph_query_expr_delete_node(e, table);
 						  oph_query_expr_destroy_symtable(table);
 							if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
 							oph_iostore_destroy_frag_recordset_only(&record_set);
@@ -286,7 +286,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 					{
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR,where);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR,where);
-						oph_query_expr_delete_node(e);
+						oph_query_expr_delete_node(e, table);
 						oph_query_expr_destroy_symtable(table);
 						if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
 						oph_iostore_destroy_frag_recordset_only(&record_set);
@@ -294,7 +294,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 					}
 				}
 
-				oph_query_expr_delete_node(e);
+				oph_query_expr_delete_node(e, table);
 				oph_query_expr_destroy_symtable(table);
 				break;
 			}
