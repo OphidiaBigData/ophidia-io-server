@@ -30,7 +30,7 @@ AM_LFLAGS = --prefix=ee
 	$(LEXCOMPILE) oph_query_expression_lexer.l
 
 liboph_query_expression_evaluator_la_SOURCES = oph_query_expression_functions.c oph_query_expression_parser.y oph_query_expression_lexer.l oph_query_expression_evaluator.c
-liboph_query_expression_evaluator_la_CFLAGS = $(OPT) -I../../common -I.. -fPIC @INCLTDL@ -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+liboph_query_expression_evaluator_la_CFLAGS = $(OPT) -I../../common -I.. -fPIC @INCLTDL@ -DOPH_IO_SERVER_PREFIX=\"${prefix}\" ${MYSQL_CFLAGS}
 liboph_query_expression_evaluator_la_LIBADD = @LIBLTDL@ -L../../common -ldebug -lm
 liboph_query_expression_evaluator_la_LDFLAGS = -module -static
 
@@ -40,6 +40,6 @@ if DEBUG
 bin_PROGRAMS=oph_query_expression_client
 
 oph_query_expression_client_SOURCES = oph_query_expression_client.c
-oph_query_expression_client_CFLAGS = $(OPT) -I../../common  -I.. @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+oph_query_expression_client_CFLAGS = $(OPT) -I../../common  -I.. @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\" ${MYSQL_CFLAGS}
 oph_query_expression_client_LDADD = -L. -loph_query_expression_evaluator -L../../common -ldebug 
 endif

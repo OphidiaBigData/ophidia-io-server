@@ -35,7 +35,7 @@
 /* "%code requires" blocks.  */
 
 /* Line 1676 of yacc.c  */
-#line 13 "oph_query_expression_parser.y"
+#line 20 "oph_query_expression_parser.y"
 
 
 #ifndef YY_TYPEDEF_YY_SCANNER_T
@@ -74,7 +74,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 27 "oph_query_expression_parser.y"
+#line 34 "oph_query_expression_parser.y"
 
     double double_value;
     long long long_value;

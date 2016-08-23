@@ -57,7 +57,7 @@ int main(void)
 	oph_query_expr_add_long("id_dim",1,table);    
     printf("Expected result: eval error.\n");
 	if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%lld\n",res->data.long_value);
-    oph_query_expr_delete_node(e);
+    oph_query_expr_delete_node(e, table);
 	e = NULL;
 
     //Test 3
@@ -67,8 +67,7 @@ int main(void)
     oph_query_expr_add_long("id_dim",1,table);
     printf("Expected result: eval error.\n");
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%lld\n",res->data.long_value);
-    printf("");
-    oph_query_expr_delete_node(e);
+    oph_query_expr_delete_node(e, table);
     e = NULL;
 
 	//Test 4
@@ -80,7 +79,7 @@ int main(void)
     oph_query_expr_add_long("id_dim",2,table);    
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 0. Actual result: %lld\n",res->data.long_value);
     if(res != NULL) free(res);
-    oph_query_expr_delete_node(e);
+    oph_query_expr_delete_node(e, table);
     e = NULL;
 
     //Test 5
@@ -96,7 +95,7 @@ int main(void)
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 0. Actual result: %lld\n",res->data.long_value);
 
     if(res != NULL) free(res);
-    oph_query_expr_delete_node(e);
+    oph_query_expr_delete_node(e, table);
     e = NULL;
     oph_query_expr_destroy_symtable(table);
 
@@ -133,9 +132,30 @@ int main(void)
     if(res1 != NULL) free(res1);
 
 
-    oph_query_expr_delete_node(e1);
+    oph_query_expr_delete_node(e1, table1);
     oph_query_expr_destroy_symtable(table1);
     free(v);
 
-	return 1;
+    //generic tests
+    printf("\nTest 7\n");
+    char* test_right4 = "one(one(1,1),1)";
+    oph_query_expr_node *e2;
+    e2 = NULL;
+    oph_query_expr_symtable *table2;
+    oph_query_expr_create_symtable(&table2, 1);
+    oph_query_expr_value *res2;
+    res2 = NULL;
+
+    oph_query_expr_get_ast(test_right4, &e2);
+
+    int i = 0; 
+    for(;i < 3; i++)
+    {
+        if(e2 != NULL && !oph_query_expr_eval_expression(e2,&res2,table2)) printf("Expected result: 1. Actual result: %f\n",res2->data.double_value);
+        if(res2 != NULL) free(res2);
+    }
+    
+    oph_query_expr_delete_node(e2, table2);
+    oph_query_expr_destroy_symtable(table2);
+    return 1;
 }
