@@ -30,7 +30,9 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 
 /**
 * \brief             Descriptor of udf primitives
-* \param initialized The descriptor is already beein initialized through an init function   
+* \param initialized The descriptor is already beein initialized through an init function 
+* \param aggregate   The 0 if the function is simple 1 if it is aggragate
+* \param clear       For aggregate functions it indicates if the clear action needs to be executed. For simple functions it is ignored.   
 * \param dlh         Pointer to the structures initialized by an init function
 * \param plugin_api  plugin information
 * \param initid      Pointer used by udf primitives
@@ -38,6 +40,8 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 typedef struct _oph_query_expr_udf_descriptor
 {   
     int initialized;
+    int aggregate; 
+    int clear; 
     void* dlh;
     plugin_api function;
     UDF_INIT initid;
@@ -352,5 +356,11 @@ int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e);
  * \return              Returns 0 if operation was successfull; non-0 if otherwise;
  */
 int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value **res, oph_query_expr_symtable *table);
+
+/**
+ * \brief               Set the value of all the functions clear flag to 1 
+ * \param e             A reference to the AST to evaluate
+ */
+int oph_query_expr_change_group(oph_query_expr_node *e);
 
 #endif // __OPH_QUERY_EXPRESSION_EVALUATOR_H__

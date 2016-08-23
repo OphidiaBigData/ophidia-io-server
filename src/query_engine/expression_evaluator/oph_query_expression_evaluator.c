@@ -125,6 +125,7 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
     b->type = eFUN;
     b->name = name;
     b->descriptor.initialized = 0;
+    b->descriptor.clear = 1;
     b->left = args;
     b->right = NULL;
 
@@ -791,4 +792,21 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value 
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_EVAL_ERROR);    
         return OPH_QUERY_ENGINE_PARSE_ERROR;
     }
+}
+
+int oph_query_expr_change_group(oph_query_expr_node *b)
+{   
+    //base case for recursion and error case if null pointer is passed by user
+    if (b == NULL)
+        return OPH_QUERY_ENGINE_NULL_PARAM;
+
+    if(b->type == eFUN){
+        b->descriptor.clear = 1;
+    }
+
+    //call function recursevely nodes
+    oph_query_expr_change_group(b->left);
+    oph_query_expr_change_group(b->rightx);
+    
+    return OPH_QUERY_ENGINE_SUCCESS;
 }
