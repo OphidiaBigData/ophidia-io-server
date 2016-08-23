@@ -47,6 +47,7 @@
 #define OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR 			"Wrong number of arguments for function '%s.' Expected %d args. \n"
 #define OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR         "Wrong argument type for function '%s.' Expected %s. \n"
 #define OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL         "Unknown  symbol '%s'. \n"
+#define OPH_QUERY_ENGINE_LOG_UNKNOWN_TYPE         	"Unknown variable type\n"
 
 
 

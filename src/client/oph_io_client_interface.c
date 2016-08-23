@@ -533,27 +533,11 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
   num_fields = *((unsigned int*)reply_info);
   pmesg(LOG_DEBUG,__FILE__,__LINE__,"Number of fields: %u\n",num_fields);
 
-  //Read payload (binary format)
-  char *reply = (char *)calloc(payload_len ,sizeof(char));
-  if (!reply)
-  {
-    pmesg(LOG_ERROR, __FILE__, __LINE__, "Error allocation memory\n");
-    return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
-  }
-  res = oph_net_readn(connection->socket, reply, payload_len);
-  if (!res)
-  {
-	  pmesg(LOG_ERROR,__FILE__,__LINE__,"No reply\n");
-    free(reply);
-	  return OPH_IO_CLIENT_INTERFACE_CONN_ERR;
-  }
-
   //Rebuild result set struct
   *result_set = (oph_io_client_result *)calloc(1,sizeof(oph_io_client_result));
   if(!(*result_set))  
   {
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-    free(reply);
     *result_set = NULL;
 	  return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
   }
@@ -566,7 +550,6 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
   if(!(*result_set)->max_field_length)
   {
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-    free(reply);
     oph_io_client_free_result(*result_set);
     *result_set = NULL;
 	  return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
@@ -576,7 +559,6 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
   if(!((*result_set)->result_set))
   {
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to alloc memory\n");
-    free(reply);
     oph_io_client_free_result(*result_set);
     *result_set = NULL;
 	  return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
@@ -585,6 +567,21 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
 
   //If result set does contain rows
   if(num_rows > 0){
+	  //Read payload (binary format)
+	  char *reply = (char *)calloc(payload_len ,sizeof(char));
+	  if (!reply)
+	  {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error allocation memory\n");
+		return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
+	  }
+	  res = oph_net_readn(connection->socket, reply, payload_len);
+	  if (!res)
+	  {
+		  pmesg(LOG_ERROR,__FILE__,__LINE__,"No reply\n");
+		free(reply);
+		  return OPH_IO_CLIENT_INTERFACE_CONN_ERR;
+	  }
+
 	  char *sub_reply = (char *)calloc(payload_len ,sizeof(char));
 	  if (!sub_reply)
 	  {
@@ -656,8 +653,8 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
 		  }
 	}
 	free(sub_reply);
+	free(reply);
   }  
-  free(reply);
 
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }

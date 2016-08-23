@@ -54,6 +54,7 @@ int oph_query_engine_start(HASHTBL **plugin_table){
   return OPH_QUERY_ENGINE_SUCCESS;
 }
 
+//This function is obsolete
 int oph_query_engine_run(HASHTBL *plugin_table, const char *plugin_string, oph_iostore_frag_record_set *record_set, oph_iostore_frag_record_set **result_set){
 	if(!plugin_table || !plugin_string || !record_set || !result_set){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -68,7 +69,7 @@ int oph_query_engine_run(HASHTBL *plugin_table, const char *plugin_string, oph_i
   unsigned long l  = 0;
 
   //Select plugin and set arguments	
-  if(oph_parse_plugin(plugin_string, plugin_table, record_set, &plugin, &oph_args, &arg_count)){
+  if(oph_parse_plugin(plugin_string, plugin_table, record_set, &plugin, NULL, &oph_args, &arg_count)){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, plugin_string);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, plugin_string);    
     for(l = 0; l < arg_count; l++) oph_free_udf_arg(&oph_args[l]);

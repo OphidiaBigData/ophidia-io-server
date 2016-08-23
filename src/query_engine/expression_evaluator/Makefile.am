@@ -26,6 +26,7 @@ BUILT_SOURCES = oph_query_expression_parser.h oph_query_expression_parser.c oph_
 AM_YFLAGS = -d --name-prefix=ee
 AM_LFLAGS = --prefix=ee
 
+#To build lexer header file
 .l.c:
 	$(LEXCOMPILE) oph_query_expression_lexer.l
 

@@ -24,6 +24,7 @@
 #include <ltdl.h>
 
 #include "oph_query_plugin_loader.h"
+#include "oph_query_parser.h"
 #include "oph_iostorage_data.h"
 
 #define BUFLEN 1024
@@ -176,6 +177,6 @@ int oph_free_udf_arg(oph_udf_arg *arg);
  * \param args_count    Number of plugin arguments 
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostore_frag_record_set *record_set, oph_plugin **plugin, oph_udf_arg **args, unsigned int *arg_count);
+int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostore_frag_record_set *record_set, oph_plugin **plugin, oph_query_arg **stmt_args, oph_udf_arg **args, unsigned int *arg_count);
 
 #endif /* OPH_QUERY_PLUGIN_EXEC_H */

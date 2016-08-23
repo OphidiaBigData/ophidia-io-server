@@ -431,10 +431,6 @@ omp_set_num_threads(omp_thread_num);
 
 	*message=0;
 	if(_oph_plugin_init (&initid, &tmp_args, message)){
-		pthread_mutex_lock(&libtool_lock);
-		lt_dlclose(dlh);
-		lt_dlexit();
-		pthread_mutex_unlock(&libtool_lock);
 		free_udf_arg(&tmp_args);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
 		free(message);
@@ -502,6 +498,7 @@ omp_set_num_threads(omp_thread_num);
 
 
   //Release functions
+#ifndef OPH_WITH_VALGRIND
 	//Close dynamic loaded library
 pthread_mutex_lock(&libtool_lock);
 	if ((lt_dlclose(dlh)))
@@ -523,7 +520,7 @@ pthread_mutex_unlock(&libtool_lock);
 		return -1;
 	}
 pthread_mutex_unlock(&libtool_lock);
-
+#endif
 	return 0;
 }
 
@@ -789,10 +786,6 @@ omp_set_num_threads(omp_thread_num);
 
 	*message=0;
 	if(_oph_plugin_init (&initid, &tmp_args, message)){
-		pthread_mutex_lock(&libtool_lock);
-		lt_dlclose(dlh);
-		lt_dlexit();
-		pthread_mutex_unlock(&libtool_lock);
 		free_udf_arg(&tmp_args);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
 		free(message);
@@ -860,6 +853,7 @@ omp_set_num_threads(omp_thread_num);
   }
 
   //Release functions
+#ifndef OPH_WITH_VALGRIND
 	//Close dynamic loaded library
 pthread_mutex_lock(&libtool_lock);
 	if ((lt_dlclose(dlh)))
@@ -879,6 +873,7 @@ pthread_mutex_unlock(&libtool_lock);
 		return -1;
 	}
 pthread_mutex_unlock(&libtool_lock);
+#endif
 
 	return 0;
 }
@@ -960,6 +955,7 @@ int oph_set_udf_arg(const char *param, oph_udf_arg *arg)
       default:
         return -1;
     } 
+    pmesg(LOG_DEBUG,__FILE__,__LINE__,"UDF Argument parsed: %s, Type: %s\n", param, (arg->arg_type == STRING_RESULT ? "string" : (arg->arg_type == INT_RESULT ? "int" : "double")));
 
     return 0;
 }
@@ -979,7 +975,7 @@ int oph_free_select_data(oph_selection *select){
 }
 
 //Plugin should be in format: plugin(arg1,arg2,arg3)
-int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostore_frag_record_set *record_set, oph_plugin **plugin, oph_udf_arg **args, unsigned int *arg_count){
+int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostore_frag_record_set *record_set, oph_plugin **plugin, oph_query_arg **stmt_args, oph_udf_arg **args, unsigned int *arg_count){
 	if(!query_string || !plugin || !args || !record_set || !record_set->record_set)
 		return -1;
 
@@ -992,7 +988,7 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 	while(record_set->record_set[rows]) rows++;
 
 //START SIMPLE PLUGIN PARSER
-  char *ptr_begin, *ptr_separ, *ptr_start, *ptr_end;
+  char *ptr_begin, *ptr_separ, *ptr_start, *ptr_end, *ptr_delim, *ptr_binary;
   //Count plugin arguments
   int count_args = 1;
   int count_plugins = 0;
@@ -1002,6 +998,8 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
   ptr_separ = strchr(query_string, ',');
   ptr_start = strchr(query_string, '(');
   ptr_end = strchr(query_string, ')');
+	ptr_delim = strchr(query_string, '\'');	
+	ptr_binary = strchr(query_string, '?');	
 
   if ((ptr_start == NULL) && (ptr_end == NULL))
   {
@@ -1019,34 +1017,102 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: bracket mismatch.\n");
     return -1;
   }
+	//Test string delimiter position
+  if(ptr_delim != NULL && (ptr_delim <= ptr_start || ptr_delim >= ptr_end) ){
+    pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: bracket mismatch.\n");
+    return -1;
+  }
+	//Test binary placeholder position
+  if(ptr_binary != NULL && (ptr_binary <= ptr_start || ptr_binary >= ptr_end) ){
+    pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: bracket mismatch.\n");
+    return -1;
+  }
 
+	int count_strings = 0;
+	short int string_flag = 0;
+	int count_binary = 0;
   while(*ptr_begin){
-    if(*ptr_begin == ',') count_args++;
-    if(*ptr_begin == '(') 
-    {
-      count_plugins++;
-      //TODO extend support for nested plugins 
-      if(count_plugins > 1){
-        pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: nested plugins not supported!\n");
-        return -1;
-      }
-    }
-    if(*ptr_begin == ')')     
-    {
-      count_plugins--; 
-      if(count_plugins < 0){
-        pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: bracket mismatch.\n");
-        return -1;
-      }
-    }
-    if(*ptr_begin == '?') 
-    {
-      //TODO extend support for binary arguments 
-      pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: binary arguments not supported!\n");
-      return -1;
-    }
-    ptr_begin++;
+		if(*ptr_begin == '\'') {
+			count_strings++;
+			if(count_strings % 2 == 1) string_flag = 1;
+			else string_flag = 0;
+		}
+		else if(string_flag == 0){
+			switch(*ptr_begin){
+				case ',': 
+				{
+					count_args++;
+					//Check that after commas there are all characters except commas 
+					while(*ptr_begin){
+						ptr_begin++;
+						if(*ptr_begin != ' '){
+							if(*ptr_begin != ','){
+								//Recover normal checks
+								ptr_begin--;
+								break;
+							}
+							else{
+								pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: empty argument cannot be used!\n");
+								return -1;
+							}
+						}
+					}
+					break;
+				}
+				case '(': 
+				{
+					count_plugins++;
+					//TODO extend support for nested plugins 
+					if(count_plugins > 1){
+						pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: nested plugins not supported!\n");
+						return -1;
+					}
+					break;
+				}
+				case ')':
+				{
+					count_plugins--; 
+					if(count_plugins < 0){
+						pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: bracket mismatch.\n");
+						return -1;
+					}
+					break;
+				}
+				case '?': 
+				{
+					//Support for binary arguments 
+					count_binary++;
+					//Check that after ? there are only spaces, commas or brakets
+					while(*ptr_begin){
+						ptr_begin++;
+						if(*ptr_begin != ' '){
+							if(*ptr_begin == ',' || *ptr_begin == ')'){
+								//Step one character back to recover normal checks
+								ptr_begin--;
+								break;
+							}
+							else{
+								pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: binary arguments used improperly!\n");
+								return -1;
+							}
+						}
+					}
+					break;
+				}
+			}
+		}
+  	ptr_begin++;
   } 
+
+	if(count_binary > 0 && stmt_args == NULL){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Query not valid: missing arguments for statement variables");
+		return -1;
+	}
+
+  if(count_strings % 2 != 0){
+    pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: string delimiter mismatch.\n");
+    return -1;
+  }
 
   if(count_plugins != 0){
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: bracket mismatch.\n");
@@ -1058,10 +1124,11 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Query not valid: missing argument in plugin\n");
     return -1;
   }
-    
+
   //Retrieve plugin name
   ptr_begin = (char *)query_string;
   ptr_separ = strchr(query_string, ',');
+  ptr_delim = strchr(query_string, '\'');
   ptr_start = strchr(query_string, '(');
   ptr_end = strchr(query_string, ')');
 
@@ -1078,6 +1145,7 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 
   ptr_begin = ptr_start + 1;
   ptr_separ = strchr(ptr_begin + 1, ',');
+  ptr_delim = strchr(ptr_begin, '\'');
 
   char *real_start = NULL, *real_end = NULL;
 
@@ -1086,16 +1154,29 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 
   int i = 0, j;
   char parsed_arg[BUFLEN];
+	int count_stmt_args = 0;
   while(*ptr_begin)
   {
+		string_flag = 0;
+
     if(!ptr_begin) {
         free(parsed_args);
   		  return -1;
     } 
- 
+ 	
+		//If separator is within delimiter
+		if((ptr_delim != NULL) && (ptr_separ != NULL) && (ptr_delim < ptr_separ)){
+			ptr_delim = strchr(ptr_delim + 1, '\'');
+			if(ptr_delim > ptr_separ){
+				//In this case ignore all separators till second delimiter
+				ptr_separ = strchr(ptr_delim + 1, ',');
+			}
+		}
+
     //Remove starting quotes and spaces
     real_start = ptr_begin;
     while(*real_start == ' ' || *real_start == '\'' ){
+			if(*real_start == '\'' ) string_flag = 1;
       real_start++;
     }
     //Remove trailing quotes and spaces
@@ -1119,13 +1200,33 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
       parsed_arg[strlen(real_start) - strlen(real_end) +1] = 0;	
     }
 
+
     //For each argument find type, value and length
-    if( oph_set_udf_arg(parsed_arg, &parsed_args[i])){
-      pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to parse argument %s\n", parsed_arg);
-      for(j = 0; j <= i; j++) oph_free_udf_arg(&parsed_args[j]);
-      free(parsed_args);
-      return -1;
-    }
+		//Check if ?, in this case set directly udf_arg with values from stmt_args 
+		if(string_flag == 0 && parsed_arg[0] == '?'){
+
+			//Check if number of args is compliant with those available in stmt_args
+			if(stmt_args[count_stmt_args] != NULL){
+				parsed_args[i].arg_pointer = NULL;
+				parsed_args[i].arg_type = STRING_RESULT;
+				parsed_args[i].arg_length = (unsigned long)stmt_args[count_stmt_args]->arg_length;
+				parsed_args[i].arg_value = (char *)malloc(parsed_args[i].arg_length*sizeof(char));
+				memcpy ((char *)parsed_args[i].arg_value, stmt_args[count_stmt_args]->arg, parsed_args[i].arg_length*sizeof(char)); 
+				count_stmt_args++;
+			}
+			else{
+				pmesg(LOG_ERROR,__FILE__,__LINE__,"Input query args mismatch\n");
+				return -1;
+			}
+	}
+	else{
+		if( oph_set_udf_arg(parsed_arg, &parsed_args[i])){
+		  pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to parse argument %s\n", parsed_arg);
+		  for(j = 0; j <= i; j++) oph_free_udf_arg(&parsed_args[j]);
+		  free(parsed_args);
+		  return -1;
+		}
+	}
 
     //If first or last argument (without trailing ,) exit while
     if(ptr_separ == NULL) break;
@@ -1133,6 +1234,7 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
     //Get next arg and next arg ,
     ptr_begin = ptr_separ + 1;
     ptr_separ = strchr(ptr_begin + 1, ',');
+    ptr_delim = strchr(ptr_begin, '\'');
     
     //If next , is outside ) then discard ,
     if(ptr_separ >= ptr_end ) ptr_separ = NULL;

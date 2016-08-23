@@ -383,6 +383,9 @@ gettimeofday(&start_time, NULL);
           result_buffer = tmp_buffer;
         }
 
+		//If non-empty record set
+      if(global_status.last_result_set->record_set != NULL){
+
 	      while(global_status.last_result_set->record_set[i]){
 		  //Send each row of result set
 		  for(j = 0; j < num_fields; j++){
@@ -454,10 +457,11 @@ gettimeofday(&start_time, NULL);
 		      memcpy(result_buffer+k,(void *)(global_status.last_result_set->record_set[i]->field[j]),global_status.last_result_set->record_set[i]->field_length[j]);
 		      k += global_status.last_result_set->record_set[i]->field_length[j];
 		    }
+			pmesg(LOG_DEBUG,__FILE__,__LINE__,"Arg[%d] progressive length is: %lld\n", j, k);		      
 		  }
 		  i++;
 	      }
-
+		}
         payload_len = k - (m + sizeof(unsigned long long) + sizeof(unsigned long long) + sizeof(unsigned int));
         memcpy(result_buffer+m,(void *)&payload_len,sizeof(unsigned long long));
         m += sizeof(unsigned long long);
@@ -726,6 +730,7 @@ gettimeofday(&s_time, NULL);
               global_status.curr_stmt->device = NULL;
               global_status.curr_stmt->frag = NULL;
               global_status.curr_stmt->size = 0;
+              global_status.curr_stmt->mi_prev_rows = 0;
            
               args = (oph_query_arg **) calloc(arg_count + 1,sizeof(oph_query_arg *));
 
