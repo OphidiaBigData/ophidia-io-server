@@ -325,3 +325,208 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
 	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, thread_status, stored_rs, input_row_num, input_rs, 0);
 }
 
+int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, char *frag_name, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set)
+{
+	if (!meta_db || !dev_handle || !thread_status || !(*final_result_set)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	//Check current db
+	oph_metadb_db_row *db_row = NULL;
+
+	//LOCK FROM HERE
+	if(pthread_rwlock_wrlock(&rwlock) != 0){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_LOCK_ERROR);
+		logging(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_LOCK_ERROR);
+		return OPH_IO_SERVER_EXEC_ERROR;        
+	}
+
+	//Retrieve current db
+	if(oph_metadb_find_db (*meta_db, thread_status->current_db, thread_status->device, &db_row) ||  db_row == NULL){
+		  pthread_rwlock_unlock(&rwlock);
+		    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");
+		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");	
+		  return OPH_IO_SERVER_METADB_ERROR;             
+	}
+
+	//Call API to insert Frag
+	oph_iostore_resource_id *frag_id = NULL;
+	if(oph_iostore_put_frag(dev_handle, *final_result_set, &frag_id) != 0){
+		  pthread_rwlock_unlock(&rwlock);
+		  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "put_frag");
+		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "put_frag");	
+		  return OPH_IO_SERVER_API_ERROR;             
+	} 
+
+	oph_metadb_frag_row *frag = NULL;
+
+	//Add Frag to MetaDB
+	if(oph_metadb_setup_frag_struct (frag_name, thread_status->device, dev_handle->is_persistent, &(db_row->db_id), frag_id, frag_size, &frag)) {
+		  pthread_rwlock_unlock(&rwlock);
+		  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "frag");
+		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "frag");
+		  free(frag_id->id);
+		  free(frag);
+		  return OPH_IO_SERVER_METADB_ERROR;             
+	}
+
+	free(frag_id->id);
+	free(frag_id);
+	frag_id = NULL;
+
+	oph_metadb_db_row *tmp_db_row = NULL; 
+	if(oph_metadb_setup_db_struct (db_row->db_name, db_row->device, dev_handle->is_persistent, &(db_row->db_id), db_row->frag_number, &tmp_db_row)) {
+		  pthread_rwlock_unlock(&rwlock);
+		  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "db");
+		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "db");
+		  oph_metadb_cleanup_frag_struct (frag);
+		  return OPH_IO_SERVER_METADB_ERROR;             
+	}
+	if(oph_metadb_add_frag (db_row, frag)){
+		  pthread_rwlock_unlock(&rwlock);
+		  oph_metadb_cleanup_frag_struct (frag);
+		  oph_metadb_cleanup_db_struct (tmp_db_row);
+		  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "frag add");
+		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "frag add");	
+		  return OPH_IO_SERVER_METADB_ERROR;             
+	}
+
+	oph_metadb_cleanup_frag_struct (frag);
+
+	tmp_db_row->frag_number++;
+	if(oph_metadb_update_db (*meta_db, tmp_db_row)){
+		  pthread_rwlock_unlock(&rwlock);
+		oph_metadb_cleanup_db_struct (tmp_db_row);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "db update");
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "db update");	
+		return OPH_IO_SERVER_METADB_ERROR;             
+	}
+
+	//If device is transient then block record from being deleted
+	if(!dev_handle->is_persistent) *final_result_set = NULL;
+
+	//UNLOCK FROM HERE
+	if(pthread_rwlock_unlock(&rwlock) != 0){
+		oph_metadb_cleanup_db_struct (tmp_db_row);
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_UNLOCK_ERROR);
+		logging(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_UNLOCK_ERROR);
+		return OPH_IO_SERVER_EXEC_ERROR;        
+	}
+
+	oph_metadb_cleanup_db_struct (tmp_db_row);
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args, oph_iostore_frag_record **new_record)
+{
+	if (!arg_count || !row_size || !partial_result_set || !field_list || !value_list || !new_record){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	//TODO Extend management of ?  in order to evaluate also ? inside more complex constructs
+
+	//Created record struct
+	*new_record = NULL;     
+	if(oph_iostore_create_frag_record(new_record, partial_result_set->field_num) == 1){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+		return OPH_IO_SERVER_MEMORY_ERROR;             
+	}
+
+	long long tmpL = 0;
+	double tmpD = 0;
+	int i = 0, j = 0;
+	(*row_size) = sizeof(oph_iostore_frag_record);
+
+
+	for(i = 0; i < partial_result_set->field_num; i++){
+		//For each field check column name correspondence
+    if(STRCMP(field_list[i], partial_result_set->field_name[i]) == 1){
+      pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR);
+      logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR); 
+      oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+      return OPH_IO_SERVER_EXEC_ERROR;        
+    }
+
+		//For each value check if argument contains ? and substitute with arg[i]
+		//TODO make this a function
+		if(value_list[i][0] == OPH_QUERY_ENGINE_LANG_ARG_REPLACE){
+			//Check column type with arg_type ...  
+			/*if(args[*arg_count]->arg_type != partial_result_set->field_type)
+			//EXIT
+		}*/
+
+			if (!args){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+				logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_NULL_PARAM;
+			}
+
+			if (memory_check())
+			{
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+			(*new_record)->field_length[i] = args[*arg_count]->arg_length;
+			(*row_size) += ((*new_record)->field_length[i] + sizeof((*new_record)->field_length[i]) + sizeof((*new_record)->field[i]));
+			(*new_record)->field[i] = (void *)memdup(args[*arg_count]->arg,(*new_record)->field_length[i]);
+			if((*new_record)->field[i] == NULL){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_MEMORY_ERROR;             
+			}
+			(*arg_count)++;
+		}
+		else{
+			//No substitution occurs, use directly strings
+
+			//Check for string type	OPH_IOSTORE_STRING_TYPE
+			if(value_list[i][0] == 	OPH_QUERY_ENGINE_LANG_STRING_DELIMITER)
+			{
+				(*new_record)->field_length[i] = strlen(value_list[i]) + 1;
+				(*new_record)->field[i] = (char *)strndup(value_list[i],(*new_record)->field_length[i]);
+			}
+			else
+			{
+				for(j = 0; j < (int)strlen(value_list[i]); j++ )
+				{
+					//Check for string type	OPH_IOSTORE_REAL_TYPE
+					if(value_list[i][j] == OPH_QUERY_ENGINE_LANG_REAL_NUMBER_POINT)
+					{
+						tmpD = (double)strtod(value_list[i], NULL);
+						(*new_record)->field_length[i] = sizeof(double);
+						(*new_record)->field[i] = (void *)memdup((const void *)&tmpD,(*new_record)->field_length[i]);
+						break;
+					}
+				}
+				//Check for string type	OPH_IOSTORE_LONG_TYPE
+				if(j == (int)strlen(value_list[i]))
+				{
+					tmpL = (long long)strtoll(value_list[i], NULL, 10);
+					(*new_record)->field_length[i] = sizeof(long long);
+					(*new_record)->field[i] = (void *)memdup((const void *)&tmpL,(*new_record)->field_length[i]);
+				}
+			}
+			(*row_size) += ((*new_record)->field_length[i] + sizeof((*new_record)->field_length[i]) + sizeof((*new_record)->field[i]));
+			if((*new_record)->field[i] == NULL){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_MEMORY_ERROR;             
+			}
+		}
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+

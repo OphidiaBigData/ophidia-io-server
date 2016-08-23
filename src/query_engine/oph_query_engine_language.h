@@ -40,11 +40,13 @@
 #define OPH_QUERY_ENGINE_LANG_OP_CREATE_DB          "create_database"
 #define OPH_QUERY_ENGINE_LANG_OP_DROP_DB            "drop_database"
 #define OPH_QUERY_ENGINE_LANG_OP_INSERT             "insert"
+#define OPH_QUERY_ENGINE_LANG_OP_MULTI_INSERT 		"multi_insert"
 #define OPH_QUERY_ENGINE_LANG_OP_SELECT             "select"
 #define OPH_QUERY_ENGINE_LANG_OP_FUNCTION           "function"
 
 //*****************Query arguments***************//
 
+#define OPH_QUERY_ENGINE_LANG_ARG_FINAL_STATEMENT "final_statement"
 #define OPH_QUERY_ENGINE_LANG_ARG_FRAG        "frag_name"
 #define OPH_QUERY_ENGINE_LANG_ARG_COLUMN_NAME "column_name"
 #define OPH_QUERY_ENGINE_LANG_ARG_COLUMN_TYPE "column_type"
@@ -64,6 +66,11 @@
 #define OPH_QUERY_ENGINE_LANG_ARG_VALUE       "value"
 #define OPH_QUERY_ENGINE_LANG_ARG_FUNC        "func_name"
 #define OPH_QUERY_ENGINE_LANG_ARG_ARG         "arg"
+
+//*****************Query values***************//
+
+#define OPH_QUERY_ENGINE_LANG_VAL_YES "yes"
+#define OPH_QUERY_ENGINE_LANG_VAL_NO 	"no"
 
 //*****************Keywords***************//
 

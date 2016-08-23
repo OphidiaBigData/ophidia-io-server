@@ -58,6 +58,8 @@
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR       "Unable to perform INSERT operation due to missing table info\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR       "Unable to perform INSERT: field name not found in table\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_TYPE_ERROR  "Unable to perform INSERT: field type does not correspond to table\n"
+#define OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR  		  "Unable to store the fragment\n"
+#define OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR  		  "Unable to create the row\n"
 #define OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR						"Unable to perform SELECTION\n"
 #define OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR								"Unable to compute LIMIT values\n"
 #define OPH_IO_SERVER_LOG_API_SETUP_ERROR                 "Unable to setup specified device: %s\n"
@@ -100,12 +102,13 @@
 #include "oph_metadb_interface.h"
 
 /**
- * \brief			            Structure to contain info about a running statemente (query executed in multiple runs)
+ * \brief			            Structure to contain info about a running statement (query executed in multiple runs)
  * \param tot_run         Total number of times the query should be executed
  * \param curr_run        Current value of execution counter
  * \param partial_result_set	Pointer to last result set retrieved by a selection query
  * \param device        	Device where result set belongs
  * \param frag       	    Frag name related to result set
+ * \param mi_prev_rows     If multi-insert remainder rows are expected, it will contain the rows already inserted otherwise it will be zero
  */
 typedef struct{
   unsigned long long          tot_run;
@@ -114,6 +117,7 @@ typedef struct{
   char                        *device;
   char                        *frag;
   unsigned long long          size;
+  unsigned long long          mi_prev_rows;
 }oph_io_server_running_stmt;
 
 /**
@@ -180,6 +184,30 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_m
  * \return              0 if successfull, non-0 otherwise
  */
 int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs);
+
+/**
+ * \brief               Internal function used to store the final record set. Used in case of insert and multi-insert. 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 		Handler to current IO server device
+ * \param thread_status Status of thread executing the query
+ * \param frag_name 	Name of fragment to be stored in the IO server
+ * \param frag_size 	Size of fragment to be stored in the IO server
+ * \param final_result_set 	Pointer with final recordset to be stored in the IO server
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, char *frag_name, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set);
+/**
+ * \brief               Internal function used to create a row from query. Used in case of insert and multi-insert. 
+ * \param arg_count     Pointer to variable used to reference current number of arguments used in previous rows
+ * \param row_size 		Variable used to save row size
+ * \param partial_result_set 	Pointer with partial recordset being created in the IO server
+ * \param field_list 	List of insert fields
+ * \param value_list 	List of insert values
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \param new_record 	Record to be created
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args, oph_iostore_frag_record **new_record);
 
 /**
  * \brief               Function used to release thread status resources
