@@ -363,4 +363,11 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value 
  */
 int oph_query_expr_change_group(oph_query_expr_node *e);
 
+/**
+ *\brief                Saves in result a copy of the query with all the question masks numbered from 1 to n  
+ *\param query          The query
+ *\param result         A reference to the pointer that will point to the query with numbered question marks
+ */
+int oph_query_expr_update_binary_args(char* query, char** result);
+
 #endif // __OPH_QUERY_EXPRESSION_EVALUATOR_H__

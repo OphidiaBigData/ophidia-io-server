@@ -806,7 +806,61 @@ int oph_query_expr_change_group(oph_query_expr_node *b)
 
     //call function recursevely nodes
     oph_query_expr_change_group(b->left);
-    oph_query_expr_change_group(b->rightx);
+    oph_query_expr_change_group(b->right);
     
     return OPH_QUERY_ENGINE_SUCCESS;
+}
+
+
+int oph_query_expr_update_binary_args(char* query, char** result)
+{
+    //number of question marks
+    if (query == NULL) return 1; 
+
+    unsigned int query_length = strlen(query)+1;
+    unsigned int i = 0, count = 0, additional_size = 0, open_string = 0;
+    char current;
+
+    for(; i < query_length; i++)
+    {
+        current = query[i];
+        if(current == '\'') open_string = !open_string;
+        else if(current == '?')
+        {
+            if(!open_string)
+            {
+                count++;
+                additional_size += snprintf(NULL,0,"%d", count);
+            } 
+        }
+    }
+
+    if(open_string) return 1;
+
+    (*result) = malloc(sizeof(char) * (query_length + additional_size));
+
+    i = 0, count = 0, open_string = 0;
+    int copy_to = 0;
+
+    for(; i < query_length; i++)
+    {  
+        current = query[i];
+        if(current == '\'')
+        {
+            open_string = !open_string;
+            (*result)[copy_to] = current;
+        } 
+        else if(current == '?')
+        {
+            if(!open_string)
+            {
+                count++;
+                (*result)[copy_to] = current;
+                int num_size = snprintf((*result)+copy_to+1, snprintf(NULL,0,"%d",count)+1,"%d",count);
+                copy_to += num_size; 
+            }else (*result)[copy_to] = current;
+        }else (*result)[copy_to] = current; 
+        copy_to++;
+    }
+    return 0;
 }
