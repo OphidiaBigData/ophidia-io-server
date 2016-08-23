@@ -168,7 +168,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 	if (!STRCMP(id_query,OPH_NAME_ID)) id_col_index = id_col;
 	// else // TODO: consider a query applied to OPH_NAME_ID
 	
-	if(oph_parse_plugin(plugin_query, plugin_table, record_set, &plugin, &oph_args, &arg_count)){
+	if(oph_parse_plugin(plugin_query, plugin_table, record_set, &plugin, args, &oph_args, &arg_count)){
 		//pthread_rwlock_unlock(&rwlock);
 		for(l = 0; l < arg_count; l++) oph_free_udf_arg(&oph_args[l]);
 		free(oph_args);
@@ -389,7 +389,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			for (i=0; i<field_list_num; ++i)
 			{
 				pmesg(LOG_DEBUG,__FILE__,__LINE__,"EXECUTING function %s\n", field_list[i]);
-				if(oph_parse_plugin(field_list[i], plugin_table, record_set, &plugin[i], &oph_args[i], &arg_count[i]))
+				if(oph_parse_plugin(field_list[i], plugin_table, record_set, &plugin[i], args, &oph_args[i], &arg_count[i]))
 				{
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);	
