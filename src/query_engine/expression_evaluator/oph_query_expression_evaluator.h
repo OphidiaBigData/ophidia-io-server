@@ -19,6 +19,7 @@
 #ifndef __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 #define __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 
+#include "oph_query_plugin_executor.h"
 #include "oph_query_parser.h"  
 
 /* Definition of the structure/functions used to contruct and use the symtable (1), 
@@ -26,6 +27,21 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 
 
 //---------- 1
+
+/**
+* \brief             Descriptor of udf primitives
+* \param initialized The descriptor is already beein initialized through an init function   
+* \param dlh         Pointer to the structures initialized by an init function
+* \param plugin_api  plugin information
+* \param initid      Pointer used by udf primitives
+*/
+typedef struct _oph_query_expr_udf_descriptor
+{   
+    int initialized;
+    void* dlh;
+    plugin_api function;
+    UDF_INIT initid;
+}oph_query_expr_udf_descriptor;
 
 //value type
 typedef enum _oph_query_expr_value_type
@@ -36,8 +52,15 @@ typedef enum _oph_query_expr_value_type
     OPH_QUERY_EXPR_TYPE_BINARY
 } oph_query_expr_value_type;
 
-
-//the value struct, used to store the type of every value
+//
+/**
+* \brief              Struct used to store the values of every type
+* \param type         Type of the value stored   
+* \param double_value Value if type is double
+* \param long_value   Value if type is long
+* \param string_value Value if type is string
+* \param binary_value Pointer to value if type is binary
+*/
 typedef struct _oph_query_expr_value 
 {
     oph_query_expr_value_type type;
@@ -47,7 +70,7 @@ typedef struct _oph_query_expr_value
         double double_value;
         long long long_value;
         char* string_value;
-        oph_query_arg* binary_value; 
+        oph_query_arg* binary_value;
     }data;
 }oph_query_expr_value;
 
@@ -68,9 +91,9 @@ typedef struct _oph_query_expr_record {
     oph_query_expr_value value;
     
     //ONLY with type 2
+    oph_query_expr_value (*function) (oph_query_expr_value*, int, char*, oph_query_expr_udf_descriptor*, int, int*);
     int fun_type;
     int numArgs;
-    oph_query_expr_value (*function) (oph_query_expr_value*, int, int*);
 } oph_query_expr_record;
 
 /**		
@@ -135,7 +158,6 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  */
  int oph_query_expr_add_string(const char* name, char* value, oph_query_expr_symtable *table);
 
-
 /**
  * \brief               Add to the symtable a variable of type OPH_QUERY_EXPR_TYPE_BINARY
  * \param name          The name of the new variable
@@ -144,7 +166,6 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \return              0 if succesfull; non-0 otherwise
  */
  int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_expr_symtable *table);
-
 
 /**
  * \brief               add a new function to the table (NOTE: doesn't updates old values the same way add_variable does)
@@ -155,7 +176,8 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \param symtable      A reference to the target symtable
  * \return              0 if succesfull; non-0 otherwise
  */
-int oph_query_expr_add_function(const char* name, int fun_type, int numArgs, oph_query_expr_value (*function) (oph_query_expr_value *, int, int*), oph_query_expr_symtable* symtable);
+int oph_query_expr_add_function(const char* name, int fun_type, int numArgs, oph_query_expr_value (*function) (oph_query_expr_value*, int, char*, 
+    oph_query_expr_udf_descriptor*, int, int*), oph_query_expr_symtable* symtable);
 
 
 
@@ -183,13 +205,13 @@ typedef enum _oph_query_expr_node_type
     eARG
 } oph_query_expr_node_type;
 
-
 /**
 * \brief			The node structure
 * \param type 		type of node	
 * \param left 		left side of the tree		
 * \param right		right side of the tree		
-* \param value		node value; valid only when type is eVALUE		
+* \param value		node value; valid only when type is eVALUE	
+* \param descriptor	descriptor of udf; valid only when the type is eFUN	
 * \param name		node name; valid only when type is eVAR e eFUN		
 */
 typedef struct _oph_query_expr_node
@@ -200,6 +222,7 @@ typedef struct _oph_query_expr_node
 
     oph_query_expr_value value;
 
+    oph_query_expr_udf_descriptor descriptor;
     char* name;
 } oph_query_expr_node;
 
@@ -255,7 +278,7 @@ oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type ty
 * \param b             A reference to the root node of the tree    
 * \return              Returns the newly created node or NULL in case of error
 */
-int oph_query_expr_delete_node(oph_query_expr_node *b);
+int oph_query_expr_delete_node(oph_query_expr_node *b,  oph_query_expr_symtable* table);
 
 
 
@@ -331,4 +354,3 @@ int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e);
 int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value **res, oph_query_expr_symtable *table);
 
 #endif // __OPH_QUERY_EXPRESSION_EVALUATOR_H__
-

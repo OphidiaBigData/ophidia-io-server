@@ -3,9 +3,16 @@
 #include "oph_query_expression_evaluator.h"
 #include "oph_query_expression_parser.h"
 #include "oph_query_expression_lexer.h"
+#include "oph_server_utility.h"
 
-int eeerror(int mode, oph_query_expr_node **expression, yyscan_t scanner, const char *msg) {
+
+int eeerror(int mode, oph_query_expr_node **expression, yyscan_t scanner, const char *msg)
+{
+    UNUSED(mode);
+    UNUSED(expression);
+    UNUSED(scanner);
     printf("%s\n", msg);
+    return 1;
 }
 
 %}

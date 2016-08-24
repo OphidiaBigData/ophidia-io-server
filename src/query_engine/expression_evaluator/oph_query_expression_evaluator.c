@@ -21,6 +21,13 @@
 #include "oph_query_expression_parser.h"
 #include "oph_query_expression_lexer.h"
 #include "oph_query_engine_log_error_codes.h"
+
+#include <mysql.h> // It contains UDF-related symbols and data structures
+#include <mysql_com.h>
+#include <ltdl.h>
+#include "oph_query_plugin_loader.h"
+
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -117,6 +124,7 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
 
     b->type = eFUN;
     b->name = name;
+    b->descriptor.initialized = 0;
     b->left = args;
     b->right = NULL;
 
@@ -138,11 +146,20 @@ oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type ty
     return b;
 }
 
-int oph_query_expr_delete_node(oph_query_expr_node *b)
+int oph_query_expr_delete_node(oph_query_expr_node *b, oph_query_expr_symtable* table)
 {   
     //base case for recursion and error case if null pointer is passed by user
     if (b == NULL)
         return OPH_QUERY_ENGINE_NULL_PARAM;
+
+    if(b->type == eFUN){
+        oph_query_expr_record* r = oph_query_expr_lookup(b->name, table);
+        if(table != NULL && r != NULL && r->type == 2)
+        {
+            int er = 1; 
+            r->function (NULL, 0, b->name, &(b->descriptor), 1, &er);
+        }
+    }
 
     //free type-specific values
     if(b->type == eVAR || b->type == eFUN){
@@ -154,8 +171,8 @@ int oph_query_expr_delete_node(oph_query_expr_node *b)
     }
 
     //call function recursevely nodes
-    oph_query_expr_delete_node(b->left);
-    oph_query_expr_delete_node(b->right);
+    oph_query_expr_delete_node(b->left, table);
+    oph_query_expr_delete_node(b->right, table);
 
     //free current node
     free(b);
@@ -170,7 +187,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
         logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
         return OPH_QUERY_ENGINE_NULL_PARAM;  
     }
-    int MIN_SIZE = 6; ///<< should equal be equal to number of built-in functions added to symtable
+    int MIN_SIZE = 7; ///<< should equal be equal to number of built-in functions added to symtable
     (*table) = (oph_query_expr_symtable *)malloc(sizeof (oph_query_expr_symtable));
 
     if((*table) == NULL)
@@ -205,6 +222,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
     oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, (*table));
     oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2,(*table));
     oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index,(*table));
+    oph_query_expr_add_function("one", 0, 2, oph_query_generic_double, (*table));
     return OPH_QUERY_ENGINE_SUCCESS;
 }
 
@@ -254,8 +272,7 @@ oph_query_expr_record* oph_query_expr_lookup(const char *s, oph_query_expr_symta
     return NULL;
 }
 
-
-int oph_query_expr_add_function(const char* name, int fun_type, int args_num, oph_query_expr_value (*value_fun)(oph_query_expr_value*, int, int*), oph_query_expr_symtable *table)
+int oph_query_expr_add_function(const char* name, int fun_type, int args_num, oph_query_expr_value (*value_fun)(oph_query_expr_value*, int, char*, oph_query_expr_udf_descriptor*, int, int*), oph_query_expr_symtable *table)
 {   
     if(table == NULL || args_num < 0 || value_fun == NULL)
     {
@@ -390,6 +407,9 @@ int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_
             return OPH_QUERY_ENGINE_SUCCESS;
         }
     }
+    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_FULL_SYMTABLE);
+    logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_FULL_SYMTABLE);
+    return OPH_QUERY_ENGINE_MEMORY_ERROR;
 }
 
 int oph_query_expr_add_double(const char* name, double value, oph_query_expr_symtable *table)
@@ -649,7 +669,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                     oph_query_expr_value* args = get_array_args(e->name, e->left, r->fun_type, &(r->numArgs), er, table);
                     if(args != NULL)
                     {   
-                        oph_query_expr_value res = r->function (args, r->numArgs, er);
+                        oph_query_expr_value res = r->function (args, r->numArgs, e->name, &(e->descriptor), 0, er);
                         r->numArgs = record_args_num; 
                         free(args);
                         return res;
