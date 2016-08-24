@@ -29,13 +29,14 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 //---------- 1
 
 /**
-* \brief             Descriptor of udf primitives
-* \param initialized The descriptor is already beein initialized through an init function 
-* \param aggregate   The 0 if the function is simple 1 if it is aggragate
-* \param clear       For aggregate functions it indicates if the clear action needs to be executed. For simple functions it is ignored.   
-* \param dlh         Pointer to the structures initialized by an init function
-* \param plugin_api  plugin information
-* \param initid      Pointer used by udf primitives
+* \brief               Descriptor of udf primitives
+* \param initialized   The descriptor is already beein initialized through an init function 
+* \param aggregate     The 0 if the function is simple 1 if it is aggragate
+* \param clear         For aggregate functions it indicates if the clear action needs to be executed. For simple functions it is ignored.   
+* \param dlh           Pointer to the structures initialized by an init function
+* \param plugin_api    plugin information
+* \param initid        Pointer used by udf primitives
+* \param internal_args Pointer to structures where the arguments values are stored
 */
 typedef struct _oph_query_expr_udf_descriptor
 {   
@@ -44,7 +45,8 @@ typedef struct _oph_query_expr_udf_descriptor
     int clear; 
     void* dlh;
     plugin_api function;
-    UDF_INIT initid;
+    UDF_INIT* initid;
+    UDF_ARGS* internal_args;
 }oph_query_expr_udf_descriptor;
 
 //value type
@@ -362,6 +364,12 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value 
  * \param e             A reference to the AST to evaluate
  */
 int oph_query_expr_change_group(oph_query_expr_node *e);
+
+/**
+ *\brief                Returns a vector of the names of all the variables in the AST  
+ *\param e              The root of the AST
+ */
+char** oph_query_expr_get_variables(oph_query_expr_node *e);
 
 /**
  *\brief                Saves in result a copy of the query with all the question masks numbered from 1 to n  

@@ -157,5 +157,29 @@ int main(void)
     oph_query_expr_delete_node(e2, table2);
     oph_query_expr_destroy_symtable(table2);
 
+
+
+
+     //generic tests
+    printf("\nTest 8\n");
+    char* test_right6 = "b + a + f(?2) + ?1 + ?2";
+    oph_query_expr_node *e4;
+    e4 = NULL;
+    oph_query_expr_symtable *table4;
+    oph_query_expr_create_symtable(&table4, 1);
+    oph_query_expr_get_ast(test_right6, &e4);
+    char** variables = oph_query_expr_get_variables(e4);
+    int n = 0;
+    printf("Query = %s\n", test_right6);
+    printf("Variables = ");
+    while(variables[n] != NULL)
+    {
+        printf("%s ", variables[n]);
+        n++;            
+    }
+    printf("\n");
+    oph_query_expr_delete_node(e4, table4);
+    oph_query_expr_destroy_symtable(table4);
+    free(variables);
     return 1;
 }

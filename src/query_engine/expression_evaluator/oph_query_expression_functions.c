@@ -246,7 +246,6 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
         {
             printf("init\n");
             //init code (need to initiate all the values in the descriptor)
-            descriptor->clear = 1;
             descriptor->initialized = 1; 
         }
 
