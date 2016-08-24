@@ -30,6 +30,8 @@
 #define OPH_QUERY_ENGINE_LANG_ARG_REPLACE           '?'
 #define OPH_QUERY_ENGINE_LANG_STRING_DELIMITER      '\''
 #define OPH_QUERY_ENGINE_LANG_REAL_NUMBER_POINT     '.'
+#define OPH_QUERY_ENGINE_LANG_FUNCTION_START     '('
+#define OPH_QUERY_ENGINE_LANG_FUNCTION_END     ')'
 
 //*****************Query operation***************//
 

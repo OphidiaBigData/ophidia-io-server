@@ -66,6 +66,7 @@
 #define OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR              "Error while executing %s API\n"
 #define OPH_IO_SERVER_LOG_LOCK_ERROR                      "Unable to execute mutex lock\n"
 #define OPH_IO_SERVER_LOG_UNLOCK_ERROR                    "Unable to execute mutex unlock\n"
+#define OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR                "Field type not recognized: %s\n"
 
 //Packet codes
 

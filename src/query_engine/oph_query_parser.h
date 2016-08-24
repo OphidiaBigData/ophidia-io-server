@@ -25,12 +25,27 @@
  * \brief           Enum with admissible argument types
  */
 typedef enum { 
-      OPH_QUERY_TYPE_LONG,
-			OPH_QUERY_TYPE_DOUBLE,
-			OPH_QUERY_TYPE_NULL,
-      OPH_QUERY_TYPE_VARCHAR,
-			OPH_QUERY_TYPE_BLOB
+	OPH_QUERY_TYPE_LONG,
+	OPH_QUERY_TYPE_DOUBLE,
+	OPH_QUERY_TYPE_NULL,
+	OPH_QUERY_TYPE_VARCHAR,
+	OPH_QUERY_TYPE_BLOB
 }oph_query_arg_types;
+
+/**
+ * \brief           Enum with admissible field types
+ */
+typedef enum { 
+	OPH_QUERY_FIELD_TYPE_LONG,
+	OPH_QUERY_FIELD_TYPE_DOUBLE,
+	OPH_QUERY_FIELD_TYPE_STRING,
+	OPH_QUERY_FIELD_TYPE_VARIABLE,
+	OPH_QUERY_FIELD_TYPE_BINARY,
+	OPH_QUERY_FIELD_TYPE_FUNCTION,
+	OPH_QUERY_FIELD_TYPE_UNKNOWN
+}oph_query_field_types;
+
+
 
 /**
  * \brief             Structure to contain a query argument
@@ -78,5 +93,14 @@ int oph_query_parser(char *query_string, HASHTBL **query_args);
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_query_parse_multivalue_arg (char *values, char ***value_list, int *value_num);
+
+
+/**
+ * \brief               Function to get the type related to a field value. This can be used for select, insert, where or group by fields 
+ * \param field 		Field to be tested
+ * \param field_type    Type of argument evaluated
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_field_type(const char* field, oph_query_field_types *field_type);
 
 #endif /* OPH_QUERY_PARSER_H */
