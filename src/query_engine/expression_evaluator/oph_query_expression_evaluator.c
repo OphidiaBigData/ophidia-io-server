@@ -35,6 +35,7 @@
 #include <debug.h>
 
 extern int msglevel;
+int MIN_VAR_ARRAY_LENGTH = 20;
 
 static oph_query_expr_node *allocate_node()
 {
@@ -125,6 +126,11 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
     b->type = eFUN;
     b->name = name;
     b->descriptor.initialized = 0;
+    b->descriptor.aggregate = 0;
+    b->descriptor.clear = 1;
+    b->descriptor.dlh = NULL;
+    b->descriptor.initid = NULL;
+    b->descriptor.internal_args = NULL;
     b->left = args;
     b->right = NULL;
 
@@ -434,6 +440,7 @@ int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_
 }
 
 int eeparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
+
 oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type, int *numArgs, int* er, oph_query_expr_symtable *table);
 
 int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
@@ -791,4 +798,139 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value 
         logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_EVAL_ERROR);    
         return OPH_QUERY_ENGINE_PARSE_ERROR;
     }
+}
+
+int oph_query_expr_change_group(oph_query_expr_node *b)
+{   
+    //base case for recursion and error case if null pointer is passed by user
+    if (b == NULL)
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        return OPH_QUERY_ENGINE_NULL_PARAM;
+    }
+        
+    if(b->type == eFUN){
+        b->descriptor.clear = 1;
+    }
+
+    //call function recursevely nodes
+    oph_query_expr_change_group(b->left);
+    oph_query_expr_change_group(b->right);
+    
+    return OPH_QUERY_ENGINE_SUCCESS;
+}
+
+int oph_query_expr_get_variables_help(oph_query_expr_node *e, int* max_size, int* current_size, char*** names)
+{
+    char** temp = *names;
+    if(e == NULL)
+    {
+        return 0;
+    }
+
+    if((*current_size) >= (*max_size))
+    {
+        temp = (char**) realloc(temp, (*current_size)*2);
+        *max_size = (*current_size) * 2;
+    }
+
+   if(e->type == eVAR){
+        
+        int is_duplicate = 0;
+        int i = 0;
+        for(;i < *current_size; i++ ){
+            if(!strcmp(temp[i], e->name))
+            {   
+                is_duplicate = 1;
+                break;
+            }
+        }
+
+        if(!is_duplicate)
+        {
+            (*current_size)++;
+            temp[*current_size - 1] = e->name;
+        }
+        
+    }
+
+    oph_query_expr_get_variables_help(e->right, max_size, current_size, names);
+    oph_query_expr_get_variables_help(e->left, max_size, current_size, names);
+
+    return 0;
+}
+
+char** oph_query_expr_get_variables(oph_query_expr_node *e)
+{
+    int max_size = MIN_VAR_ARRAY_LENGTH;
+    int current_size = 0;
+    char** names = calloc(sizeof(char*), max_size);
+    oph_query_expr_get_variables_help(e, &max_size, &current_size, &names);
+    return names; 
+}
+
+
+
+
+int oph_query_expr_update_binary_args(char* query, char** result)
+{
+    //number of question marks
+    if (query == NULL)     
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        return OPH_QUERY_ENGINE_NULL_PARAM;
+    }
+    unsigned int query_length = strlen(query)+1;
+    unsigned int i = 0, count = 0, additional_size = 0, open_string = 0;
+    char current;
+
+    for(; i < query_length; i++)
+    {
+        current = query[i];
+        if(current == '\'') open_string = !open_string;
+        else if(current == '?')
+        {
+            if(!open_string)
+            {
+                count++;
+                additional_size += snprintf(NULL,0,"%d", count);
+            } 
+        }
+    }
+
+    if(open_string)
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR);
+        return OPH_QUERY_ENGINE_PARSE_ERROR;
+    } 
+
+    (*result) = malloc(sizeof(char) * (query_length + additional_size));
+
+    i = 0, count = 0, open_string = 0;
+    int copy_to = 0;
+
+    for(; i < query_length; i++)
+    {  
+        current = query[i];
+        if(current == '\'')
+        {
+            open_string = !open_string;
+            (*result)[copy_to] = current;
+        } 
+        else if(current == '?')
+        {
+            if(!open_string)
+            {
+                count++;
+                (*result)[copy_to] = current;
+                int num_size = snprintf((*result)+copy_to+1, snprintf(NULL,0,"%d",count)+1,"%d",count);
+                copy_to += num_size; 
+            }else (*result)[copy_to] = current;
+        }else (*result)[copy_to] = current; 
+        copy_to++;
+    }
+    return OPH_QUERY_ENGINE_SUCCESS;
 }

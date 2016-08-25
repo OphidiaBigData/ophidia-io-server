@@ -188,8 +188,8 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
 {
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
-   if(!er) return res;
-    
+    if(!er) return res;
+
     if(destroy) 
     {
         printf("deinit\n");
@@ -200,13 +200,30 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
         if(!descriptor->initialized)
         {
             printf("init\n");
-            //init code
+            //init code (need to initiate all the values in the descriptor)
             descriptor->initialized = 1; 
         }
-        //paramenters translation code
 
+        //if aggregate and group changed (or first group execute clear)
+        if(descriptor->aggregate && descriptor->clear)
+        {
+            //execute clear code
+            descriptor->clear = 0;
+        }
+
+        //if aggregate execute add after exec
+        if(descriptor->aggregate)
+        {
+            //execute add code
+            printf("add\n");
+            return res;
+        }
+
+        //paramenters translation code
         //exec code
         printf("exec\n");
+
+        //return value calculated by exec function
         res.data.long_value = 1.0;
         return res;
     }
@@ -228,16 +245,31 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
         if(!descriptor->initialized)
         {
             printf("init\n");
-            //init code
+            //init code (need to initiate all the values in the descriptor)
             descriptor->initialized = 1; 
         }
-        //paramenters translation code
 
+        //if aggregate and group changed (or first group execute clear)
+        if(descriptor->aggregate && descriptor->clear)
+        {
+            //execute clear code
+            descriptor->clear = 0;
+        }
+
+        //if aggregate execute add after exec
+        if(descriptor->aggregate)
+        {
+            //execute add code
+            printf("add\n");
+            return res;
+        }
+
+        //paramenters translation code
         //exec code
         printf("exec\n");
-        double one = get_double_value(args[0], er, "oph_id_to_index2");
-        double two = get_double_value(args[1], er, "oph_id_to_index2");        
-        res.data.double_value = one + two;
+
+        //return value calculated by exec function
+        res.data.double_value = 1.0;
         return res;
     }
 }
@@ -258,12 +290,29 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
         if(!descriptor->initialized)
         {
             printf("init\n");
-            //init code
+            //init code (need to initiate all the values in the descriptor)
+            descriptor->clear = 1;
             descriptor->initialized = 1; 
         }
-        //paramenters translation code
 
+        //if aggregate and group changed (or first group execute clear)
+        if(descriptor->aggregate && descriptor->clear)
+        {
+            //execute clear code
+            descriptor->clear = 0;
+        }
+
+        //if aggregate execute add after exec
+        if(descriptor->aggregate)
+        {
+            //execute add code
+        }
+
+        //paramenters translation code
+        //exec code
         printf("exec\n");
+
+        //return value calculated by exec function
         return res;
     }
 }
@@ -272,7 +321,7 @@ oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int nu
 {
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_STRING;
-     if(!er) return res;
+    if(!er) return res;
     
     if(destroy) 
     {
@@ -284,13 +333,32 @@ oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int nu
         if(!descriptor->initialized)
         {
             printf("init\n");
-            //init code
+            //init code (need to initiate all the values in the descriptor)
+            descriptor->clear = 1;
             descriptor->initialized = 1; 
         }
-        //paramenters translation code
 
+        //if aggregate and group changed (or first group execute clear)
+        if(descriptor->aggregate && descriptor->clear)
+        {
+            //execute clear code
+            printf("clear\n");
+            descriptor->clear = 0;
+        }
+
+        //if aggregate execute add after exec
+        if(descriptor->aggregate)
+        {
+            //execute add code
+            printf("add\n");
+            return res;
+        }
+
+        //paramenters translation code
         //exec code
         printf("exec\n");
+
+        //return value calculated by exec function
         res.data.string_value = "a string";
         return res;
     }
