@@ -157,9 +157,6 @@ int main(void)
     oph_query_expr_delete_node(e2, table2);
     oph_query_expr_destroy_symtable(table2);
 
-
-
-
      //generic tests
     printf("\nTest 8\n");
     char* test_right6 = "b + a + f(?2) + ?1 + ?2";

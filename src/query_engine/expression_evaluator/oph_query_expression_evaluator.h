@@ -48,7 +48,6 @@ typedef struct _oph_query_expr_udf_descriptor
     UDF_INIT* initid;
     UDF_ARGS* internal_args;
 }oph_query_expr_udf_descriptor;
-
 //value type
 typedef enum _oph_query_expr_value_type
 {

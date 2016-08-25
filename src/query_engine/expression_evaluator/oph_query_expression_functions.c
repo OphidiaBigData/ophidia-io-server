@@ -189,7 +189,7 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     if(!er) return res;
-    
+
     if(destroy) 
     {
         printf("deinit\n");
