@@ -34,6 +34,7 @@
 #include <math.h>
 #include <debug.h>
 
+oph_query_expr_symtable* oph_function_table = NULL;
 extern int msglevel;
 int MIN_VAR_ARRAY_LENGTH = 20;
 
@@ -193,7 +194,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
         logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
         return OPH_QUERY_ENGINE_NULL_PARAM;  
     }
-    int MIN_SIZE = 7; ///<< should equal be equal to number of built-in functions added to symtable
+    int MIN_SIZE = 0; ///<< should equal be equal to number of built-in functions added to symtable
     (*table) = (oph_query_expr_symtable *)malloc(sizeof (oph_query_expr_symtable));
 
     if((*table) == NULL)
@@ -219,16 +220,6 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int addition
         return OPH_QUERY_ENGINE_MEMORY_ERROR;
     }
 
-    //add all the built-in variable and functions (if adding new built-in remember to change MIN_SIZE)
-    //oph_query_expr_add_variable("b",-1,(*table));
-
-    oph_query_expr_add_function("oph_id", 0, 2, oph_id, (*table));
-    oph_query_expr_add_function("oph_id2", 0, 3, oph_id2, (*table));
-    oph_query_expr_add_function("oph_id3", 0, 3, oph_id3, (*table));
-    oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, (*table));
-    oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2,(*table));
-    oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index,(*table));
-    oph_query_expr_add_function("one", 0, 2, oph_query_generic_double, (*table));
     return OPH_QUERY_ENGINE_SUCCESS;
 }
 
@@ -669,7 +660,8 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
             }
         case eFUN: 
             {   
-                oph_query_expr_record* r = oph_query_expr_lookup(e->name, table);
+                oph_query_expr_record* r = oph_query_expr_lookup(e->name, oph_function_table);
+                if(r == NULL) r = oph_query_expr_lookup(e->name, table);
                 if(r != NULL && r->type == 2)
                 {   
                     double record_args_num = r->numArgs;
