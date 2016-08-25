@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include <debug.h>
+#include <errno.h>
 
 extern int msglevel;
 
@@ -98,8 +99,8 @@ int _oph_query_parser_load_query_params(const char *query_string, HASHTBL *hasht
   ptr_equal = strchr(query_string, OPH_QUERY_ENGINE_LANG_VALUE_SEPARATOR);
   ptr_end = strchr(query_string, OPH_QUERY_ENGINE_LANG_PARAM_SEPARATOR);
 
-  char param[OPH_QUERY_ENGINE_LANG_LEN] = {'\0'};
-  char value[OPH_QUERY_ENGINE_LANG_LEN] = {'\0'};
+  char param[strlen(query_string)+1];
+  char value[strlen(query_string)+1];
   char *real_val = NULL;
 
   while(ptr_end)
@@ -259,7 +260,7 @@ int oph_query_parser(char *query_string, HASHTBL **query_args)
 		return OPH_QUERY_ENGINE_ERROR;
 	}
 
-	//Split all arguments and load each one into hast table
+	//Split all arguments and load each one into hash table
 	if(_oph_query_parser_load_query_params(query_string, *query_args) ){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_ARG_LOAD_ERROR);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_ARG_LOAD_ERROR);   
@@ -278,4 +279,71 @@ int oph_query_parser(char *query_string, HASHTBL **query_args)
 	}
 
   return OPH_QUERY_ENGINE_SUCCESS;
+}
+
+int oph_query_field_type(const char* field, oph_query_field_types *field_type){
+	if (!field || !field_type){	
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+	  	logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
+		return OPH_QUERY_ENGINE_NULL_PARAM;
+	}
+
+	//First check if it is a string
+	if(field[0] == 	OPH_QUERY_ENGINE_LANG_STRING_DELIMITER){
+		*field_type = OPH_QUERY_FIELD_TYPE_STRING;
+		return OPH_QUERY_ENGINE_SUCCESS;
+	}
+	
+	//Then check if it contains a function
+	char *ptr_start, *ptr_end;
+	//See if query string contains at least ( and )
+	ptr_start = strchr(field, OPH_QUERY_ENGINE_LANG_FUNCTION_START);
+	ptr_end = strchr(field, OPH_QUERY_ENGINE_LANG_FUNCTION_END);
+
+	if ((ptr_start != NULL) && (ptr_end != NULL)){
+		*field_type = OPH_QUERY_FIELD_TYPE_FUNCTION;
+		return OPH_QUERY_ENGINE_SUCCESS;
+
+	}
+	//Only one bracket found
+	else if((ptr_start != NULL) != (ptr_end != NULL)){
+		*field_type = OPH_QUERY_FIELD_TYPE_UNKNOWN;
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, field);
+	  	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, field);   
+	    return OPH_QUERY_ENGINE_PARSE_ERROR;
+	}
+
+	//Test number presence
+    char* end = NULL;
+    errno = 0;
+
+    //Test INT_RESULT (long long)
+    strtoll((char *)field, &end, 10);
+    if ((errno != 0) || (end == (char *)field) || (*end != 0)){
+        errno = 0;
+        //Test DECIMAL_RESULT (double)
+        strtod ((char *)field, &end);
+        if ((errno != 0) || (end == (char *)field) || (*end != 0)){
+			//Test to see if it only contains ?
+			if(field[0] == OPH_QUERY_ENGINE_LANG_ARG_REPLACE){
+				*field_type = OPH_QUERY_FIELD_TYPE_BINARY;
+				return OPH_QUERY_ENGINE_SUCCESS;
+			}
+			else{
+				*field_type = OPH_QUERY_FIELD_TYPE_VARIABLE;
+				return OPH_QUERY_ENGINE_SUCCESS;
+			}
+        }
+        else{
+			*field_type = OPH_QUERY_FIELD_TYPE_DOUBLE;
+			return OPH_QUERY_ENGINE_SUCCESS;
+        }
+    }
+    else{
+		*field_type = OPH_QUERY_FIELD_TYPE_LONG;
+		return OPH_QUERY_ENGINE_SUCCESS;
+    }
+
+	*field_type = OPH_QUERY_FIELD_TYPE_UNKNOWN;
+	return OPH_QUERY_ENGINE_SUCCESS;
 }

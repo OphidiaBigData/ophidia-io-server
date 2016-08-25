@@ -440,9 +440,9 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
 
 	long long tmpL = 0;
 	double tmpD = 0;
-	int i = 0, j = 0;
+	int i = 0;
 	(*row_size) = sizeof(oph_iostore_frag_record);
-
+	oph_query_field_types field_type = OPH_QUERY_FIELD_TYPE_UNKNOWN;
 
 	for(i = 0; i < partial_result_set->field_num; i++){
 		//For each field check column name correspondence
@@ -453,77 +453,85 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
       return OPH_IO_SERVER_EXEC_ERROR;        
     }
 
-		//For each value check if argument contains ? and substitute with arg[i]
-		//TODO make this a function
-		if(value_list[i][0] == OPH_QUERY_ENGINE_LANG_ARG_REPLACE){
-			//Check column type with arg_type ...  
-			/*if(args[*arg_count]->arg_type != partial_result_set->field_type)
-			//EXIT
-		}*/
-
-			if (!args){
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
-				logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
-				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-				return OPH_IO_SERVER_NULL_PARAM;
-			}
-
-			if (memory_check())
-			{
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-				return OPH_IO_SERVER_MEMORY_ERROR;
-			}
-
-			(*new_record)->field_length[i] = args[*arg_count]->arg_length;
-			(*row_size) += ((*new_record)->field_length[i] + sizeof((*new_record)->field_length[i]) + sizeof((*new_record)->field[i]));
-			(*new_record)->field[i] = (void *)memdup(args[*arg_count]->arg,(*new_record)->field_length[i]);
-			if((*new_record)->field[i] == NULL){
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-				return OPH_IO_SERVER_MEMORY_ERROR;             
-			}
-			(*arg_count)++;
+		//Check for field type
+		if(oph_query_field_type(value_list[i], &field_type)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);
+			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);    
+      oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+			return OPH_IO_SERVER_PARSE_ERROR;
 		}
-		else{
-			//No substitution occurs, use directly strings
 
-			//Check for string type	OPH_IOSTORE_STRING_TYPE
-			if(value_list[i][0] == 	OPH_QUERY_ENGINE_LANG_STRING_DELIMITER)
+		switch(field_type){
+			case OPH_QUERY_FIELD_TYPE_VARIABLE:
+			case OPH_QUERY_FIELD_TYPE_UNKNOWN:
+			{
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);
+				logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);    
+	      oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_PARSE_ERROR;
+			}
+			case OPH_QUERY_FIELD_TYPE_FUNCTION:
+			{
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, value_list[i]);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, value_list[i]);	
+	      oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_PARSE_ERROR;
+			}
+			case OPH_QUERY_FIELD_TYPE_BINARY:
+			{
+				//For each value check if argument contains ? and substitute with arg[i]
+				//Check column type with arg_type ...  
+				//if(args[*arg_count]->arg_type != partial_result_set->field_type)
+				//EXIT
+				if (!args){
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+					oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+					return OPH_IO_SERVER_NULL_PARAM;
+				}
+
+				if (memory_check())
+				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+					oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+					return OPH_IO_SERVER_MEMORY_ERROR;
+				}
+
+				(*new_record)->field_length[i] = args[*arg_count]->arg_length;
+				(*new_record)->field[i] = (void *)memdup(args[*arg_count]->arg,(*new_record)->field_length[i]);
+				(*arg_count)++;
+				break;
+			}
+			//No substitution occurs, use directly strings
+			case OPH_QUERY_FIELD_TYPE_STRING:
 			{
 				(*new_record)->field_length[i] = strlen(value_list[i]) + 1;
 				(*new_record)->field[i] = (char *)strndup(value_list[i],(*new_record)->field_length[i]);
+				break;
 			}
-			else
+			case OPH_QUERY_FIELD_TYPE_DOUBLE:
 			{
-				for(j = 0; j < (int)strlen(value_list[i]); j++ )
-				{
-					//Check for string type	OPH_IOSTORE_REAL_TYPE
-					if(value_list[i][j] == OPH_QUERY_ENGINE_LANG_REAL_NUMBER_POINT)
-					{
-						tmpD = (double)strtod(value_list[i], NULL);
-						(*new_record)->field_length[i] = sizeof(double);
-						(*new_record)->field[i] = (void *)memdup((const void *)&tmpD,(*new_record)->field_length[i]);
-						break;
-					}
-				}
-				//Check for string type	OPH_IOSTORE_LONG_TYPE
-				if(j == (int)strlen(value_list[i]))
-				{
-					tmpL = (long long)strtoll(value_list[i], NULL, 10);
-					(*new_record)->field_length[i] = sizeof(long long);
-					(*new_record)->field[i] = (void *)memdup((const void *)&tmpL,(*new_record)->field_length[i]);
-				}
+				tmpD = (double)strtod(value_list[i], NULL);
+				(*new_record)->field_length[i] = sizeof(double);
+				(*new_record)->field[i] = (void *)memdup((const void *)&tmpD,(*new_record)->field_length[i]);
+				break;
 			}
-			(*row_size) += ((*new_record)->field_length[i] + sizeof((*new_record)->field_length[i]) + sizeof((*new_record)->field[i]));
-			if((*new_record)->field[i] == NULL){
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-				return OPH_IO_SERVER_MEMORY_ERROR;             
+			case OPH_QUERY_FIELD_TYPE_LONG:
+			{
+				tmpL = (long long)strtoll(value_list[i], NULL, 10);
+				(*new_record)->field_length[i] = sizeof(long long);
+				(*new_record)->field[i] = (void *)memdup((const void *)&tmpL,(*new_record)->field_length[i]);
+				break;
 			}
+		}
+
+		(*row_size) += ((*new_record)->field_length[i] + sizeof((*new_record)->field_length[i]) + sizeof((*new_record)->field[i]));
+		if((*new_record)->field[i] == NULL){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+			oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+			return OPH_IO_SERVER_MEMORY_ERROR;             
 		}
 	}
 

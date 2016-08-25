@@ -388,6 +388,8 @@ gettimeofday(&start_time, NULL);
 
 	      while(global_status.last_result_set->record_set[i]){
 		  //Send each row of result set
+
+		//TODO send also field name
 		  for(j = 0; j < num_fields; j++){
 		    //Check field type
 		    if(global_status.last_result_set->field_type[j] != OPH_IOSTORE_STRING_TYPE){
