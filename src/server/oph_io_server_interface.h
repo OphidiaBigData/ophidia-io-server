@@ -67,6 +67,8 @@
 #define OPH_IO_SERVER_LOG_LOCK_ERROR                      "Unable to execute mutex lock\n"
 #define OPH_IO_SERVER_LOG_UNLOCK_ERROR                    "Unable to execute mutex unlock\n"
 #define OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR                "Field type not recognized: %s\n"
+#define OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN               "Field name not found: %s\n"
+#define OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR                "Unable to build select columns\n"
 
 //Packet codes
 
@@ -93,6 +95,7 @@
 #define OPH_IO_SERVER_MAX_DOUBLE_LEN 32
 
 #define OPH_IO_SERVER_BUFFER 1024
+#define OPH_IO_SERVER_MAX_PLUGIN_NUMBER 1000
 
 // Prototypes
 
@@ -185,6 +188,18 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_m
  * \return              0 if successfull, non-0 otherwise
  */
 int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs);
+
+/**
+ * \brief               	Internal function used to build selection field columns. Used in case of select. 
+ * \param field_list    	List of select fields
+ * \param field_list_num    Number of select fields to be processed
+ * \param offset 			Starting point of input record set
+ * \param total_row_number 	Total numbers of row to be processed from input
+ * \param input    			Input record set 
+ * \param output 			Output records set to be filled (must be already allocated)
+ * \return              	0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_iostore_frag_record_set *input, oph_iostore_frag_record_set *output);
 
 /**
  * \brief               Internal function used to store the final record set. Used in case of insert and multi-insert. 

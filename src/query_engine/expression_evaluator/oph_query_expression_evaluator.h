@@ -19,7 +19,6 @@
 #ifndef __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 #define __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 
-#include "oph_query_plugin_executor.h"
 #include "oph_query_parser.h"  
 
 /* Definition of the structure/functions used to contruct and use the symtable (1), 
@@ -28,26 +27,6 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 
 //---------- 1
 
-/**
-* \brief               Descriptor of udf primitives
-* \param initialized   The descriptor is already beein initialized through an init function 
-* \param aggregate     The 0 if the function is simple 1 if it is aggragate
-* \param clear         For aggregate functions it indicates if the clear action needs to be executed. For simple functions it is ignored.   
-* \param dlh           Pointer to the structures initialized by an init function
-* \param plugin_api    plugin information
-* \param initid        Pointer used by udf primitives
-* \param internal_args Pointer to structures where the arguments values are stored
-*/
-typedef struct _oph_query_expr_udf_descriptor
-{   
-    int initialized;
-    int aggregate; 
-    int clear; 
-    void* dlh;
-    plugin_api function;
-    UDF_INIT* initid;
-    UDF_ARGS* internal_args;
-}oph_query_expr_udf_descriptor;
 //value type
 typedef enum _oph_query_expr_value_type
 {
@@ -78,6 +57,29 @@ typedef struct _oph_query_expr_value
         oph_query_arg* binary_value;
     }data;
 }oph_query_expr_value;
+
+#include "oph_query_plugin_executor.h"
+
+/**
+* \brief               Descriptor of udf primitives
+* \param initialized   The descriptor is already beein initialized through an init function 
+* \param aggregate     The 0 if the function is simple 1 if it is aggragate
+* \param clear         For aggregate functions it indicates if the clear action needs to be executed. For simple functions it is ignored.   
+* \param dlh           Pointer to the structures initialized by an init function
+* \param plugin_api    plugin information
+* \param initid        Pointer used by udf primitives
+* \param internal_args Pointer to structures where the arguments values are stored
+*/
+typedef struct _oph_query_expr_udf_descriptor
+{   
+    int initialized;
+    int aggregate; 
+    int clear; 
+    void* dlh;
+    plugin_api function;
+    UDF_INIT* initid;
+    UDF_ARGS* internal_args;
+}oph_query_expr_udf_descriptor;
 
 /**
 * \brief			Symble table record structure
@@ -114,7 +116,14 @@ typedef struct _oph_query_expr_symtable {
 //functions to interact with symtable
 
 /**
- * \brief               Allocates space for the symtable and adds to it a set of built-in functions/variables
+ * \brief               Allocates space for the global function symtable and adds to it a set of built-in functions
+ * \param size          The number of the extra functions that can be added to the function symtable (>= 0)
+ * \return              0 if succesfull; non-0 otherwise
+ */
+int oph_query_expr_create_function_symtable(int size);
+
+/**
+ * \brief               Allocates space for the symtable
  * \param table         The reference to the symtable pointer to be initiated
  * \param size          The number of the extra variables/functions that can be added to the symtable (>= 0)
  * \return              0 if succesfull; non-0 otherwise
@@ -175,7 +184,7 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
 /**
  * \brief               add a new function to the table (NOTE: doesn't updates old values the same way add_variable does)
  * \param name          The name of the function to be added
- * \param fun_type      0 if the funtion takes a fized param number; 1 otherwhise;
+ * \param fun_type      0 if the funtion takes a fixed param number; 1 otherwhise;
  * \param numArgs       The number of args accepted by the fuction
  * \param function      A reference to an implementation of the function
  * \param symtable      A reference to the target symtable
@@ -367,8 +376,11 @@ int oph_query_expr_change_group(oph_query_expr_node *e);
 /**
  *\brief                Returns a vector of the names of all the variables in the AST  
  *\param e              The root of the AST
+ *\param var_list       Pointer to list of variables to be created
+ *\param var_count      Number of variables retrieved
+ * \return              Returns 0 if operation was successfull; non-0 if otherwise;
  */
-char** oph_query_expr_get_variables(oph_query_expr_node *e);
+int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *var_count);
 
 /**
  *\brief                Saves in result a copy of the query with all the question masks numbered from 1 to n  

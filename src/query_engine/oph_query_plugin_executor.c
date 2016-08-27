@@ -39,7 +39,7 @@
 
 extern int msglevel;
 extern unsigned long long omp_threads;
-
+HASHTBL *plugin_table = NULL;  
 pthread_mutex_t libtool_lock;
 
 //TODO - Add debug mesg and logging
@@ -1264,3 +1264,313 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 	pmesg(LOG_DEBUG,__FILE__,__LINE__,"Query valid: found function %s\n", plugin_name);
 	return 0;
 }
+
+
+int oph_query_plugin_deinit(plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args){
+	if(!function || !dlh || !initid || !internal_args)
+		return -1;
+
+  //Deinitialize function
+	if (!(_oph_plugin_deinit = (void (*)(UDF_INIT*)) function->deinit_api)){
+pthread_mutex_lock(&libtool_lock);
+		lt_dlclose(dlh);
+		lt_dlexit();
+pthread_mutex_unlock(&libtool_lock);
+    pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin DEINIT function\n");
+		return -1;
+	}		
+
+  _oph_plugin_deinit (initid);
+
+	free(initid);
+	free_udf_arg(internal_args);
+	free(internal_args);
+
+  //Release functions
+#ifndef OPH_WITH_VALGRIND
+	//Close dynamic loaded library
+pthread_mutex_lock(&libtool_lock);
+	if ((lt_dlclose(dlh)))
+	{
+		lt_dlexit();
+pthread_mutex_unlock(&libtool_lock);
+        pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while closing plugin library\n");
+		return -1;
+	}
+pthread_mutex_unlock(&libtool_lock);
+	dlh = NULL;
+
+pthread_mutex_lock(&libtool_lock);
+	if (lt_dlexit()){
+pthread_mutex_unlock(&libtool_lock);
+        pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while closing plugin library\n");
+		return -1;
+	}
+pthread_mutex_unlock(&libtool_lock);
+#endif
+
+	return 0;
+}
+
+int oph_query_plugin_init(plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args){
+	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
+		return -1;
+
+	//Load plugin shared library
+	oph_plugin *plugin = (oph_plugin*) hashtbl_get(plugin_table, plugin_name);
+	if(!plugin){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,"Plugin not allowed\n");
+		return -1;
+	}
+
+	//Load all functions
+	char plugin_init_name[BUFLEN], plugin_deinit_name[BUFLEN], plugin_clear_name[BUFLEN], plugin_add_name[BUFLEN], plugin_reset_name[BUFLEN];
+	snprintf(plugin_init_name, BUFLEN, "%s_init", plugin->plugin_name);
+	snprintf(plugin_deinit_name, BUFLEN, "%s_deinit", plugin->plugin_name);
+	snprintf(plugin_clear_name, BUFLEN, "%s_clear", plugin->plugin_name);
+	snprintf(plugin_add_name, BUFLEN, "%s_add", plugin->plugin_name);
+	snprintf(plugin_reset_name, BUFLEN, "%s_reset", plugin->plugin_name);
+	*dlh = NULL;
+
+	//Initialize libltdl
+pthread_mutex_lock(&libtool_lock);
+	lt_dlinit ();
+pthread_mutex_unlock(&libtool_lock);
+
+pthread_mutex_lock(&libtool_lock);
+	//Load library
+	if (!(*dlh = (lt_dlhandle) lt_dlopen (plugin->plugin_library)))
+	{
+		lt_dlclose(*dlh);
+		lt_dlexit();
+pthread_mutex_unlock(&libtool_lock);
+	pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading plugin dynamic library\n");
+		return -1;
+	}
+pthread_mutex_unlock(&libtool_lock);
+
+	//Load all library symbols
+	pthread_mutex_lock(&libtool_lock);
+	function->init_api = lt_dlsym (*dlh, plugin_init_name);
+	function->clear_api = NULL;
+	function->reset_api = NULL;
+	function->add_api = NULL;
+	function->exec_api = lt_dlsym (*dlh, plugin->plugin_name);
+	function->deinit_api = lt_dlsym (*dlh, plugin_deinit_name);
+	if( (plugin->plugin_type == OPH_AGGREGATE_PLUGIN_TYPE) ){
+		function->clear_api = lt_dlsym (*dlh, plugin_clear_name);
+		function->reset_api = lt_dlsym (*dlh, plugin_reset_name);
+		function->add_api = lt_dlsym (*dlh, plugin_add_name);
+	}
+	pthread_mutex_unlock(&libtool_lock);
+
+	//Initialize function
+	if (!(_oph_plugin_init = (my_bool (*)(UDF_INIT*, UDF_ARGS *, char *)) function->init_api)){
+pthread_mutex_lock(&libtool_lock);
+		lt_dlclose(*dlh);
+		lt_dlexit();
+pthread_mutex_unlock(&libtool_lock);
+    pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function\n");
+		return -1;
+	}
+
+	char *message = (char*)malloc(BUFLEN*sizeof(char));
+	if(message == NULL){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+		return -1;
+	}
+	//SETUP UDF_ARG
+	UDF_ARGS *tmp_args = (UDF_ARGS*)malloc(sizeof(UDF_ARGS));
+	if(tmp_args == NULL){
+		free(message);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+		return -1;
+	}
+
+  	int l = 0;
+
+    //Create new UDF fixed fields
+    tmp_args->arg_count = arg_count;
+    tmp_args->arg_type = (enum Item_result*)calloc(arg_count,sizeof(enum Item_result));
+    tmp_args->args = (char**)calloc(arg_count,sizeof(char*));
+    tmp_args->lengths = (unsigned long *)calloc(arg_count,sizeof(unsigned long));
+
+	if(!tmp_args->arg_type || !tmp_args->args || !tmp_args->lengths)	
+	{
+		free(message);
+		free_udf_arg(tmp_args);
+		free(tmp_args);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+		return -1;
+	}
+
+    for(l = 0; l < arg_count ; l++){
+		switch(args[l].type){
+			case OPH_QUERY_EXPR_TYPE_STRING:
+				tmp_args->arg_type[l] = STRING_RESULT;
+				tmp_args->lengths[l] =  0;
+				tmp_args->args[l] = NULL; 
+				break;
+			case OPH_QUERY_EXPR_TYPE_BINARY:
+				tmp_args->arg_type[l] = STRING_RESULT;
+				tmp_args->lengths[l] =  0;
+				tmp_args->args[l] = NULL; 
+				break;
+			case OPH_QUERY_EXPR_TYPE_DOUBLE:
+				tmp_args->arg_type[l] = DECIMAL_RESULT;
+				tmp_args->lengths[l] =  (unsigned long)sizeof(double);
+				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
+				if(!tmp_args->args[l])	
+				{
+					free(message);
+					free_udf_arg(tmp_args);
+					free(tmp_args);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+					return -1;
+				}
+				break;
+			case OPH_QUERY_EXPR_TYPE_LONG:
+				tmp_args->arg_type[l] = INT_RESULT;
+				tmp_args->lengths[l] =  (unsigned long)sizeof(long long);
+				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
+				if(!tmp_args->args[l])	
+				{
+					free(message);
+					free_udf_arg(tmp_args);
+					free(tmp_args);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+					return -1;
+				}
+				break;
+			default:
+				free(message);
+				free_udf_arg(tmp_args);
+				free(tmp_args);
+				return -1;
+		}
+	}
+
+	*message=0;
+
+	*initid = (UDF_INIT *)malloc(sizeof(UDF_INIT));
+	if(*initid == NULL){
+		free(message);
+		free_udf_arg(tmp_args);
+		free(tmp_args);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+		*initid = NULL;
+		return -1;
+	}
+
+	if(_oph_plugin_init (*initid, tmp_args, message)){
+		free(message);
+		free_udf_arg(tmp_args);
+		free(tmp_args);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
+		return -1;
+	}
+	free(message);
+
+	*internal_args = tmp_args;
+
+	return 0;
+}
+
+int oph_query_plugin_exec(plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res){
+	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
+		return -1;
+
+	char is_null = 0, error = 0, result = 0;
+
+	//Load plugin shared library
+	oph_plugin *plugin = (oph_plugin*) hashtbl_get(plugin_table, plugin_name);
+	if(!plugin){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,"Plugin not allowed\n");
+		return -1;
+	}
+
+  	int l = 0;
+
+    //Update UDF fields
+    for(l = 0; l < arg_count ; l++){
+		switch(args[l].type){
+			case OPH_QUERY_EXPR_TYPE_STRING:
+				internal_args->lengths[l] =  (unsigned long)(strlen(args[l].data.string_value) +1);
+				if(internal_args->args[l]) free(internal_args->args[l]);
+				internal_args->args[l] = (char *)malloc(internal_args->lengths[l]*sizeof(char));
+				if(!internal_args->args[l])	
+				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin EXEC function\n");
+					return -1;
+				}
+		        memcpy ((char *)internal_args->args[l], args[l].data.string_value, internal_args->lengths[l]*sizeof(char)); 
+				break;
+			case OPH_QUERY_EXPR_TYPE_BINARY:
+				internal_args->lengths[l] =  (unsigned long)args[l].data.binary_value->arg_length;
+				if(internal_args->args[l]) free(internal_args->args[l]);
+				internal_args->args[l] = (char *)malloc(internal_args->lengths[l]*sizeof(char));
+				if(!internal_args->args[l])	
+				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin EXEC function\n");
+					return -1;
+				}
+		        memcpy ((char *)internal_args->args[l], args[l].data.binary_value->arg, internal_args->lengths[l]*sizeof(char)); 
+				break;
+			case OPH_QUERY_EXPR_TYPE_DOUBLE:
+		        memcpy ((char *)internal_args->args[l], &(args[l].data.double_value), internal_args->lengths[l]*sizeof(char)); 
+				break;
+			case OPH_QUERY_EXPR_TYPE_LONG:
+		        memcpy ((char *)internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l]*sizeof(char)); 
+				break;
+			default:
+				return -1;
+		}
+	}
+
+	void *rs = NULL;
+	unsigned long long rs_length = 0;
+
+	if(_oph_execute_plugin(plugin, internal_args, initid, &rs, &rs_length, &is_null, &error, &result, function )){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin execution function\n");
+		return -1;
+	}
+
+	switch(plugin->plugin_return){
+		case OPH_IOSTORE_STRING_TYPE:
+		{
+
+			oph_query_arg *temp = (oph_query_arg *)malloc(sizeof(oph_query_arg));
+			if(temp == NULL){
+				free(rs);
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin EXEC function\n");
+				return -1;
+			}
+			res->data.binary_value = temp;	
+
+			res->data.binary_value->arg = rs;	
+			//TODO Set right type
+			res->data.binary_value->arg_type = OPH_QUERY_TYPE_BLOB;	
+			res->data.binary_value->arg_length = rs_length;	
+			res->data.binary_value->arg_is_null = is_null;	
+			break;
+		}
+		case OPH_IOSTORE_LONG_TYPE:
+		{
+			res->data.long_value = *(long long *)rs;	
+			free(rs);		
+			break;
+		}
+
+		case OPH_IOSTORE_REAL_TYPE:
+		{
+			res->data.double_value = *(double *)rs;
+			free(rs);		
+			break;
+		}
+		default:
+			return -1;
+	}
+
+	return 0;
+}
+

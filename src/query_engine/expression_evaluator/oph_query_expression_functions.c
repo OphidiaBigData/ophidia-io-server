@@ -187,21 +187,26 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, 
 oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
+    res.data.long_value = 1;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     if(!er) return res;
 
+    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic long\n");
+
     if(destroy) 
     {
-        printf("deinit\n");
-        //deinit code
+		oph_query_plugin_deinit(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args);
         return res;
     }else
     {
         if(!descriptor->initialized)
         {
-            printf("init\n");
-            //init code (need to initiate all the values in the descriptor)
+			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args);
+			if(!er){
+				return res;
+			}
             descriptor->initialized = 1; 
+            descriptor->clear = 1;
         }
 
         //if aggregate and group changed (or first group execute clear)
@@ -215,16 +220,13 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
         if(descriptor->aggregate)
         {
             //execute add code
-            printf("add\n");
-            return res;
         }
 
-        //paramenters translation code
-        //exec code
-        printf("exec\n");
+		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+		if(*er){
+			return res;
+		}
 
-        //return value calculated by exec function
-        res.data.long_value = 1.0;
         return res;
     }
 }
@@ -232,21 +234,26 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
 oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
+    res.data.double_value = 1.0;
     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
     if(!er) return res;
     
+    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic double\n");
+
     if(destroy) 
     {
-        printf("deinit\n");
-        //deinit code
+		oph_query_plugin_deinit(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args);
         return res;
     }else
     {
         if(!descriptor->initialized)
         {
-            printf("init\n");
-            //init code (need to initiate all the values in the descriptor)
+			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args);
+			if(!er){
+				return res;
+			}
             descriptor->initialized = 1; 
+            descriptor->clear = 1;
         }
 
         //if aggregate and group changed (or first group execute clear)
@@ -260,16 +267,13 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
         if(descriptor->aggregate)
         {
             //execute add code
-            printf("add\n");
-            return res;
         }
 
-        //paramenters translation code
-        //exec code
-        printf("exec\n");
+		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+		if(*er){
+			return res;
+		}
 
-        //return value calculated by exec function
-        res.data.double_value = 1.0;
         return res;
     }
 }
@@ -280,19 +284,22 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
     res.type = OPH_QUERY_EXPR_TYPE_BINARY;
     if(!er) return res;
     
+    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic binary\n");
+
     if(destroy) 
     {
-        printf("deinit\n");
-        //deinit code
+		oph_query_plugin_deinit(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args);
         return res;
     }else
     {
         if(!descriptor->initialized)
         {
-            printf("init\n");
-            //init code (need to initiate all the values in the descriptor)
-            descriptor->clear = 1;
+			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args);
+			if(!er){
+				return res;
+			}
             descriptor->initialized = 1; 
+            descriptor->clear = 1;
         }
 
         //if aggregate and group changed (or first group execute clear)
@@ -308,11 +315,11 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
             //execute add code
         }
 
-        //paramenters translation code
-        //exec code
-        printf("exec\n");
+		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+		if(*er){
+			return res;
+		}
 
-        //return value calculated by exec function
         return res;
     }
 }
@@ -323,6 +330,7 @@ oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int nu
     res.type = OPH_QUERY_EXPR_TYPE_STRING;
     if(!er) return res;
     
+	//TODO Complete string function
     if(destroy) 
     {
         printf("deinit\n");

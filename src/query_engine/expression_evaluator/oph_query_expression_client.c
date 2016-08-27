@@ -41,16 +41,8 @@ int main(void)
     oph_query_expr_node *e;
     e = NULL;
 
-    //initialize functions table
-    oph_query_expr_create_symtable(&oph_function_table, 6);
-    //add all the built-in function
-    oph_query_expr_add_function("oph_id", 0, 2, oph_id, (oph_function_table));
-    oph_query_expr_add_function("oph_id2", 0, 3, oph_id2, (oph_function_table));
-    oph_query_expr_add_function("oph_id3", 0, 3, oph_id3, (oph_function_table));
-    oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, (oph_function_table));
-    oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2,(oph_function_table));
-    oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index,(oph_function_table));
-    
+	oph_query_expr_create_function_symtable(1);
+
     //Test 1
     printf("\nTest 1\n");
     printf("Expected result: syntax error.\n");
@@ -179,11 +171,13 @@ int main(void)
     oph_query_expr_symtable *table4;
     oph_query_expr_create_symtable(&table4, 1);
     oph_query_expr_get_ast(test_right6, &e4);
-    char** variables = oph_query_expr_get_variables(e4);
+    char** variables = NULL;
+	int var_count = 0;
+	oph_query_expr_get_variables(e4,&variables,&var_count);
     int n = 0;
     printf("Query = %s\n", test_right6);
     printf("Variables = ");
-    while(variables[n] != NULL)
+	for(n = 0; n < var_count; n++)   
     {
         printf("%s ", variables[n]);
         n++;            
@@ -192,5 +186,6 @@ int main(void)
     oph_query_expr_delete_node(e4, table4);
     oph_query_expr_destroy_symtable(table4);
     free(variables);
+    oph_query_expr_destroy_symtable(oph_function_table);
     return 1;
 }

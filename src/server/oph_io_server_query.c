@@ -24,6 +24,8 @@
 #include "oph_query_plugin_loader.h"
 #include "oph_query_plugin_executor.h"
 #include "oph_query_engine_language.h"
+#include "oph_query_expression_evaluator.h"
+#include "oph_query_expression_functions.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,6 +48,7 @@ extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;
 extern unsigned short omp_threads;
 extern pthread_rwlock_t rwlock;
+extern HASHTBL *plugin_table;
 
 int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, HASHTBL *plugin_table){
 	if (!query_args || !plugin_table || !thread_status || !meta_db){	
@@ -289,61 +292,38 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 
 		//TODO read other clauses
 
-		//Define global variables
-		oph_udf_arg *oph_args[field_list_num];	
-		oph_plugin *plugin[field_list_num];
-		unsigned int arg_count[field_list_num];
-		unsigned long l = 0;
-
-		//Select plugin and set arguments
-
-		oph_iostore_frag_record_set *rs = NULL;
-		//TODO Check what fields are selected
-
-		int i;
-		for (i=0; i<field_list_num; ++i)
-		{
-			oph_args[i] = NULL;
-			plugin[i] = NULL;
-			arg_count[i] = 0;
-		}
 
 		//Prepare input record set
-
-		//Count number of rows to compute
-		long long j = 0, total_row_number = 0;
-		unsigned long long id;
+		oph_iostore_frag_record_set *rs = NULL;
+		int i = 0;
+		long long j = 0, total_row_number = 0, output_rows = 0;
 		int error = 0, aggregation = 0;
 
 		//If recordset is not empty proceed
 		if(record_set->record_set[0] != NULL){
 
-			//Prepare output record set
-			for (i=0; i<field_list_num; ++i)
+			//Count number of rows to compute
+			//TODO Check aggregation
+			if (!offset || (offset<row_number))
 			{
-				pmesg(LOG_DEBUG,__FILE__,__LINE__,"EXECUTING function %s\n", field_list[i]);
-				if(oph_parse_plugin(field_list[i], plugin_table, record_set, &plugin[i], args, &oph_args[i], &arg_count[i]))
-				{
-					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);	
-					error = OPH_IO_SERVER_PARSE_ERROR;
-					break;
-				}
-				if (plugin[i] && (plugin[i]->plugin_type == OPH_AGGREGATE_PLUGIN_TYPE)) aggregation = 1;
+				j = offset;
+				while(record_set->record_set[j] && (!limit || (total_row_number<limit))) { j++; total_row_number++; }
 			}
 
-			if (!error)
+			//Create output record set
+			//TODO Handle aggregation
+			if (aggregation) output_rows = 1;
+			else output_rows = total_row_number;
+
+			if(oph_iostore_create_frag_recordset(&rs, output_rows, field_list_num))	
 			{
-				if (!offset || (offset<row_number))
-				{
-					j = offset;
-					while(record_set->record_set[j] && (!limit || (total_row_number<limit))) { j++; total_row_number++; }
-				}
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+				error = OPH_IO_SERVER_MEMORY_ERROR;
+			}
 
-				//Create output record set
-				if (aggregation) oph_iostore_create_frag_recordset(&rs, 1, field_list_num);
-				else oph_iostore_create_frag_recordset(&rs, total_row_number, field_list_num);
-
+			if(!error){
+				//TODO Read from alias/names
 				rs->field_num = field_list_num;
 				for (i=0; i<field_list_num-1; ++i)
 				{
@@ -351,48 +331,12 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 					rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
 				}
 				rs->field_name[i] = strdup(OPH_NAME_MEASURE);
-				rs->field_type[i] = plugin[i] ? plugin[i]->plugin_return : OPH_IOSTORE_STRING_TYPE;
 
-				oph_iostore_frag_record **input = record_set->record_set, **output = rs->record_set;
-
-				for (i=0; i<field_list_num; ++i)
-				{
-					if (plugin[i])
-					{		
-						if(oph_execute_plugin2(plugin[i], oph_args[i], arg_count[i], rs, field_list_num, i, total_row_number, offset, omp_threads))
-						{
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);	
-							error = OPH_IO_SERVER_EXEC_ERROR;     
-							break;   
-						}
-					}
-					else if (!STRCMP(field_list[i],OPH_NAME_ID))
-					{
-						id = offset + 1;
-						for (j = 0; j < total_row_number; j++, id++)
-						{
-							if (i==1) id=1;
-							output[j]->field[i] = (void *)memdup((const void *)&id,sizeof(unsigned long long));
-							output[j]->field_length[i] = sizeof(unsigned long long);
-						}
-					}
-					else if (!STRCMP(field_list[i],OPH_NAME_MEASURE))
-					{
-						id = offset;
-						for (j = 0; j < total_row_number; j++, id++)
-						{
-							output[j]->field[i] = input[id]->field_length[i] ? memdup(input[id]->field[i], input[id]->field_length[i]) : NULL;
-							output[j]->field_length[i] = input[id]->field_length[i];
-						}
-					}
-					else // Copy data
-					{
-						pmesg(LOG_ERROR, __FILE__, __LINE__, "Unsupported execution of %s\n", field_list[i]);
-						logging(LOG_ERROR, __FILE__, __LINE__, "Unsupported execution of %s\n", field_list[i]);	
-						error = OPH_IO_SERVER_EXEC_ERROR;
-						break;
-					}
+				//Process each column
+				if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, record_set, rs)){
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
+					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
+					error = OPH_IO_SERVER_PARSE_ERROR;
 				}
 			}
 		}
@@ -404,20 +348,18 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 				error = OPH_IO_SERVER_MEMORY_ERROR;
 			}
 
-			for (i=0; i<field_list_num-1; ++i)
-			{
-				rs->field_name[i] = strdup(OPH_NAME_ID);
-				rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
+			if(!error){
+				//TODO Read from alias/names
+				for (i=0; i<field_list_num-1; ++i)
+				{
+					rs->field_name[i] = strdup(OPH_NAME_ID);
+					rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
+				}
+				rs->field_name[i] = strdup(OPH_NAME_MEASURE);
+				rs->field_type[i] = OPH_IOSTORE_STRING_TYPE;
 			}
-			rs->field_name[i] = strdup(OPH_NAME_MEASURE);
-			rs->field_type[i] = plugin[i] ? plugin[i]->plugin_return : OPH_IOSTORE_STRING_TYPE;
 		}
 
-		for (i=0; i<field_list_num; ++i)
-		{
-			for(l = 0; l < arg_count[i]; l++) oph_free_udf_arg(&oph_args[i][l]);
-			free(oph_args[i]);
-		}
 		if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
 		oph_iostore_destroy_frag_recordset_only(&record_set);
 		if(field_list) free(field_list);

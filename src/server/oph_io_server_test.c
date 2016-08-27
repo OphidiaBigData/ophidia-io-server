@@ -36,7 +36,7 @@ unsigned short omp_threads = 0;
 //pthread_mutex_t metadb_mutex  = PTHREAD_MUTEX_INITIALIZER;
 pthread_rwlock_t       rwlock = PTHREAD_RWLOCK_INITIALIZER;
 oph_metadb_db_row *db_table = NULL;
-HASHTBL *plugin_table = NULL;
+extern HASHTBL *plugin_table;
 
 int main(int argc, char *argv[])
 {

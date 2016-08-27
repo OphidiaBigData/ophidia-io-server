@@ -30,6 +30,10 @@
 
 #include <malloc.h>
 
+#include "oph_query_expression_evaluator.h"
+#include "oph_query_expression_functions.h"
+#include "oph_io_server_interface.h"
+
 //TODO put globals into global struct 
 //Global server variables (read only)
 unsigned long long max_packet_length = 0;
@@ -38,8 +42,9 @@ unsigned short client_ttl = 0;
 //pthread_mutex_t metadb_mutex  = PTHREAD_MUTEX_INITIALIZER;
 pthread_rwlock_t       rwlock = PTHREAD_RWLOCK_INITIALIZER;
 oph_metadb_db_row *db_table = NULL;
-HASHTBL *plugin_table = NULL;  
 HASHTBL *conf_db = NULL;
+extern HASHTBL *plugin_table;  
+extern oph_query_expr_symtable *oph_function_table;
 
 //Global only in this files (for garbage collection purpose)
 struct sockaddr	*cliaddr;
@@ -167,10 +172,24 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	//Load all functions in the global function symtable
+
+	if(oph_query_expr_create_function_symtable(OPH_IO_SERVER_MAX_PLUGIN_NUMBER)){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to load plugin table\n");
+		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to load plugin table\n");
+		oph_query_engine_end(&plugin_table);
+    oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+ 
+	//TODO Load all function from hash table	
+	oph_query_expr_add_function("oph_dump", 1, 1, oph_query_generic_binary, oph_function_table);
+
   //Setup MetaDB
   if(oph_metadb_load_schema (&db_table, 1)){
 		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to load MetaDB\n");
 		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to load MetaDB\n");
+    oph_query_expr_destroy_symtable(oph_function_table);
 		oph_query_engine_end(&plugin_table);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
@@ -183,6 +202,7 @@ int main(int argc, char *argv[])
   {
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while listening TCP socket\n");
     logging(LOG_ERROR,__FILE__,__LINE__,"Error while listening TCP socket\n");
+    oph_query_expr_destroy_symtable(oph_function_table);
 		oph_query_engine_end(&plugin_table);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
@@ -194,6 +214,7 @@ int main(int argc, char *argv[])
   {
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to allocate buffer for client address\n");
     logging(LOG_ERROR,__FILE__,__LINE__,"Unable to allocate buffer for client address\n");
+    oph_query_expr_destroy_symtable(oph_function_table);
 		oph_query_engine_end(&plugin_table);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
@@ -218,6 +239,7 @@ int main(int argc, char *argv[])
 			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error on connection\n");
 			logging(LOG_ERROR,__FILE__,__LINE__,"Error on connection\n");
 			free(cliaddr);
+		    oph_query_expr_destroy_symtable(oph_function_table);
 			oph_metadb_unload_schema (db_table);
 			oph_server_conf_unload(&conf_db);
 			oph_query_engine_end(&plugin_table);
@@ -235,6 +257,7 @@ int main(int argc, char *argv[])
 			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error creating thread\n");
 			logging(LOG_ERROR,__FILE__,__LINE__,"Error creating thread\n");
 			free(cliaddr);
+		    oph_query_expr_destroy_symtable(oph_function_table);
 			oph_metadb_unload_schema (db_table);
 			oph_server_conf_unload(&conf_db);
 			oph_query_engine_end(&plugin_table);
@@ -246,6 +269,7 @@ int main(int argc, char *argv[])
 
   //Cleanup procedures
   free(cliaddr);
+	oph_query_expr_destroy_symtable(oph_function_table);
   oph_metadb_unload_schema (db_table);
   oph_server_conf_unload(&conf_db);
   oph_query_engine_end(&plugin_table);
@@ -285,6 +309,7 @@ void release(int signo)
   //Cleanup procedures
 	logging(LOG_DEBUG,__FILE__,__LINE__,"Catched signal %d\n", signo);
   free(cliaddr);
+    oph_query_expr_destroy_symtable(oph_function_table);
   oph_metadb_unload_schema (db_table);
   oph_query_engine_end(&plugin_table);
   oph_server_conf_unload(&conf_db);

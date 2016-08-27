@@ -85,6 +85,8 @@ typedef struct{
 	lt_ptr deinit_api;
 } plugin_api;
 
+#include "oph_query_expression_evaluator.h"
+
 /**
  * \brief               Function used to assign a selects recordset to oph_selection structure
  * \param select        Pointer where oph_selection structure will be created
@@ -178,5 +180,43 @@ int oph_free_udf_arg(oph_udf_arg *arg);
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostore_frag_record_set *record_set, oph_plugin **plugin, oph_query_arg **stmt_args, oph_udf_arg **args, unsigned int *arg_count);
+
+/**
+ * \brief               Function to run plugin DEINIT function 
+ * \param function  	Set of pointers to all plugins functions 
+ * \param dlh 			Pointer to plugin handler 
+ * \param initid    	Pointer to initid used by plugin functions 
+ * \param internal_args Pointer with internal argument structures used within plugin functions
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_plugin_deinit(plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args);
+
+/**
+ * \brief               Function to run plugin INIT function 
+ * \param function  	Set of pointers to all plugins functions 
+ * \param dlh 			Pointer to plugin handler 
+ * \param initid    	Pointer to initid used by plugin functions 
+ * \param internal_args Pointer with internal argument structures used within plugin functions
+ * \param plugin_name   Name of plugin to be run
+ * \param args_count    Number of query arguments 
+ * \param args          Array of query arguments
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_plugin_init(plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args);
+
+/**
+ * \brief               Function to run plugin EXEC function 
+ * \param function  	Set of pointers to all plugins functions 
+ * \param dlh 			Pointer to plugin handler 
+ * \param initid    	Pointer to initid used by plugin functions 
+ * \param internal_args Pointer with internal argument structures used within plugin functions
+ * \param plugin_name   Name of plugin to be run
+ * \param args_count    Number of query arguments 
+ * \param args          Array of query arguments
+ * \param res          	Result of execution function
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_plugin_exec(plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res);
+
 
 #endif /* OPH_QUERY_PLUGIN_EXEC_H */

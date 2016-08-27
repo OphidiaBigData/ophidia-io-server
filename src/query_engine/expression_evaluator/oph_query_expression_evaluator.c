@@ -34,9 +34,12 @@
 #include <math.h>
 #include <debug.h>
 
-oph_query_expr_symtable* oph_function_table = NULL;
 extern int msglevel;
-int MIN_VAR_ARRAY_LENGTH = 20;
+
+//Global
+oph_query_expr_symtable* oph_function_table = NULL;
+
+#define MIN_VAR_ARRAY_LENGTH 20
 
 static oph_query_expr_node *allocate_node()
 {
@@ -160,7 +163,8 @@ int oph_query_expr_delete_node(oph_query_expr_node *b, oph_query_expr_symtable* 
         return OPH_QUERY_ENGINE_NULL_PARAM;
 
     if(b->type == eFUN){
-        oph_query_expr_record* r = oph_query_expr_lookup(b->name, table);
+		oph_query_expr_record* r = oph_query_expr_lookup(b->name, oph_function_table);
+		if(r == NULL) r = oph_query_expr_lookup(b->name, table);
         if(table != NULL && r != NULL && r->type == 2)
         {
             int er = 1; 
@@ -185,6 +189,54 @@ int oph_query_expr_delete_node(oph_query_expr_node *b, oph_query_expr_symtable* 
     free(b);
     return OPH_QUERY_ENGINE_SUCCESS;
 }
+
+int oph_query_expr_create_function_symtable(int additional_size)
+{   
+    if( additional_size < 0)
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
+        return OPH_QUERY_ENGINE_NULL_PARAM;  
+    }
+    int MIN_SIZE = 7; ///<< should equal be equal to number of built-in functions added to symtable
+    oph_function_table = (oph_query_expr_symtable *)malloc(sizeof (oph_query_expr_symtable));
+
+    if(oph_function_table == NULL)
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+        return OPH_QUERY_ENGINE_MEMORY_ERROR;
+    }
+    
+    /**
+     *the size of the array needs to be equal the number of built-in function/variables and
+     *the number of function that the user plans to add to the symtable by end (specified in 
+     *the paramenter additional_size)
+     */
+    oph_function_table->maxSize = MIN_SIZE + additional_size;
+
+    oph_function_table->array = (oph_query_expr_record **)calloc(oph_function_table->maxSize, sizeof(oph_query_expr_record *));
+    if((oph_function_table->array) == NULL)
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+        free(oph_function_table);
+        return OPH_QUERY_ENGINE_MEMORY_ERROR;
+    }
+
+    //add all the built-in variable and functions (if adding new built-in remember to change MIN_SIZE)
+    //oph_query_expr_add_variable("b",-1,(*table));
+
+    oph_query_expr_add_function("oph_id", 0, 2, oph_id, oph_function_table);
+    oph_query_expr_add_function("oph_id2", 0, 3, oph_id2, oph_function_table);
+    oph_query_expr_add_function("oph_id3", 0, 3, oph_id3, oph_function_table);
+    oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, oph_function_table);
+    oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2, oph_function_table);
+    oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index, oph_function_table);
+    oph_query_expr_add_function("one", 0, 2, oph_query_generic_double, oph_function_table);
+    return OPH_QUERY_ENGINE_SUCCESS;
+}
+
 
 int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int additional_size)
 {   
@@ -815,17 +867,25 @@ int oph_query_expr_change_group(oph_query_expr_node *b)
 
 int oph_query_expr_get_variables_help(oph_query_expr_node *e, int* max_size, int* current_size, char*** names)
 {
-    char** temp = *names;
+    char **temp = *names;
+	char **temp2 = NULL;
     if(e == NULL)
     {
-        return 0;
+        return OPH_QUERY_ENGINE_SUCCESS;
     }
 
     if((*current_size) >= (*max_size))
     {
-        temp = (char**) realloc(temp, (*current_size)*2);
+        temp2 = (char**) realloc(temp, (*current_size)*2);
+
+		if(temp2 == NULL){
+		    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+		    logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+		    return OPH_QUERY_ENGINE_MEMORY_ERROR;
+		}
+		temp = temp2;
         *max_size = (*current_size) * 2;
-    }
+	}
 
    if(e->type == eVAR){
         
@@ -847,23 +907,34 @@ int oph_query_expr_get_variables_help(oph_query_expr_node *e, int* max_size, int
         
     }
 
-    oph_query_expr_get_variables_help(e->right, max_size, current_size, names);
-    oph_query_expr_get_variables_help(e->left, max_size, current_size, names);
+    if(oph_query_expr_get_variables_help(e->right, max_size, current_size, names) != 0) return OPH_QUERY_ENGINE_MEMORY_ERROR;
+    if(oph_query_expr_get_variables_help(e->left, max_size, current_size, names) != 0) return OPH_QUERY_ENGINE_MEMORY_ERROR;
 
-    return 0;
+    return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-char** oph_query_expr_get_variables(oph_query_expr_node *e)
+int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *var_count)
 {
+    if (e == NULL || var_list == NULL || var_count == NULL)     
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        return OPH_QUERY_ENGINE_NULL_PARAM;
+    }
+
     int max_size = MIN_VAR_ARRAY_LENGTH;
     int current_size = 0;
     char** names = calloc(sizeof(char*), max_size);
-    oph_query_expr_get_variables_help(e, &max_size, &current_size, &names);
-    return names; 
+    if(oph_query_expr_get_variables_help(e, &max_size, &current_size, &names) != 0){
+		free(names);
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_VAR_EXTRACTION_ERROR);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_VAR_EXTRACTION_ERROR);
+		return OPH_QUERY_ENGINE_EXEC_ERROR;
+	}
+	*var_count = current_size;
+	*var_list = names;
+    return OPH_QUERY_ENGINE_SUCCESS;
 }
-
-
-
 
 int oph_query_expr_update_binary_args(char* query, char** result)
 {
