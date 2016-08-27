@@ -17,6 +17,7 @@
 */
 
 #include "oph_query_expression_evaluator.h"
+#include "oph_query_expression_functions.h"
 #include "oph_query_parser.h"    
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,9 +27,11 @@
 
 #define _GNU_SOURCE
 
+extern oph_query_expr_symtable* oph_function_table;
+
 int main(void)
 {
-	set_debug_level(LOG_DEBUG);
+    set_debug_level(LOG_DEBUG);
 	set_log_prefix(OPH_IO_SERVER_PREFIX);
     char test_syntax_error[] = "mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),1,1,3) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),6,1,8)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),2,2,6) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),9,1,9))";
     char test_eval_error1[] = "(mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10,2),1,1,3) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,10,10),6,1,8)) AND (mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),2,2,6) OR mysql.oph_is_in_subset(mysql.oph_id_to_index2(id_dim,1,10),9,1,9))";
@@ -38,6 +41,16 @@ int main(void)
     oph_query_expr_node *e;
     e = NULL;
 
+    //initialize functions table
+    oph_query_expr_create_symtable(&oph_function_table, 6);
+    //add all the built-in function
+    oph_query_expr_add_function("oph_id", 0, 2, oph_id, (oph_function_table));
+    oph_query_expr_add_function("oph_id2", 0, 3, oph_id2, (oph_function_table));
+    oph_query_expr_add_function("oph_id3", 0, 3, oph_id3, (oph_function_table));
+    oph_query_expr_add_function("oph_is_in_subset", 0, 4, oph_is_in_subset, (oph_function_table));
+    oph_query_expr_add_function("oph_id_to_index2", 0, 3, oph_id_to_index2,(oph_function_table));
+    oph_query_expr_add_function("oph_id_to_index", 1, 2, oph_id_to_index,(oph_function_table));
+    
     //Test 1
     printf("\nTest 1\n");
     printf("Expected result: syntax error.\n");
@@ -142,6 +155,8 @@ int main(void)
     e2 = NULL;
     oph_query_expr_symtable *table2;
     oph_query_expr_create_symtable(&table2, 1);
+    //adding a function in local symtable
+    oph_query_expr_add_function("one", 0, 2, oph_query_generic_double, table2);
     oph_query_expr_value *res2;
     res2 = NULL;
 
@@ -153,7 +168,6 @@ int main(void)
         if(e2 != NULL && !oph_query_expr_eval_expression(e2,&res2,table2)) printf("Expected result: 1. Actual result: %f\n",res2->data.double_value);
         if(res2 != NULL) free(res2);
     }
-    
     oph_query_expr_delete_node(e2, table2);
     oph_query_expr_destroy_symtable(table2);
 
