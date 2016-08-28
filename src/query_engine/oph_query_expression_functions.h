@@ -20,7 +20,6 @@
 #define __OPH_QUERY_EXPRESSION_FUNCTIONS_H__
 
 #include "oph_query_expression_evaluator.h"
-#include "oph_query_parser.h"  
 
 /*These are all the functions that are automatically added to the symtable*/ 
 

@@ -22,12 +22,6 @@
 #include "oph_query_expression_lexer.h"
 #include "oph_query_engine_log_error_codes.h"
 
-#include <mysql.h> // It contains UDF-related symbols and data structures
-#include <mysql_com.h>
-#include <ltdl.h>
-#include "oph_query_plugin_loader.h"
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

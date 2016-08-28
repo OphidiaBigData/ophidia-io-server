@@ -19,6 +19,10 @@
 #ifndef __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 #define __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 
+#include <mysql.h> // It contains UDF-related symbols and data structures
+#include <mysql_com.h>
+#include <ltdl.h>
+
 #include "oph_query_parser.h"  
 
 /* Definition of the structure/functions used to contruct and use the symtable (1), 
@@ -58,15 +62,31 @@ typedef struct _oph_query_expr_value
     }data;
 }oph_query_expr_value;
 
-#include "oph_query_plugin_executor.h"
+/**
+ * \brief			            Structure to contain UDF plugins function symbols
+ * \param init_api   	    Pointer to init function in shared lib 
+ * \param reset_api     	Pointer to reset function in shared lib (can be NULL)
+ * \param clear_api       Pointer to clear function in shared lib (can be NULL)
+ * \param add_api         Pointer to add function in shared lib (can be NULL)
+ * \param exec_api        Pointer to exec function in shared lib
+ * \param deinit_api      Pointer to deinit function in shared lib
+ */
+typedef struct{
+	lt_ptr init_api;
+	lt_ptr reset_api;
+	lt_ptr clear_api;
+	lt_ptr add_api;
+	lt_ptr exec_api;
+	lt_ptr deinit_api;
+} oph_plugin_api;
 
 /**
 * \brief               Descriptor of udf primitives
-* \param initialized   The descriptor is already beein initialized through an init function 
+* \param initialized   The descriptor is already initialized through an init function 
 * \param aggregate     The 0 if the function is simple 1 if it is aggragate
 * \param clear         For aggregate functions it indicates if the clear action needs to be executed. For simple functions it is ignored.   
 * \param dlh           Pointer to the structures initialized by an init function
-* \param plugin_api    plugin information
+* \param function      plugin information
 * \param initid        Pointer used by udf primitives
 * \param internal_args Pointer to structures where the arguments values are stored
 */
@@ -76,7 +96,7 @@ typedef struct _oph_query_expr_udf_descriptor
     int aggregate; 
     int clear; 
     void* dlh;
-    plugin_api function;
+    oph_plugin_api function;
     UDF_INIT* initid;
     UDF_ARGS* internal_args;
 }oph_query_expr_udf_descriptor;

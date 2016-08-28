@@ -326,7 +326,6 @@ AC_OUTPUT([Makefile
            src/metadb/Makefile           
            src/network/Makefile           
            src/query_engine/Makefile
-           src/query_engine/expression_evaluator/Makefile
            src/client/Makefile      
            src/server/Makefile
            etc/oph_primitives_list

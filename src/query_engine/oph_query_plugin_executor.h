@@ -23,9 +23,10 @@
 #include <mysql_com.h>
 #include <ltdl.h>
 
-#include "oph_query_plugin_loader.h"
 #include "oph_query_parser.h"
 #include "oph_iostorage_data.h"
+#include "oph_query_expression_evaluator.h"
+#include "oph_query_plugin_loader.h"
 
 #define BUFLEN 1024
 
@@ -68,26 +69,6 @@ typedef struct {
 } oph_udf_arg;
 
 /**
- * \brief			            Structure to contain UDF plugins function symbols
- * \param init_api   	    Pointer to init function in shared lib 
- * \param reset_api     	Pointer to reset function in shared lib (can be NULL)
- * \param clear_api       Pointer to clear function in shared lib (can be NULL)
- * \param add_api         Pointer to add function in shared lib (can be NULL)
- * \param exec_api        Pointer to exec function in shared lib
- * \param deinit_api      Pointer to deinit function in shared lib
- */
-typedef struct{
-	lt_ptr init_api;
-	lt_ptr reset_api;
-	lt_ptr clear_api;
-	lt_ptr add_api;
-	lt_ptr exec_api;
-	lt_ptr deinit_api;
-} plugin_api;
-
-#include "oph_query_expression_evaluator.h"
-
-/**
  * \brief               Function used to assign a selects recordset to oph_selection structure
  * \param select        Pointer where oph_selection structure will be created
  * \param recordset     Pointer to recordset array to be assigned
@@ -121,7 +102,7 @@ int free_udf_arg(UDF_ARGS *arguments);
  * \param functions   Structure containing pointer to plugin library symbols
  * \return            0 if successfull, non-0 otherwise
  */
-int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result,  plugin_api *functions);
+int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result,  oph_plugin_api *functions);
 
 /**
  * \brief                 Function used to run all the stesp of a UDF plugin (extended version)
@@ -189,7 +170,7 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
  * \param internal_args Pointer with internal argument structures used within plugin functions
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_deinit(plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args);
+int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args);
 
 /**
  * \brief               Function to run plugin INIT function 
@@ -202,7 +183,7 @@ int oph_query_plugin_deinit(plugin_api *function, void *dlh, UDF_INIT *initid, U
  * \param args          Array of query arguments
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_init(plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args);
+int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args);
 
 /**
  * \brief               Function to run plugin EXEC function 
@@ -216,7 +197,7 @@ int oph_query_plugin_init(plugin_api *function, void **dlh, UDF_INIT **initid, U
  * \param res          	Result of execution function
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_exec(plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res);
+int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res);
 
 
 #endif /* OPH_QUERY_PLUGIN_EXEC_H */

@@ -18,6 +18,7 @@
 
 #include "oph_query_expression_functions.h"
 #include "oph_query_expression_evaluator.h"
+#include "oph_query_plugin_executor.h"
 #include "oph_query_engine_log_error_codes.h"
 #include "oph_server_utility.h"
 #include <debug.h>

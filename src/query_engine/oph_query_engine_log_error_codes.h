@@ -48,7 +48,7 @@
 #define OPH_QUERY_ENGINE_LOG_ARG_TYPE_ERROR         "Wrong argument type for function '%s.' Expected %s. \n"
 #define OPH_QUERY_ENGINE_LOG_UNKNOWN_SYMBOL         "Unknown  symbol '%s'. \n"
 #define OPH_QUERY_ENGINE_LOG_UNKNOWN_TYPE         	"Unknown variable type\n"
-#define OPH_QUERY_ENGINE_LOG_VAR_EXTRACTION_ERROR   "Error while extraction variables from AST\n"
+#define OPH_QUERY_ENGINE_LOG_VAR_EXTRACTION_ERROR   "Error while extracting variables from AST\n"
 
 
 

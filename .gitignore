@@ -43,4 +43,4 @@ src/server/oph_io_server_test
 src/query_engine/oph_query_client
 src/metadb/oph_metadb_client
 src/iostorage/oph_iostorage_client
-src/query_engine/expression_evaluator/oph_query_expression_client
+src/query_engine/oph_query_expression_client

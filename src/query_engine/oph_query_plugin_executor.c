@@ -62,7 +62,7 @@ int free_udf_arg(UDF_ARGS *args){
 	return 0;
 }
 
-int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result, plugin_api *functions){
+int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result, oph_plugin_api *functions){
 	if( !plugin || !args || !res || !res_length || !functions)
 		return -1;
 
@@ -161,7 +161,7 @@ pthread_mutex_unlock(&libtool_lock);
 pthread_mutex_unlock(&libtool_lock);
 
 	//Load all library symbols
-	plugin_api function;
+	oph_plugin_api function;
 pthread_mutex_lock(&libtool_lock);
 	function.init_api = lt_dlsym (dlh, plugin_init_name);
 	function.clear_api = NULL;
@@ -559,7 +559,7 @@ pthread_mutex_unlock(&libtool_lock);
 pthread_mutex_unlock(&libtool_lock);
 
 	//Load all library symbols
-	plugin_api function;
+	oph_plugin_api function;
 pthread_mutex_lock(&libtool_lock);
 	function.init_api = lt_dlsym (dlh, plugin_init_name);
 	function.clear_api = NULL;
@@ -1266,7 +1266,7 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 }
 
 
-int oph_query_plugin_deinit(plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args){
+int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args){
 	if(!function || !dlh || !initid || !internal_args)
 		return -1;
 
@@ -1312,7 +1312,7 @@ pthread_mutex_unlock(&libtool_lock);
 	return 0;
 }
 
-int oph_query_plugin_init(plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args){
+int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args){
 	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
 		return -1;
 
@@ -1476,7 +1476,7 @@ pthread_mutex_unlock(&libtool_lock);
 	return 0;
 }
 
-int oph_query_plugin_exec(plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res){
+int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res){
 	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
 		return -1;
 
