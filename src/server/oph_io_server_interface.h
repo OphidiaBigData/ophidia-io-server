@@ -194,11 +194,12 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
  * \param field_list_num    Number of select fields to be processed
  * \param offset 			Starting point of input record set
  * \param total_row_number 	Total numbers of row to be processed from input
+ * \param args 				Additional args used in prepared statements (can be NULL)
  * \param input    			Input record set 
  * \param output 			Output records set to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_iostore_frag_record_set *input, oph_iostore_frag_record_set *output);
+int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set *input, oph_iostore_frag_record_set *output);
 
 /**
  * \brief               Internal function used to store the final record set. Used in case of insert and multi-insert. 

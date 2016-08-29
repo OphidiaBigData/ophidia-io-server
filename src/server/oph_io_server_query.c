@@ -151,7 +151,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
     unsigned long l = 0;
 
 	  //Select plugin and set arguments
-    //TODO improve this section
+    //TODO improve this section - Allow only 2 columns tables
 
     oph_iostore_frag_record_set *rs = NULL;
     if(!STRCMP(plugin_query,OPH_NAME_MEASURE)){
@@ -334,7 +334,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 				rs->field_type[i] = OPH_IOSTORE_STRING_TYPE;
 
 				//Process each column
-				if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, record_set, rs)){
+				if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_set, rs)){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
 					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
 					error = OPH_IO_SERVER_PARSE_ERROR;
