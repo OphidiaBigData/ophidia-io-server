@@ -22,7 +22,7 @@
 #include <hashtbl.h>
 
 #include "oph_iostorage_interface.h"
-
+#include "oph_query_expression_evaluator.h"
 
 #define OPH_PLUGIN_FILE_LINE 1024
 
@@ -74,14 +74,15 @@ int oph_free_plugin(oph_plugin *plugin);
 
 /**
  * \brief			        Load plugin list in plugin table
- * \param plugin      Pointer to hash table used to store plugin list
+ * \param plugin_htable      Pointer to hash table used to store plugin list
+ * \param function_htable      Pointer to symtable used to store plugin list
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_load_plugins (HASHTBL **plugin_htable);
+int oph_load_plugins (HASHTBL **plugin_htable, oph_query_expr_symtable *function_table);
 
 /**
  * \brief			        Clean plugin list in plugin table
- * \param plugin      Pointer to hash table to be freed
+ * \param plugin_htable      Pointer to hash table to be freed
  * \return            0 if successfull, non-0 otherwise
  */
 int oph_unload_plugins(HASHTBL *plugin_htable);

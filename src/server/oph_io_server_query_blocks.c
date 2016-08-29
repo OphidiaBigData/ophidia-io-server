@@ -424,7 +424,7 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
 
 				oph_query_expr_symtable *table;
 
-				if(oph_query_expr_create_symtable(&table, 2)){
+				if(oph_query_expr_create_symtable(&table, 1)){
 					free(updated_query);
 					oph_query_expr_delete_node(e, table);
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);

@@ -40,6 +40,8 @@
 
 #include "oph_server_utility.h"
 
+extern oph_query_expr_symtable *oph_function_table;
+
 #define CLIENT_HELP "This client is used to run Ophidia plugin directly on memory data. \n\
 Random data is created for the test.\n\
 \n\
@@ -100,9 +102,9 @@ timeval_subtract(&t_time, &e_time, &s_time);
 gettimeofday(&s_time, NULL);
 
 	HASHTBL *plugin_table = NULL;
-	if(oph_query_engine_start(&plugin_table)){
+	if(oph_query_engine_start(&plugin_table, &oph_function_table)){
 		oph_iostore_destroy_frag_recordset(&record_set);
-		oph_query_engine_end(&plugin_table);
+		oph_query_engine_end(&plugin_table, &oph_function_table);
 				return 1;
 	}
 
@@ -116,7 +118,7 @@ gettimeofday(&s_time, NULL);
 
 	if(oph_query_engine_run(plugin_table, query_string, record_set, &result_set)){
 		oph_iostore_destroy_frag_recordset(&record_set);
-		oph_query_engine_end(&plugin_table);
+		oph_query_engine_end(&plugin_table, &oph_function_table);
 		return 1;
 	}
 		
@@ -126,7 +128,7 @@ timeval_subtract(&t_time, &e_time, &s_time);
 
 	oph_iostore_destroy_frag_recordset(&record_set);
 	if(!result_set){
-		oph_query_engine_end(&plugin_table);
+		oph_query_engine_end(&plugin_table, &oph_function_table);
 		return 1;
 	}
 
@@ -204,7 +206,7 @@ gettimeofday(&s_time, NULL);
 					}
 					else{
 						oph_iostore_destroy_frag_recordset(&result_set);
-						oph_query_engine_end(&plugin_table);
+						oph_query_engine_end(&plugin_table, &oph_function_table);
 						return -1;
 					}
 				}
@@ -231,7 +233,7 @@ timeval_subtract(&t_time, &e_time, &s_time);
   pmesg(LOG_INFO, __FILE__, __LINE__, "Show output result:\t Time %d,%06d sec\n", (int)t_time.tv_sec, (int)t_time.tv_usec);	
 
 	oph_iostore_destroy_frag_recordset(&result_set);
-	oph_query_engine_end(&plugin_table);
+	oph_query_engine_end(&plugin_table, &oph_function_table);
 	
 gettimeofday(&end_time, NULL);
 timeval_subtract(&total_time, &end_time, &start_time);

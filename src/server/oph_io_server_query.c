@@ -331,6 +331,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 					rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
 				}
 				rs->field_name[i] = strdup(OPH_NAME_MEASURE);
+				rs->field_type[i] = OPH_IOSTORE_STRING_TYPE;
 
 				//Process each column
 				if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, record_set, rs)){

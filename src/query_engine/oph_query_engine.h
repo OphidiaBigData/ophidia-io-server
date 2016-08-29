@@ -21,15 +21,18 @@
 
 #include "hashtbl.h"
 #include "oph_iostorage_data.h"
+#include "oph_query_expression_evaluator.h"
 
 #define OPH_QUERY_ENGINE_BUFFER 1024
+#define OPH_IO_SERVER_MAX_PLUGIN_NUMBER 1000
 
 /**
  * \brief               Function to startup query engine resources
  * \param plugin_table  Hash table loaded with list of run-time plugins
+ * \param function_table  Symtable with list of run-time plugins
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_engine_start(HASHTBL **plugin_table);
+int oph_query_engine_start(HASHTBL **plugin_table, oph_query_expr_symtable **function_table);
 
 /**
  * \brief               Function to execute a query operation. NOTE: this block only takes care of plugin part of query
@@ -44,8 +47,9 @@ int oph_query_engine_run(HASHTBL *plugin_table, const char *plugin_string, oph_i
 /**
  * \brief               Function to end query engine and release resources
  * \param plugin_table  Hash table containing list of run-time plugins to be freed
+ * \param function_table  Symtable containing run-time plugins to be freed
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_engine_end(HASHTBL **plugin_table);
+int oph_query_engine_end(HASHTBL **plugin_table, oph_query_expr_symtable **function_table);
 
 #endif /* OPH_QUERY_ENGINE_H */

@@ -35,23 +35,35 @@
 
 extern int msglevel;
 
-int oph_query_engine_start(HASHTBL **plugin_table){
-	if(!plugin_table){
+int oph_query_engine_start(HASHTBL **plugin_table, oph_query_expr_symtable **function_table){
+	if(!plugin_table || !function_table){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
   	logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
     return OPH_QUERY_ENGINE_NULL_PARAM;
   }
 
 	*plugin_table = NULL;
-	if(oph_load_plugins (plugin_table)){
+	*function_table = NULL;
+
+	//Load all functions in the global function symtable
+	if(oph_query_expr_create_function_symtable(OPH_IO_SERVER_MAX_PLUGIN_NUMBER)){
+		*plugin_table = NULL;
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_PLUGIN_LOAD_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_PLUGIN_LOAD_ERROR);    
+		return OPH_QUERY_ENGINE_ERROR;
+	}
+
+	if(oph_load_plugins (plugin_table, *function_table)){
 		oph_unload_plugins (*plugin_table);
     *plugin_table = NULL;
+	oph_query_expr_destroy_symtable(*function_table);
+	*function_table = NULL;
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_PLUGIN_LOAD_ERROR);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_PLUGIN_LOAD_ERROR);    
     return OPH_QUERY_ENGINE_ERROR;
 	}
 
-  return OPH_QUERY_ENGINE_SUCCESS;
+	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
 //This function is obsolete
@@ -93,15 +105,18 @@ int oph_query_engine_run(HASHTBL *plugin_table, const char *plugin_string, oph_i
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_engine_end(HASHTBL **plugin_table){
-	if(!plugin_table){
+int oph_query_engine_end(HASHTBL **plugin_table, oph_query_expr_symtable **function_table){
+	if(!plugin_table || !function_table){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
   	logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
     return OPH_QUERY_ENGINE_NULL_PARAM;
   }
 
 	oph_unload_plugins (*plugin_table);
-  *plugin_table = NULL;
+	*plugin_table = NULL;
+
+	oph_query_expr_destroy_symtable(*function_table);
+	*function_table = NULL;
   
 	return OPH_QUERY_ENGINE_SUCCESS;
 }

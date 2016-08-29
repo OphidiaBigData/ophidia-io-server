@@ -20,6 +20,7 @@
 
 #include "oph_query_plugin_loader.h"
 #include "oph_query_engine_log_error_codes.h"
+#include "oph_query_expression_functions.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,7 +67,7 @@ int oph_free_plugin(oph_plugin *plugin){
 	return OPH_QUERY_ENGINE_SUCCESS;
 } 
 
-int oph_load_plugins (HASHTBL **plugin_htable)
+int oph_load_plugins (HASHTBL **plugin_htable, oph_query_expr_symtable *function_table)
 {
   FILE 					*fp = NULL;
   char 					line[OPH_PLUGIN_FILE_LINE] = {'\0'};
@@ -77,7 +78,7 @@ int oph_load_plugins (HASHTBL **plugin_htable)
   char 					*res_string = NULL;
   int i;
 
-  if (!plugin_htable){
+  if (!plugin_htable || !function_table){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
     return OPH_QUERY_ENGINE_NULL_PARAM;
@@ -214,7 +215,27 @@ int oph_load_plugins (HASHTBL **plugin_htable)
 			}
 		}
 	}
-	hashtbl_insert(*plugin_htable, new->plugin_name, (oph_plugin*)new);		
+	hashtbl_insert(*plugin_htable, new->plugin_name, (oph_plugin*)new);	
+	//Load function is symtable	
+	//TODO Set number of args in symtable and add string function
+	switch(new->plugin_return){
+		case OPH_IOSTORE_LONG_TYPE:
+		{
+			oph_query_expr_add_function(new->plugin_name, 1, 1, oph_query_generic_long, function_table);
+			break;
+		}
+		case OPH_IOSTORE_REAL_TYPE:
+		{
+			oph_query_expr_add_function(new->plugin_name, 1, 1, oph_query_generic_double, function_table);
+			break;
+		}
+		case OPH_IOSTORE_STRING_TYPE:
+		{
+			oph_query_expr_add_function(new->plugin_name, 1, 1, oph_query_generic_binary, function_table);
+			break;
+		}
+	}	
+
   }
   fclose(fp);
   return OPH_QUERY_ENGINE_SUCCESS;
