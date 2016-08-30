@@ -328,10 +328,9 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
 	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, thread_status, stored_rs, input_row_num, input_rs, 0);
 }
 
-
 int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set *input, oph_iostore_frag_record_set *output)
 {
-	if (!field_list || !field_list_num || !input || !output){
+	if (!field_list || !field_list_num || !total_row_number || !input || !output){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -348,7 +347,7 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
 
 	//Check binary fields if available
 	int arg_count = 0; 
-	if (args){
+	if (args != NULL){
 		while(args[i++]) arg_count++;	
 	}
 
@@ -691,6 +690,61 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
   	return OPH_IO_SERVER_SUCCESS;
 }
 
+int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set *rs)
+{
+	if (!query_args || !field_list || !field_list_num || !rs){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	//Get select alias, if available
+	int i = 0;
+	char **field_alias_list = NULL;
+	int field_alias_list_num = 0;    
+	//Fields section
+	char *fields_alias = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FIELD_ALIAS);
+	if (fields_alias != NULL)
+	{
+		if(oph_query_parse_multivalue_arg (fields_alias, &field_alias_list, &field_alias_list_num) || !field_alias_list_num){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD_ALIAS);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD_ALIAS);	
+			if(field_alias_list) free(field_alias_list);
+			return OPH_IO_SERVER_EXEC_ERROR;        
+		}
+
+		if(field_alias_list_num != field_list_num){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_ALIAS_NOT_MATCH);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_ALIAS_NOT_MATCH);	
+			if(field_alias_list) free(field_alias_list);
+			return OPH_IO_SERVER_EXEC_ERROR;        
+		}
+	}
+
+	//Set alias or input table names
+	if(field_alias_list != NULL){
+		for (i=0; i<field_list_num; i++)
+		{
+			rs->field_name[i] = (strlen(field_alias_list[i]) == 0 ? strdup(field_list[i]) : strdup(field_alias_list[i]));
+		}
+	}
+	else{
+		for (i=0; i<field_list_num; i++)
+		{
+			rs->field_name[i] = strdup(field_list[i]);
+		}
+	}
+	free(field_alias_list);
+
+	//Set default column types (will be updated later to correct value)
+	for (i=0; i<field_list_num-1; i++)
+	{
+		rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
+	}
+	rs->field_type[i] = OPH_IOSTORE_STRING_TYPE;
+
+  	return OPH_IO_SERVER_SUCCESS;
+}
 
 int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, char *frag_name, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set)
 {

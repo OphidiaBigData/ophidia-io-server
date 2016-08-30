@@ -163,12 +163,18 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 
-		//TODO Read from alias/names
 		rs->field_num = field_list_num;
-		rs->field_name[0] = strdup(OPH_NAME_ID);
-		rs->field_type[0] = OPH_IOSTORE_LONG_TYPE;
-		rs->field_name[1] = strdup(OPH_NAME_MEASURE);
-		rs->field_type[1] = OPH_IOSTORE_STRING_TYPE;
+
+		//Set column names and types
+		if(_oph_ioserver_query_set_column_info(query_args, field_list, field_list_num, rs)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
+			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
+			oph_iostore_destroy_frag_recordset_only(&record_set);
+			if(field_list) free(field_list);
+			if (rs) oph_iostore_destroy_frag_recordset(&rs);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
 
 		//Process each column
 		if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_set, rs)){
@@ -289,7 +295,6 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 
 		//Prepare input record set
 		oph_iostore_frag_record_set *rs = NULL;
-		int i = 0;
 		long long j = 0, total_row_number = 0, output_rows = 0;
 		int error = 0, aggregation = 0;
 
@@ -317,21 +322,21 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			}
 
 			if(!error){
-				//TODO Read from alias/names
 				rs->field_num = field_list_num;
-				for (i=0; i<field_list_num-1; ++i)
-				{
-					rs->field_name[i] = strdup(OPH_NAME_ID);
-					rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
-				}
-				rs->field_name[i] = strdup(OPH_NAME_MEASURE);
-				rs->field_type[i] = OPH_IOSTORE_STRING_TYPE;
 
-				//Process each column
-				if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_set, rs)){
+				//Set column names and types
+				if(_oph_ioserver_query_set_column_info(query_args, field_list, field_list_num, rs)){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
 					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
-					error = OPH_IO_SERVER_PARSE_ERROR;
+					error = OPH_IO_SERVER_EXEC_ERROR;
+				}
+				else{
+					//Process each column
+					if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_set, rs)){
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
+						logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
+						error = OPH_IO_SERVER_PARSE_ERROR;
+					}
 				}
 			}
 		}
@@ -344,14 +349,14 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			}
 
 			if(!error){
-				//TODO Read from alias/names
-				for (i=0; i<field_list_num-1; ++i)
-				{
-					rs->field_name[i] = strdup(OPH_NAME_ID);
-					rs->field_type[i] = OPH_IOSTORE_LONG_TYPE;
+				rs->field_num = field_list_num;
+
+				//Set column names and types
+				if(_oph_ioserver_query_set_column_info(query_args, field_list, field_list_num, rs)){
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
+					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
+					error = OPH_IO_SERVER_EXEC_ERROR;
 				}
-				rs->field_name[i] = strdup(OPH_NAME_MEASURE);
-				rs->field_type[i] = OPH_IOSTORE_STRING_TYPE;
 			}
 		}
 

@@ -71,6 +71,7 @@
 #define OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR                "Field type not recognized: %s\n"
 #define OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN               "Field name not found: %s\n"
 #define OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR                "Unable to build select columns\n"
+#define OPH_IO_SERVER_LOG_FIELDS_ALIAS_NOT_MATCH           "Select alias does not match selection field number\n"
 
 //Packet codes
 
@@ -204,6 +205,16 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
 int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set *input, oph_iostore_frag_record_set *output);
 
 /**
+ * \brief               	Internal function used to set column name/alias and default types. Used in case of select or create as select. 
+ * \param query_args    	Hash table containing args to be selected
+ * \param field_list    	List of select fields
+ * \param field_list_num    Number of select fields to be processed
+ * \param rs 				Records set to be filled (must be already allocated)
+ * \return              	0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set *rs);
+
+/**
  * \brief               Internal function used to store the final record set. Used in case of insert and multi-insert. 
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
@@ -214,6 +225,7 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
  * \return              0 if successfull, non-0 otherwise
  */
 int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, char *frag_name, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set);
+
 /**
  * \brief               Internal function used to create a row from query. Used in case of insert and multi-insert. 
  * \param arg_count     Pointer to variable used to reference current number of arguments used in previous rows
