@@ -36,11 +36,11 @@ WS          [ \r\n\t]*
 "|"|OR|OR   	{ return '|'; }
 MOD|% 			{ return '%'; }  
 !|NOT 			{ return '!'; }
-[0-9]+	{
+-?[0-9]+	{
 				yylval->long_value = strtoll(yytext, NULL, 10); 
 				return INTEGER;
 		}
-[0-9]+"."[0-9]*{EXP}? |
+-?[0-9]+"."[0-9]*{EXP}? |
 "."[0-9]+{EXP}? |
 "."?[0-9]+{EXP}  {
 				  yylval->double_value = strtod(yytext, NULL); 

@@ -40,6 +40,7 @@ typedef void* yyscan_t;
 %left '&' '|' 
 %left '-' '+'
 %left '*' '/' '%'
+%left UMINUS
 %left '='
 %right '!'
 
@@ -68,7 +69,7 @@ expr
     | expr '&' expr {if(mode) $$ = oph_query_expr_create_operation( eAND, $1, $3 ); }
     | expr '|' expr {if(mode) $$ = oph_query_expr_create_operation( eOR, $1, $3 ); }
     | '!' expr {if(mode) $$ = oph_query_expr_create_operation( eNOT, NULL, $2 ); }
-    | '-' expr { $$ = oph_query_expr_create_operation( eNEG, NULL, $2 ); }
+    | '-' expr  %prec UMINUS { $$ = oph_query_expr_create_operation( eNEG, NULL, $2 ); }
     | '(' expr ')' {if(mode) $$ = $2; }
     | DECIMAL {if(mode) $$ = oph_query_expr_create_double($1);}
     | INTEGER {if(mode) $$ = oph_query_expr_create_long($1);}
