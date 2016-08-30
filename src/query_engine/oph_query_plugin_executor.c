@@ -1404,17 +1404,36 @@ pthread_mutex_unlock(&libtool_lock);
 		return -1;
 	}
 
+	//First time setup all the values
     for(l = 0; l < arg_count ; l++){
 		switch(args[l].type){
 			case OPH_QUERY_EXPR_TYPE_STRING:
 				tmp_args->arg_type[l] = STRING_RESULT;
-				tmp_args->lengths[l] =  0;
-				tmp_args->args[l] = NULL; 
+				tmp_args->lengths[l] =  (unsigned long)(strlen(args[l].data.string_value) +1);
+				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
+				if(!tmp_args->args[l])	
+				{
+					free(message);
+					free_udf_arg(tmp_args);
+					free(tmp_args);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+					return -1;
+				}
+		        memcpy ((char *)tmp_args->args[l], args[l].data.string_value, tmp_args->lengths[l]*sizeof(char)); 
 				break;
 			case OPH_QUERY_EXPR_TYPE_BINARY:
 				tmp_args->arg_type[l] = STRING_RESULT;
-				tmp_args->lengths[l] =  0;
-				tmp_args->args[l] = NULL; 
+				tmp_args->lengths[l] =  (unsigned long)args[l].data.binary_value->arg_length;
+				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
+				if(!tmp_args->args[l])	
+				{
+					free(message);
+					free_udf_arg(tmp_args);
+					free(tmp_args);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+					return -1;
+				}
+		        memcpy ((char *)tmp_args->args[l], args[l].data.binary_value->arg, tmp_args->lengths[l]*sizeof(char)); 
 				break;
 			case OPH_QUERY_EXPR_TYPE_DOUBLE:
 				tmp_args->arg_type[l] = DECIMAL_RESULT;
@@ -1428,6 +1447,7 @@ pthread_mutex_unlock(&libtool_lock);
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					return -1;
 				}
+		        memcpy ((char *)tmp_args->args[l], &(args[l].data.double_value), tmp_args->lengths[l]*sizeof(char)); 
 				break;
 			case OPH_QUERY_EXPR_TYPE_LONG:
 				tmp_args->arg_type[l] = INT_RESULT;
@@ -1441,6 +1461,7 @@ pthread_mutex_unlock(&libtool_lock);
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					return -1;
 				}
+		        memcpy ((char *)tmp_args->args[l], &(args[l].data.long_value), tmp_args->lengths[l]*sizeof(char)); 
 				break;
 			default:
 				free(message);
@@ -1470,6 +1491,50 @@ pthread_mutex_unlock(&libtool_lock);
 		return -1;
 	}
 	free(message);
+
+	//Check if some field type has been updated by init
+    for(l = 0; l < arg_count ; l++){
+		switch(args[l].type){
+			case OPH_QUERY_EXPR_TYPE_STRING:
+			case OPH_QUERY_EXPR_TYPE_BINARY:
+				break;
+			case OPH_QUERY_EXPR_TYPE_DOUBLE:
+				if ((tmp_args->arg_type[l] != DECIMAL_RESULT) && (tmp_args->arg_type[l] != REAL_RESULT)){
+					//Double should be considered long long
+					tmp_args->lengths[l] =  (unsigned long)sizeof(long long);
+					free(tmp_args->args[l]);
+					tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
+					if(!tmp_args->args[l])	
+					{
+						free_udf_arg(tmp_args);
+						free(tmp_args);
+						pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin INIT function\n");
+						return -1;
+					}
+				}
+				break;
+			case OPH_QUERY_EXPR_TYPE_LONG:
+				if(tmp_args->arg_type[l] != INT_RESULT){
+					//Int should be considered double
+					tmp_args->lengths[l] =  (unsigned long)sizeof(double);
+					free(tmp_args->args[l]);
+					tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
+					if(!tmp_args->args[l])	
+					{
+						free_udf_arg(tmp_args);
+						free(tmp_args);
+						pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin INIT function\n");
+						return -1;
+					}
+				}
+				break;
+			default:
+				free_udf_arg(tmp_args);
+				free(tmp_args);
+				return -1;
+		}
+	}
+
 
 	*internal_args = tmp_args;
 
@@ -1517,10 +1582,24 @@ int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid
 		        memcpy ((char *)internal_args->args[l], args[l].data.binary_value->arg, internal_args->lengths[l]*sizeof(char)); 
 				break;
 			case OPH_QUERY_EXPR_TYPE_DOUBLE:
-		        memcpy ((char *)internal_args->args[l], &(args[l].data.double_value), internal_args->lengths[l]*sizeof(char)); 
+				//Check if type should be casted
+				if ((internal_args->arg_type[l] != DECIMAL_RESULT) && (internal_args->arg_type[l] != REAL_RESULT)){
+					long long val_l = (long long)args[l].data.double_value;
+		        	memcpy ((char *)internal_args->args[l], &(val_l), internal_args->lengths[l]*sizeof(char)); 
+				}
+				else{
+		        	memcpy ((char *)internal_args->args[l], &(args[l].data.double_value), internal_args->lengths[l]*sizeof(char)); 
+				}
 				break;
 			case OPH_QUERY_EXPR_TYPE_LONG:
-		        memcpy ((char *)internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l]*sizeof(char)); 
+				//Check if type should be casted
+				if (internal_args->arg_type[l] != INT_RESULT){
+					double val_d = (double)args[l].data.long_value;
+		        	memcpy ((char *)internal_args->args[l], &(val_d), internal_args->lengths[l]*sizeof(char)); 
+				}
+				else{
+		        	memcpy ((char *)internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l]*sizeof(char)); 
+				}
 				break;
 			default:
 				return -1;
