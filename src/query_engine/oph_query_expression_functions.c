@@ -36,6 +36,7 @@ oph_query_expr_value oph_id(oph_query_expr_value* args, int num_args, char* name
 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
+    res.free_flag = 0;
     if(destroy || !er) return res;
     
     long long id = get_long_value(args[0], er, "oph_id");
@@ -53,6 +54,7 @@ oph_query_expr_value oph_id2(oph_query_expr_value* args, int num_args, char* nam
 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
+    res.free_flag = 0;
     if(destroy || !er) return res;
 
     long long id = get_long_value(args[0], er, "oph_id2");
@@ -71,6 +73,7 @@ oph_query_expr_value oph_id3(oph_query_expr_value* args, int num_args, char* nam
 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
+    res.free_flag = 0;
     if(destroy || !er) return res;
 
     long long k = get_long_value(args[0], er, "oph_id3") - 1;
@@ -126,6 +129,7 @@ oph_query_expr_value oph_id_to_index(oph_query_expr_value *args, int num_args, c
 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
+    res.free_flag = 0;
     if(destroy || !er) return res;
 
     long long size;
@@ -156,6 +160,7 @@ oph_query_expr_value oph_id_to_index2(oph_query_expr_value* args, int num_args, 
 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
+    res.free_flag = 0;
     if(destroy || !er) return res;
 
     long long id = get_long_value(args[0], er, "oph_id_to_index2");
@@ -174,6 +179,7 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, 
 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
+    res.free_flag = 0;
     if(destroy || !er) return res;
     
     long long id = get_long_value(args[0], er, "oph_is_in_subset");
@@ -188,6 +194,7 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, 
 oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
+    res.free_flag = 0;
     res.data.long_value = 1;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     if(!er) return res;
@@ -223,6 +230,7 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
             //execute add code
         }
 
+		res.free_flag = 0;
 		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
 		if(*er){
 			return res;
@@ -235,6 +243,7 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
 oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
+    res.free_flag = 0;
     res.data.double_value = 1.0;
     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
     if(!er) return res;
@@ -270,6 +279,7 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
             //execute add code
         }
 
+		res.free_flag = 0;
 		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
 		if(*er){
 			return res;
@@ -282,6 +292,7 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
 oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
+    res.free_flag = 0;
     res.type = OPH_QUERY_EXPR_TYPE_BINARY;
     if(!er) return res;
     
@@ -316,6 +327,7 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
             //execute add code
         }
 
+		res.free_flag = 1;
 		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
 		if(*er){
 			return res;
@@ -328,6 +340,8 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
 oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
     oph_query_expr_value res;
+    res.free_flag = 0;
+    res.data.string_value = "";
     res.type = OPH_QUERY_EXPR_TYPE_STRING;
     if(!er) return res;
     

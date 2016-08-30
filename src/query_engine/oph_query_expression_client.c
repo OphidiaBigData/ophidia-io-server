@@ -180,7 +180,6 @@ int main(void)
 	for(n = 0; n < var_count; n++)   
     {
         printf("%s ", variables[n]);
-        n++;            
     }
     printf("\n");
     oph_query_expr_delete_node(e4, table4);

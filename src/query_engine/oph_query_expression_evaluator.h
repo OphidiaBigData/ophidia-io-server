@@ -48,6 +48,7 @@ typedef enum _oph_query_expr_value_type
 * \param long_value   Value if type is long
 * \param string_value Value if type is string
 * \param binary_value Pointer to value if type is binary
+* \param free_flag 	  Flag set to 1 if value is a result computed by a function and should be manually freed, 0 otherwise
 */
 typedef struct _oph_query_expr_value 
 {
@@ -60,6 +61,8 @@ typedef struct _oph_query_expr_value
         char* string_value;
         oph_query_arg* binary_value;
     }data;
+
+	short int free_flag;
 }oph_query_expr_value;
 
 /**

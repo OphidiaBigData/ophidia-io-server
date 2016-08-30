@@ -64,6 +64,7 @@ oph_query_expr_node *oph_query_expr_create_double(double value)
 
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+    b->value.free_flag = 0;
     b->value.data.double_value = value;
 
     return b;
@@ -79,6 +80,7 @@ oph_query_expr_node *oph_query_expr_create_long(long long value)
 
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_LONG;
+    b->value.free_flag = 0;
     b->value.data.long_value = value;
 
     return b;
@@ -94,6 +96,7 @@ oph_query_expr_node *oph_query_expr_create_string(char* value)
 
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_STRING;
+    b->value.free_flag = 0;
     b->value.data.string_value = value;
 
     return b;
@@ -397,6 +400,7 @@ int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_
     }
 
     sp->type = 1;
+    sp->value.free_flag = 0;
 
     switch(var_type) 
     {
@@ -590,6 +594,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l * r;
+			    res.free_flag = 0;
                 return res;
             }
         case ePLUS:
@@ -601,6 +606,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l + r;
+			    res.free_flag = 0;
                 return res;
             }  
         case eMINUS:    
@@ -612,6 +618,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l - r;
+			    res.free_flag = 0;
                 return res;
             }   
         case eDIVIDE:
@@ -623,6 +630,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l * r;
+			    res.free_flag = 0;
                 return res;
             }    
         case eEQUAL:
@@ -634,6 +642,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long)(l == r);
+			    res.free_flag = 0;
                 return res;
             }    
         case eMOD:
@@ -645,6 +654,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = ((int) l % (int) r);
+			    res.free_flag = 0;
                 return res;
             }   
          case eAND:
@@ -656,6 +666,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long) l && r;
+			    res.free_flag = 0;
                 return res;
             }  
         case eOR:
@@ -667,6 +678,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long) (l || r);
+			    res.free_flag = 0;
                 return res;
             }
         case eNOT:
@@ -676,6 +688,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long) !r;
+			    res.free_flag = 0;
                 return res;
             }
         case eNEG:
@@ -685,6 +698,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = -r;
+			    res.free_flag = 0;
                 return res;
             } 
          case eVAR:
@@ -701,6 +715,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                     oph_query_expr_value res;
                     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                     res.data.double_value = 0;
+				    res.free_flag = 0;
                     return res;
                 }
             }
@@ -715,9 +730,29 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                     if(args != NULL)
                     {   
                         oph_query_expr_value res = r->function (args, r->numArgs, e->name, &(e->descriptor), 0, er);
-                        r->numArgs = record_args_num; 
+						//Remove intermediate computed values
+						int i;
+						for(i = 0; i < r->numArgs; i++)
+						{
+							if(args[i].free_flag){
+								switch(args[i].type){
+									case OPH_QUERY_EXPR_TYPE_STRING:
+										free(args[i].data.string_value);
+										break;
+									case OPH_QUERY_EXPR_TYPE_BINARY:
+										free(args[i].data.binary_value->arg);
+										free(args[i].data.binary_value);
+										break;
+									case OPH_QUERY_EXPR_TYPE_DOUBLE:
+									case OPH_QUERY_EXPR_TYPE_LONG:
+										break;
+								}
+							}
+
+						} 
                         free(args);
-                        return res;
+                        r->numArgs = record_args_num; 
+						return res;
                     }
                     else
                     {
@@ -728,6 +763,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                         oph_query_expr_value res;
                         res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                         res.data.double_value = 0;
+					    res.free_flag = 0;
                         return res;
                     }
                 }
@@ -739,6 +775,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                     oph_query_expr_value res;
                     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                     res.data.double_value = 0;
+				    res.free_flag = 0;
                     return res; 
                 }
             }
@@ -748,6 +785,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 oph_query_expr_value res;
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = 0;
+			    res.free_flag = 0;
                 return res;
             }
     }
@@ -927,7 +965,7 @@ int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *
 	}
 	*var_count = current_size;
 	*var_list = names;
-    return OPH_QUERY_ENGINE_SUCCESS;
+   return OPH_QUERY_ENGINE_SUCCESS;
 }
 
 int oph_query_expr_update_binary_args(char* query, char** result)
