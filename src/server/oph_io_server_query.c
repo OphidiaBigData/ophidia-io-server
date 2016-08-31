@@ -749,6 +749,13 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
         return OPH_IO_SERVER_EXEC_ERROR;             
     }
 
+	if (memory_check())
+	{
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
     //Extract frag column name from query args
     char *frag_column_names = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_NAME);
     if(frag_column_names == NULL){
@@ -764,6 +771,15 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
         if(column_name_list) free(column_name_list);
         return OPH_IO_SERVER_EXEC_ERROR;        
     }
+
+	//Check column list number; it can only be 2
+	if( column_name_num != 2){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR); 
+        if(column_name_list) free(column_name_list);
+		return OPH_IO_SERVER_EXEC_ERROR;        
+	}
+
     //Extract frag column types from query args
     char *frag_column_types = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_TYPE);
     char **column_type_list = NULL;
