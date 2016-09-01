@@ -213,6 +213,57 @@ int oph_query_parse_multivalue_arg (char *values, char ***value_list, int *value
   return OPH_QUERY_ENGINE_SUCCESS;
 }
 
+int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *value_num)
+{
+	if (!values || !value_list || !value_num){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
+		return OPH_QUERY_ENGINE_NULL_PARAM;
+	}
+  
+	//Only 2 values per hierarchy are allowed
+	int param_num = 2;
+
+	*value_list = (char **)malloc(param_num*sizeof(char*));
+	if(!(*value_list)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);   
+		return OPH_QUERY_ENGINE_MEMORY_ERROR;
+	}
+
+	char *ptr_begin, *ptr_end;
+	ptr_begin = values;
+	ptr_end = strchr(ptr_begin, OPH_QUERY_ENGINE_LANG_HIERARCHY_SEPARATOR);
+
+	int j = 0;
+	while(ptr_begin)
+	{ 
+		if(j >= 2){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_PARSING_ERROR, values);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_PARSING_ERROR, values); 
+			free(*value_list);
+			*value_list = NULL;  
+			return OPH_QUERY_ENGINE_PARSE_ERROR;
+		}
+
+		if(ptr_end){
+			(*value_list)[j] = ptr_begin;
+			(*value_list)[j][strlen(ptr_begin) - strlen(ptr_end) ] = 0;
+			ptr_begin = ptr_end + 1;
+			ptr_end = strchr(ptr_begin, OPH_QUERY_ENGINE_LANG_HIERARCHY_SEPARATOR);
+		}
+		else{
+			(*value_list)[j] = ptr_begin;
+			(*value_list)[j][strlen(ptr_begin)] = 0;
+			ptr_begin = NULL;
+		}
+		j++;
+	}
+
+	*value_num = param_num;
+	return OPH_QUERY_ENGINE_SUCCESS;
+}
+
 int _oph_query_check_query_params(HASHTBL *hashtbl)
 {
   if (!hashtbl){
@@ -236,6 +287,25 @@ int _oph_query_check_query_params(HASHTBL *hashtbl)
   return OPH_QUERY_ENGINE_SUCCESS;
 }
 
+int _oph_query_parser_remove_query_tokens(char *query_string)
+{
+	if (!query_string){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
+		return OPH_QUERY_ENGINE_NULL_PARAM;
+	}
+
+	char *pattern = "mysql.";
+	char *ptr_pattern = strstr(query_string, pattern);
+
+	while(ptr_pattern){
+		memmove(ptr_pattern, ptr_pattern + strlen(pattern), strlen(ptr_pattern) - strlen(pattern) + 1);
+		ptr_pattern = strstr(ptr_pattern+strlen(pattern), pattern);
+	}
+
+	return OPH_QUERY_ENGINE_SUCCESS;
+}
+
 int oph_query_parser(char *query_string, HASHTBL **query_args)
 {
 	if (!query_string || !query_args){	
@@ -246,6 +316,13 @@ int oph_query_parser(char *query_string, HASHTBL **query_args)
 
 	//Check if string has correct format
 	if(_oph_query_parser_validate_query(query_string)){
+    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);
+  	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);   
+	  return OPH_QUERY_ENGINE_PARSE_ERROR;
+	}
+
+	//Remove unwanted tokens
+	if(_oph_query_parser_remove_query_tokens(query_string)){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);   
 	  return OPH_QUERY_ENGINE_PARSE_ERROR;

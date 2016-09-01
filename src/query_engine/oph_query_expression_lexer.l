@@ -46,7 +46,7 @@ MOD|% 			{ return '%'; }
 				  yylval->double_value = strtod(yytext, NULL); 
 				  return DECIMAL;
 				 }
-[a-zA-Z_$?][a-zA-Z0-9_$]* {
+[a-zA-Z_$?][a-zA-Z0-9_.$]* {
 						  yylval->sym = strdup(yytext);
 						  return SYMBOL;
 					     }

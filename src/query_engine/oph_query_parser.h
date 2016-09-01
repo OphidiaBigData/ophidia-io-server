@@ -94,6 +94,21 @@ int oph_query_parser(char *query_string, HASHTBL **query_args);
  */
 int oph_query_parse_multivalue_arg (char *values, char ***value_list, int *value_num);
 
+/**
+ * \brief               Internal function used to remove unwanted tokens from the query string. It modifies the input string 
+ * \param query_string  Query to be checked
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_query_parser_remove_query_tokens(char *query_string);
+
+/**
+ * \brief               Function to parse and split hierarchical arguments. It modifies the input "values" string 
+ * \param values        Values to be splitted
+ * \param value_list    Array of pointer to each value
+ * \param value_num     Number of values splitted (it can only be 2)
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *value_num);
 
 /**
  * \brief               Function to get the type related to a field value. This can be used for select, insert, where or group by fields 

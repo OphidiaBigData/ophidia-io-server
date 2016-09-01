@@ -32,6 +32,7 @@
 #define OPH_QUERY_ENGINE_LANG_REAL_NUMBER_POINT     '.'
 #define OPH_QUERY_ENGINE_LANG_FUNCTION_START     '('
 #define OPH_QUERY_ENGINE_LANG_FUNCTION_END     ')'
+#define OPH_QUERY_ENGINE_LANG_HIERARCHY_SEPARATOR	'.'
 
 //*****************Query operation***************//
 

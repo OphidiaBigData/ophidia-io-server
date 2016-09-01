@@ -339,6 +339,10 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
 
 oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er)
 {
+    UNUSED(num_args);
+    UNUSED(name);
+    UNUSED(args);
+
     oph_query_expr_value res;
     res.free_flag = 0;
     res.data.string_value = "";

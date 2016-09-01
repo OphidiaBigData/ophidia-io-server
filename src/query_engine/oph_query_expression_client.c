@@ -46,6 +46,7 @@ int main(void)
     //Test 1
     printf("\nTest 1\n");
     printf("Expected result: syntax error.\n");
+	_oph_query_parser_remove_query_tokens(test_syntax_error);
     oph_query_expr_get_ast(test_syntax_error, &e);
 
     oph_query_expr_symtable *table;
@@ -56,6 +57,7 @@ int main(void)
 
     //Test 2
     printf("\nTest 2\n");
+	_oph_query_parser_remove_query_tokens(test_eval_error1);
     oph_query_expr_get_ast(test_eval_error1, &e);
 
     oph_query_expr_add_long("id_dim",1,table);    
@@ -66,6 +68,7 @@ int main(void)
 
     //Test 3
     printf("\nTest 3\n");
+	_oph_query_parser_remove_query_tokens(test_eval_error2);
     oph_query_expr_get_ast(test_eval_error2, &e);
 
     oph_query_expr_add_long("id_dim",1,table);
@@ -76,6 +79,7 @@ int main(void)
 
     //Test 4
     printf("\nTest 4\n");
+	_oph_query_parser_remove_query_tokens(test_right1);
     oph_query_expr_get_ast(test_right1, &e);
     oph_query_expr_add_long("id_dim",1,table);    
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 1. Actual result: %lld\n",res->data.long_value);
@@ -88,6 +92,7 @@ int main(void)
 
     //Test 5
     printf("\nTest 5\n");
+	_oph_query_parser_remove_query_tokens(test_right2);
     oph_query_expr_get_ast(test_right2, &e);
     oph_query_expr_add_long("id_dim",1,table);    
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("Expected result: 1. Actual result: %lld\n",res->data.long_value);
@@ -140,31 +145,8 @@ int main(void)
     oph_query_expr_destroy_symtable(table1);
     free(v);
 
-    //generic tests
-    printf("\nTest 7\n");
-    char* test_right4 = "one(one(1,1),1)";
-    oph_query_expr_node *e2;
-    e2 = NULL;
-    oph_query_expr_symtable *table2;
-    oph_query_expr_create_symtable(&table2, 1);
-    //adding a function in local symtable
-    oph_query_expr_add_function("one", 0, 2, oph_query_generic_double, table2);
-    oph_query_expr_value *res2;
-    res2 = NULL;
-
-    oph_query_expr_get_ast(test_right4, &e2);
-
-    int i = 0; 
-    for(;i < 3; i++)
-    {
-        if(e2 != NULL && !oph_query_expr_eval_expression(e2,&res2,table2)) printf("Expected result: 1. Actual result: %f\n",res2->data.double_value);
-        if(res2 != NULL) free(res2);
-    }
-    oph_query_expr_delete_node(e2, table2);
-    oph_query_expr_destroy_symtable(table2);
-
      //generic tests
-    printf("\nTest 8\n");
+    printf("\nTest 7\n");
     char* test_right6 = "b + a + f(?2) + ?1 + ?2";
     oph_query_expr_node *e4;
     e4 = NULL;
