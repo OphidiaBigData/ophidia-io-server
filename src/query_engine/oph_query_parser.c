@@ -260,7 +260,7 @@ int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *va
 		j++;
 	}
 
-	*value_num = param_num;
+	*value_num = j;
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
@@ -272,7 +272,7 @@ int _oph_query_check_query_params(HASHTBL *hashtbl)
 	return OPH_QUERY_ENGINE_NULL_PARAM;
   }
 
-  if( hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREL) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHERER) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_GROUP) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_FUNC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_ARG)){
+  if( hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREL) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHERER) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_GROUP) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_FUNC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_ARG)){
 	pmesg(LOG_ERROR, __FILE__, __LINE__, "Query not valid: keyword not supported.\n");
 	logging(LOG_ERROR, __FILE__, __LINE__, "Query not valid: keyword not supported.\n");
 	return OPH_QUERY_ENGINE_PARSE_ERROR;

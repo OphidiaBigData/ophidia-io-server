@@ -51,6 +51,8 @@
 #define OPH_IO_SERVER_LOG_QUERY_FRAG_EXIST_ERROR          "Frag provided already exists\n"
 #define OPH_IO_SERVER_LOG_QUERY_FRAG_NOT_EXIST_ERROR      "Frag provided does not exists\n"
 #define OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED            "No DB was previously selected\n"
+#define OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED         "Wrong DB selected\n"
+#define OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR      "Error while parsing hierarchical arg %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR      "Error while parsing multivalue arg %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER      "Multivalue args for %s are not the same number\n"
 #define OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR              "Error while executing engine on query %s\n"
@@ -72,6 +74,9 @@
 #define OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN               "Field name not found: %s\n"
 #define OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR                "Unable to build select columns\n"
 #define OPH_IO_SERVER_LOG_FIELDS_ALIAS_NOT_MATCH           "Select alias does not match selection field number\n"
+#define OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE         "Missing where in multi-table query\n"
+#define OPH_IO_SERVER_LOG_ID_MULTITABLE_CONSTRAINT_ERROR   "Table %s id column does not guarantee order and uniqueness constraints\n"
+#define OPH_IO_SERVER_LOG_ONLY_ID_ERROR   				"Only id columns can be used in where clauses\n"
 
 //Packet codes
 
@@ -166,17 +171,28 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, long long *limit);
 
 /**
+ * \brief               Internal function used to release memory for input record sets of a query (FROM and WHERE blocks). Used in case of select and create as select. 
+ * \param dev_handle 		Handler to current IO server device
+ * \param stored_rs    	Pointer to be freed with list of original stored recordsets (null terminated list)
+ * \param input_rs 		Pointer to be freed with list of filtered recordsets (null terminated list)
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle, oph_iostore_frag_record_set **stored_rs, oph_iostore_frag_record_set **input_rs);
+
+/**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of create as select. 
  * \param query_args    Hash table containing args to be selected
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
+ * \param out_db_name 	Name of DB used by output fragment
+ * \param out_frag_name Name of output fragment
  * \param thread_status Status of thread executing the query
- * \param stored_rs    	Pointer to be filled with original stored recordset
- * \param input_row_num Arg to be filled with total number of rows in filtered recordset
- * \param input_rs 		Pointer to be filled with filtered recordset
+ * \param stored_rs    	Pointer to be filled with list of original stored recordsets (null terminated list)
+ * \param input_row_num Arg to be filled with total number of rows in filtered recordset 
+ * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs);
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
 
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of select. 
@@ -184,12 +200,12 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_m
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
  * \param thread_status Status of thread executing the query
- * \param stored_rs    	Pointer to be filled with original stored recordset
+ * \param stored_rs    	Pointer to be filled with list of original stored recordsets (null terminated list)
  * \param input_row_num Arg to be filled with total number of rows in filtered recordset
- * \param input_rs 		Pointer to be filled with filtered recordset
+ * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs);
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 
@@ -198,11 +214,11 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
  * \param offset 			Starting point of input record set
  * \param total_row_number 	Total numbers of row to be processed from input
  * \param args 				Additional args used in prepared statements (can be NULL)
- * \param input    			Input record set 
+ * \param inputs   			Null terminated list of input record sets
  * \param output 			Output records set to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set *input, oph_iostore_frag_record_set *output);
+int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output);
 
 /**
  * \brief               	Internal function used to set column name/alias and default types. Used in case of select or create as select. 

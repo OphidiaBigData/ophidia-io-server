@@ -79,13 +79,52 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			return OPH_IO_SERVER_METADB_ERROR;             
 		}
 
-		oph_iostore_frag_record_set *orig_record_set = NULL;
-		oph_iostore_frag_record_set *record_set = NULL;
+		oph_iostore_frag_record_set **orig_record_sets = NULL;
+		oph_iostore_frag_record_set **record_sets = NULL;
 		long long row_number = 0;
 
-		if(_oph_ioserver_query_build_input_record_set_create(query_args, meta_db, dev_handle, thread_status, &orig_record_set, &row_number, &record_set)){
+
+		//First check if other mandatory fields are set
+		char *out_frag_name = NULL;
+		char *out_db_name = NULL;
+
+		//Extract new frag_name arg from query args
+		out_frag_name = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
+		if(out_frag_name == NULL){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);	
+			return OPH_IO_SERVER_EXEC_ERROR;        
+		}
+
+		char **frag_components = NULL;
+		int frag_components_num = 0;
+		if(oph_query_parse_hierarchical_args (out_frag_name, &frag_components, &frag_components_num)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, out_frag_name);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, out_frag_name);	
+			return OPH_IO_SERVER_PARSE_ERROR;        
+		}
+
+		//If DB is setted in frag name
+		if(frag_components_num > 1){
+			//Check if db is the one used by the query
+			if(STRCMP(thread_status->current_db,frag_components[0]) != 0){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);	
+				free(frag_components);
+				return OPH_IO_SERVER_METADB_ERROR;             
+			}
+			out_db_name = frag_components[0];
+			out_frag_name = frag_components[1];
+		}
+		else{
+			out_db_name = thread_status->current_db;
+
+		}
+
+		if(_oph_ioserver_query_build_input_record_set_create(query_args, meta_db, dev_handle, out_db_name, out_frag_name, thread_status, &orig_record_sets, &row_number, &record_sets)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);	
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 
@@ -93,8 +132,8 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(fields == NULL){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD);	
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 		char **field_list = NULL;
@@ -102,9 +141,9 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(oph_query_parse_multivalue_arg (fields, &field_list, &field_list_num)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_FIELD);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_FIELD); 
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 
@@ -112,9 +151,9 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if( field_list_num != 2){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR); 
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 
@@ -123,29 +162,28 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(_oph_io_server_query_compute_limits(query_args, &offset, &limit)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR);	
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 
     //TODO read other clauses
 
-	//Prepare input record set
+	//Prepare output record set
 	oph_iostore_frag_record_set *rs = NULL;
 	int i = 0;
 	long long j = 0, total_row_number = 0, output_rows = 0;
 	int aggregation = 0;
 
-
 	//If recordset is not empty proceed
-	if(record_set->record_set[0] != NULL){
+	if(record_sets[0]->record_set[0] != NULL){
 		//Count number of rows to compute
 		//TODO Check aggregation
 		if (!offset || (offset<row_number))
 		{
 			j = offset;
-			while(record_set->record_set[j] && (!limit || (total_row_number<limit))) { j++; total_row_number++; }
+			while(record_sets[0]->record_set[j] && (!limit || (total_row_number<limit))) { j++; total_row_number++; }
 		}
 
 		//Create output record set
@@ -157,9 +195,9 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		{
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
+			free(frag_components);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 
@@ -169,47 +207,40 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(_oph_ioserver_query_set_column_info(query_args, field_list, field_list_num, rs)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
 			if (rs) oph_iostore_destroy_frag_recordset(&rs);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 
 		//Process each column
-		if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_set, rs)){
+		if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_sets, rs)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
 			if (rs) oph_iostore_destroy_frag_recordset(&rs);
+			free(frag_components);
 			return OPH_IO_SERVER_PARSE_ERROR;
 		}
 	}
 	else{
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_EMPTY_SELECTION);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_EMPTY_SELECTION);	
-		if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-		oph_iostore_destroy_frag_recordset_only(&record_set);
+		_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 		if(field_list) free(field_list);
 		if (rs) oph_iostore_destroy_frag_recordset(&rs);
+		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 
 	}
 	if(field_list) free(field_list);
     
-	if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-	oph_iostore_destroy_frag_recordset_only(&record_set);
+	_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 
-	char *frag_name = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
-	if(frag_name == NULL){
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);	
-		if(rs) oph_iostore_destroy_frag_recordset(&rs);
-		return OPH_IO_SERVER_EXEC_ERROR;        
-	}
-	rs->frag_name = strndup(frag_name, strlen(frag_name));
+	rs->frag_name = strndup(out_frag_name, strlen(out_frag_name));
+	free(frag_components);
 
     //TODO manage fragment struct creation
 		//Compute size of record_set variable
@@ -222,7 +253,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			}
 			j++;
 		}
-		int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, thread_status, frag_name, tot_size, &rs);
+		int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, thread_status, rs->frag_name, tot_size, &rs);
 
     //Destroy tmp recordset 
 		oph_iostore_destroy_frag_recordset(&rs);
@@ -248,11 +279,11 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			return OPH_IO_SERVER_METADB_ERROR;             
 		}
 
-		oph_iostore_frag_record_set *orig_record_set = NULL;
-		oph_iostore_frag_record_set *record_set = NULL;
+		oph_iostore_frag_record_set **orig_record_sets = NULL;
+		oph_iostore_frag_record_set **record_sets = NULL;
 		long long row_number = 0;
 
-		if(_oph_ioserver_query_build_input_record_set_select(query_args, meta_db, dev_handle, thread_status, &orig_record_set, &row_number, &record_set)){
+		if(_oph_ioserver_query_build_input_record_set_select(query_args, meta_db, dev_handle, thread_status, &orig_record_sets, &row_number, &record_sets)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);	
 			return OPH_IO_SERVER_EXEC_ERROR;        
@@ -266,15 +297,13 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		{
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD);	
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 		if(oph_query_parse_multivalue_arg (fields, &field_list, &field_list_num) || !field_list_num){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FIELD);	
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
@@ -284,8 +313,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(_oph_io_server_query_compute_limits(query_args, &offset, &limit)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR);	
-			if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-			oph_iostore_destroy_frag_recordset_only(&record_set);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			if(field_list) free(field_list);
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
@@ -293,20 +321,20 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		//TODO read other clauses
 
 
-		//Prepare input record set
+		//Prepare output record set
 		oph_iostore_frag_record_set *rs = NULL;
 		long long j = 0, total_row_number = 0, output_rows = 0;
 		int error = 0, aggregation = 0;
 
 		//If recordset is not empty proceed
-		if(record_set->record_set[0] != NULL){
+		if(record_sets[0]->record_set[0] != NULL){
 
 			//Count number of rows to compute
 			//TODO Check aggregation
 			if (!offset || (offset<row_number))
 			{
 				j = offset;
-				while(record_set->record_set[j] && (!limit || (total_row_number<limit))) { j++; total_row_number++; }
+				while(record_sets[0]->record_set[j] && (!limit || (total_row_number<limit))) { j++; total_row_number++; }
 			}
 
 			//Create output record set
@@ -332,7 +360,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 				}
 				else{
 					//Process each column
-					if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_set, rs)){
+					if(_oph_ioserver_query_build_select_columns(field_list, field_list_num, offset, total_row_number, args, record_sets, rs)){
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
 						logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
 						error = OPH_IO_SERVER_PARSE_ERROR;
@@ -360,8 +388,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			}
 		}
 
-		if(dev_handle->is_persistent) oph_iostore_destroy_frag_recordset(&orig_record_set);
-		oph_iostore_destroy_frag_recordset_only(&record_set);
+		_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 		if(field_list) free(field_list);
 
 		if (error)
