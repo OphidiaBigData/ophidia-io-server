@@ -6,13 +6,14 @@
 #include <stdio.h>
 #include <string.h>
 
- 
 %}
 %option outfile="oph_query_expression_lexer.c" header-file="oph_query_expression_lexer.h"
 %option warn nodefault
  
 %option reentrant noyywrap never-interactive nounistd
 %option bison-bridge
+
+%option noinput nounput 
   
 EXP ([Ee][+-]?[0-9]+)
 WS          [ \r\n\t]*
