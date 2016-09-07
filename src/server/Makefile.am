@@ -26,14 +26,14 @@ bin_PROGRAMS+=oph_io_server_test
 endif
 bindir=${prefix}/bin
 
-oph_io_server_SOURCES = oph_io_server_query_blocks.c oph_io_server_query.c oph_io_server_thread.c oph_io_server.c
+oph_io_server_SOURCES = oph_io_server_query_blocks.c oph_io_server_query.c oph_io_server_query_engine.c oph_io_server_thread.c oph_io_server.c
 oph_io_server_CFLAGS = ${OPENMP_CFLAGS} $(OPT) -I../common -I../iostorage -I../query_engine -fPIC -I. -I../query_engine -I../metadb -I../network @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
 oph_io_server_LDADD = -L. -L../common -ldebug -lpthread -loph_server_conf -L../metadb  -loph_metadb -L../query_engine -loph_query_engine -loph_query_parser -L../query_engine -L../iostorage -loph_iostorage_data  -loph_iostorage_interface -L../network -loph_network 
 oph_io_server_LDFLAGS= -Wl,-R -Wl,. 
 
 
 if DEBUG
-oph_io_server_test_SOURCES = oph_io_server_query_blocks.c oph_io_server_query.c oph_io_server_thread.c oph_io_server_test.c
+oph_io_server_test_SOURCES = oph_io_server_query_blocks.c oph_io_server_query_engine.c oph_io_server_query.c oph_io_server_thread.c oph_io_server_test.c
 oph_io_server_test_CFLAGS = ${OPENMP_CFLAGS} $(OPT) -I../common -I../iostorage -I../query_engine -fPIC -I. -I../query_engine -I../metadb -I../network  @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
 oph_io_server_test_LDADD = -L. -L../common -ldebug -lpthread -loph_server_conf -L../metadb  -loph_metadb -L../query_engine -loph_query_engine -loph_query_parser -L../query_engine -L../iostorage -loph_iostorage_data  -loph_iostorage_interface  -L../network -loph_network
 oph_io_server_test_LDFLAGS= -Wl,-R -Wl,. 

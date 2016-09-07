@@ -44,7 +44,7 @@
 #define OPH_IO_SERVER_LOG_QUERY_OPERATION_UNKNOWN         "Unknown input operation %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_METADB_ERROR              "Error querying metaDB for %s operation\n"
 #define OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR        "Error creating MetaDB %s record\n"
-#define OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR            "Error dispatching query to the right operation branch\n"
+#define OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR            "Error running %s operation\n"
 #define OPH_IO_SERVER_LOG_PLUGIN_EXEC_ERROR               "Error while executing %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_DB_EXIST_ERROR            "DB provided already exists\n"
 #define OPH_IO_SERVER_LOG_QUERY_DB_NOT_EXIST_ERROR        "DB provided does not exists\n"
@@ -56,6 +56,7 @@
 #define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR      "Error while parsing multivalue arg %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER      "Multivalue args for %s are not the same number\n"
 #define OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR              "Error while executing engine on query %s\n"
+
 #define OPH_IO_SERVER_LOG_QUERY_TYPE_ERROR                "Data type %s not recognized\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR       "Unable to perform INSERT operation due to missing table info\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR       "Unable to perform INSERT: field name not found in table\n"
@@ -77,6 +78,7 @@
 #define OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE         "Missing where in multi-table query\n"
 #define OPH_IO_SERVER_LOG_ID_MULTITABLE_CONSTRAINT_ERROR   "Table %s id column does not guarantee order and uniqueness constraints\n"
 #define OPH_IO_SERVER_LOG_ONLY_ID_ERROR   				"Only id columns can be used in where clauses\n"
+#define OPH_IO_SERVER_LOG_DELETE_OLD_STMT   				"Deleting previous uncompleted statement\n"
 
 //Packet codes
 
@@ -186,26 +188,26 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle
  * \param dev_handle 		Handler to current IO server device
  * \param out_db_name 	Name of DB used by output fragment
  * \param out_frag_name Name of output fragment
- * \param thread_status Status of thread executing the query
+ * \param current_db 	Name of DB currently selected
  * \param stored_rs    	Pointer to be filled with list of original stored recordsets (null terminated list)
  * \param input_row_num Arg to be filled with total number of rows in filtered recordset 
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
 
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of select. 
  * \param query_args    Hash table containing args to be selected
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
- * \param thread_status Status of thread executing the query
+ * \param current_db 	Name of DB currently selected
  * \param stored_rs    	Pointer to be filled with list of original stored recordsets (null terminated list)
  * \param input_row_num Arg to be filled with total number of rows in filtered recordset
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 
@@ -215,7 +217,7 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
  * \param total_row_number 	Total numbers of row to be processed from input
  * \param args 				Additional args used in prepared statements (can be NULL)
  * \param inputs   			Null terminated list of input record sets
- * \param output 			Output records set to be filled (must be already allocated)
+ * \param output 			Output recordset to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
 int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output);
@@ -225,7 +227,7 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
  * \param query_args    	Hash table containing args to be selected
  * \param field_list    	List of select fields
  * \param field_list_num    Number of select fields to be processed
- * \param rs 				Records set to be filled (must be already allocated)
+ * \param rs 				Recordset to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
 int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set *rs);
@@ -234,13 +236,12 @@ int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, 
  * \brief               Internal function used to store the final record set. Used in case of insert and multi-insert. 
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
- * \param thread_status Status of thread executing the query
- * \param frag_name 	Name of fragment to be stored in the IO server
+ * \param current_db 	Name of DB currently selected
  * \param frag_size 	Size of fragment to be stored in the IO server
  * \param final_result_set 	Pointer with final recordset to be stored in the IO server
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, char *frag_name, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set);
+int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set);
 
 /**
  * \brief               Internal function used to create a row from query. Used in case of insert and multi-insert. 
@@ -261,5 +262,94 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_io_server_free_status(oph_io_server_thread_status *status);
+
+/**
+ * \brief               Internal function used to execute create as select operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_query_arg **args, HASHTBL *query_args);
+
+/**
+ * \brief               Internal function used to execute select operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \param output_rs 	Output record set to be filled
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_query_arg **args, HASHTBL *query_args, oph_iostore_frag_record_set **output_rs);
+
+/**
+ * \brief               Internal function used to execute insert operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param rs 			Record set to be filled
+ * \param rs_index 		Record set index used by the record
+ * \param query_args    Hash table containing args to be selected
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \param size 			Record size
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_insert(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_iostore_frag_record_set *rs, unsigned long long rs_index, oph_query_arg **args, HASHTBL *query_args, unsigned long long *size);
+
+/**
+ * \brief               Internal function used to execute multi-insert operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param thread_status	Pointer to thread structure
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \param query_args    Hash table containing args to be selected
+ * \param num_insert 	Number of insert performed
+ * \param size 			Record size
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_multi_insert(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, unsigned int *num_insert, unsigned long long *size);
+
+/**
+ * \brief               Internal function used to execute create fragment operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param output_rs 	Output record set to be filled
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, HASHTBL *query_args, oph_iostore_frag_record_set **output_rs);
+
+/**
+ * \brief               Internal function used to execute drop fragment operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, HASHTBL *query_args);
+
+/**
+ * \brief               Internal function used to execute create database operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_create_db(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, HASHTBL *query_args);
+
+/**
+ * \brief               Internal function used to execute drop database operation 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param query_args    Hash table containing args to be selected
+ * \param deleted_db 	Name of DB just deleted
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, HASHTBL *query_args, char **deleted_db);
 
 #endif /* OPH_IO_SERVER_INTERFACE_H */

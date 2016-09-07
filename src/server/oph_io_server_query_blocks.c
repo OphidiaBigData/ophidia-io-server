@@ -482,9 +482,9 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs, char *out_db_name, char *out_frag_name)
+int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs, char *out_db_name, char *out_frag_name)
 {
-	if (!dev_handle || !query_args || !stored_rs || !input_row_num || !input_rs || !meta_db || !thread_status){
+	if (!dev_handle || !query_args || !stored_rs || !input_row_num || !input_rs || !meta_db || !current_db){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -534,7 +534,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 	int from_components_num = 0;
 	if(table_list_num == 1){
 		in_frag_names[0] = from_frag_name;
-		in_db_names[0] = thread_status->current_db;
+		in_db_names[0] = current_db;
 	}
 	else{
 		//From multiple table
@@ -594,7 +594,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 	if(create_flag == 1)
 	{
 		//Retrieve current db
-		if(oph_metadb_find_db (*meta_db, out_db_name, thread_status->device, &db_row) ||  db_row == NULL){
+		if(oph_metadb_find_db (*meta_db, out_db_name, dev_handle->device, &db_row) ||  db_row == NULL){
 			pthread_rwlock_unlock(&rwlock);
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");	
@@ -630,7 +630,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 		db_row = NULL;
 
 		//Retrieve current db
-		if(oph_metadb_find_db (*meta_db, in_db_names[l], thread_status->device, &db_row) ||  db_row == NULL){
+		if(oph_metadb_find_db (*meta_db, in_db_names[l], dev_handle->device, &db_row) ||  db_row == NULL){
 			pthread_rwlock_unlock(&rwlock);
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");	
@@ -816,14 +816,14 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
   return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
 {
-	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, thread_status, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name);
+	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name);
 }
 
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
 {
-	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, thread_status, stored_rs, input_row_num, input_rs, NULL, NULL);
+	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL);
 }
 
 int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output)
@@ -1435,9 +1435,9 @@ int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, 
   	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, char *frag_name, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set)
+int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set)
 {
-	if (!meta_db || !dev_handle || !thread_status || !(*final_result_set)){
+	if (!meta_db || !dev_handle || !current_db || !(*final_result_set)){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1454,7 +1454,7 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
 	}
 
 	//Retrieve current db
-	if(oph_metadb_find_db (*meta_db, thread_status->current_db, thread_status->device, &db_row) ||  db_row == NULL){
+	if(oph_metadb_find_db (*meta_db, current_db, dev_handle->device, &db_row) ||  db_row == NULL){
 		  pthread_rwlock_unlock(&rwlock);
 		    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");
 		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");	
@@ -1473,7 +1473,7 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
 	oph_metadb_frag_row *frag = NULL;
 
 	//Add Frag to MetaDB
-	if(oph_metadb_setup_frag_struct (frag_name, thread_status->device, dev_handle->is_persistent, &(db_row->db_id), frag_id, frag_size, &frag)) {
+	if(oph_metadb_setup_frag_struct ((*final_result_set)->frag_name, dev_handle->device, dev_handle->is_persistent, &(db_row->db_id), frag_id, frag_size, &frag)) {
 		  pthread_rwlock_unlock(&rwlock);
 		  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "frag");
 		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "frag");
