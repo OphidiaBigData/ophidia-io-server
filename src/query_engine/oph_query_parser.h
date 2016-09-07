@@ -118,4 +118,12 @@ int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *va
  */
 int oph_query_field_type(const char* field, oph_query_field_types *field_type);
 
+
+/**
+ * \brief               Function to check if procedure input arguments are strings. It also removes leading/trailing spaces and quotes. (It modifies input string)
+ * \param param 		String to be evaluated
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_check_procedure_string(char **param);
+
 #endif /* OPH_QUERY_PARSER_H */

@@ -40,6 +40,8 @@
 #define OPH_QUERY_ENGINE_LOG_QUERY_ARG_LOAD_ERROR   "Unable to load query args in table\n"
 #define OPH_QUERY_ENGINE_LOG_PLUGIN_EXEC_ERROR      "Error while executing %s\n"
 #define OPH_QUERY_ENGINE_LOG_ARG_PARSING_ERROR    	"Unable to parse argument %s\n"
+#define OPH_QUERY_ENGINE_LOG_NO_STRING   			"Argument %s is not a valid string\n"
+
 
 /* QUERY EVALUATOR LOG ERRORS */
 #define OPH_QUERY_ENGINE_LOG_LEXER_INIT_ERROR       "Error while initializing the lexer\n"

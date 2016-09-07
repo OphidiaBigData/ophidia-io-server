@@ -56,7 +56,6 @@
 #define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR      "Error while parsing multivalue arg %s\n"
 #define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER      "Multivalue args for %s are not the same number\n"
 #define OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR              "Error while executing engine on query %s\n"
-
 #define OPH_IO_SERVER_LOG_QUERY_TYPE_ERROR                "Data type %s not recognized\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR       "Unable to perform INSERT operation due to missing table info\n"
 #define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR       "Unable to perform INSERT: field name not found in table\n"
@@ -79,6 +78,9 @@
 #define OPH_IO_SERVER_LOG_ID_MULTITABLE_CONSTRAINT_ERROR   "Table %s id column does not guarantee order and uniqueness constraints\n"
 #define OPH_IO_SERVER_LOG_ONLY_ID_ERROR   				"Only id columns can be used in where clauses\n"
 #define OPH_IO_SERVER_LOG_DELETE_OLD_STMT   				"Deleting previous uncompleted statement\n"
+#define OPH_IO_SERVER_LOG_WRONG_PROCEDURE_ARG   			"Arguments of %s procedure are not correct\n"
+#define OPH_IO_SERVER_LOG_ARG_NO_STRING   					"Argument %s is not a valid string\n"
+#define OPH_IO_SERVER_LOG_ARG_NO_LONG   					"Argument %s is not a valid integer\n"
 
 //Packet codes
 
@@ -105,6 +107,10 @@
 #define OPH_IO_SERVER_MAX_DOUBLE_LEN 32
 
 #define OPH_IO_SERVER_BUFFER 1024
+
+//procedures names
+
+#define OPH_IO_SERVER_PROCEDURE_SUBSET "oph_subset"
 
 // Prototypes
 
@@ -211,6 +217,7 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 
+ * \param query_args    	Hash table containing args to be selected
  * \param field_list    	List of select fields
  * \param field_list_num    Number of select fields to be processed
  * \param offset 			Starting point of input record set
@@ -220,7 +227,7 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
  * \param output 			Output recordset to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output);
+int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output);
 
 /**
  * \brief               	Internal function used to set column name/alias and default types. Used in case of select or create as select. 
@@ -351,5 +358,8 @@ int oph_io_server_run_create_db(oph_metadb_db_row **meta_db, oph_iostore_handler
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, HASHTBL *query_args, char **deleted_db);
+
+//Internal server procedures
+int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
 
 #endif /* OPH_IO_SERVER_INTERFACE_H */

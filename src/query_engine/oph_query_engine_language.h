@@ -29,6 +29,7 @@
 #define OPH_QUERY_ENGINE_LANG_MULTI_VALUE_SEPARATOR '|'
 #define OPH_QUERY_ENGINE_LANG_ARG_REPLACE           '?'
 #define OPH_QUERY_ENGINE_LANG_STRING_DELIMITER      '\''
+#define OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2     '"'
 #define OPH_QUERY_ENGINE_LANG_REAL_NUMBER_POINT     '.'
 #define OPH_QUERY_ENGINE_LANG_FUNCTION_START     '('
 #define OPH_QUERY_ENGINE_LANG_FUNCTION_END     ')'
@@ -69,6 +70,7 @@
 #define OPH_QUERY_ENGINE_LANG_ARG_VALUE       "value"
 #define OPH_QUERY_ENGINE_LANG_ARG_FUNC        "func_name"
 #define OPH_QUERY_ENGINE_LANG_ARG_ARG         "arg"
+#define OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL  "sequential_id"
 
 //*****************Query values***************//
 

@@ -826,9 +826,9 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_m
 	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL);
 }
 
-int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output)
+int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output)
 {
-	if (!field_list || !field_list_num || !total_row_number || !inputs || !output){
+	if (!query_args || !field_list || !field_list_num || !total_row_number || !inputs || !output){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -866,6 +866,22 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
 	i = 0;
 	int table_num = 0;
 	while(inputs[i++]) table_num++;	
+
+	//Check if sequential ID are used
+	short int sequential_id = 0;
+	short int use_seq_id = 0;
+	long long start_id = 0;
+	char *sid = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL);
+	if(sid != NULL){
+		sequential_id = 1;
+		char *end = NULL;
+		start_id = strtoll(sid, &end, 10);
+		if ((errno != 0) || (end == sid) || (*end != 0)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL);	
+			return OPH_IO_SERVER_EXEC_ERROR;		
+		}
+	}
 
 	//Check column type for each selection field
 	for (i=0; i<field_list_num; ++i)
@@ -1005,6 +1021,12 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
 							for(j = 0; j < inputs[l]->field_num; j++){
 								if(!STRCMP(field_components[1],inputs[l]->field_name[j])){
 									field_index = j;
+									if(sequential_id){
+										//If sequential id  flag is set check if field is called id_dim
+										if(!STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])){
+											use_seq_id = 1;
+										}
+									}
 									break;
 								}
 							}	
@@ -1029,6 +1051,12 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
 					for(j = 0; j < inputs[0]->field_num; j++){
 						if(!STRCMP(field_list[i],inputs[0]->field_name[j])){
 							field_index = j;
+							if(sequential_id){
+								//If sequential id  flag is set check if field is called id_dim
+								if(!STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])){
+									use_seq_id = 1;
+								}
+							}
 							break;
 						}
 					}	
@@ -1041,18 +1069,35 @@ int _oph_ioserver_query_build_select_columns(char **field_list, int field_list_n
 					frag_index = 0;
 				}
 
-				id = offset;
-				for (j = 0; j < total_row_number; j++, id++)
-				{
-					if (memory_check())
+				if(!use_seq_id){
+					id = offset;
+					for (j = 0; j < total_row_number; j++, id++)
 					{
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-						return OPH_IO_SERVER_MEMORY_ERROR;
-					}
+						if (memory_check())
+						{
+							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+							return OPH_IO_SERVER_MEMORY_ERROR;
+						}
 
-					output->record_set[j]->field[i] = inputs[frag_index]->record_set[id]->field_length[field_index] ? memdup(inputs[frag_index]->record_set[id]->field[field_index], inputs[frag_index]->record_set[id]->field_length[field_index]) : NULL;
-					output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
+						output->record_set[j]->field[i] = inputs[frag_index]->record_set[id]->field_length[field_index] ? memdup(inputs[frag_index]->record_set[id]->field[field_index], inputs[frag_index]->record_set[id]->field_length[field_index]) : NULL;
+						output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
+					}
+				}
+				else{
+					//Use sequential IDs instead
+					for (j = 0; j < total_row_number; j++)
+					{
+						if (memory_check())
+						{
+							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+							return OPH_IO_SERVER_MEMORY_ERROR;
+						}
+						val_l = start_id + j;
+						output->record_set[j]->field[i] = memdup(&val_l, sizeof(long long));
+						output->record_set[j]->field_length[i] = sizeof(long long);
+					}
 				}
 				output->field_type[i] = inputs[frag_index]->field_type[field_index];
 				break;

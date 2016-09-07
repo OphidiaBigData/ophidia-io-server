@@ -272,7 +272,7 @@ int _oph_query_check_query_params(HASHTBL *hashtbl)
 	return OPH_QUERY_ENGINE_NULL_PARAM;
   }
 
-  if( hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREL) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHERER) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_GROUP) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_FUNC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_ARG)){
+  if( hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREL) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHEREC) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_WHERER) || hashtbl_get(hashtbl, OPH_QUERY_ENGINE_LANG_ARG_GROUP)){
 	pmesg(LOG_ERROR, __FILE__, __LINE__, "Query not valid: keyword not supported.\n");
 	logging(LOG_ERROR, __FILE__, __LINE__, "Query not valid: keyword not supported.\n");
 	return OPH_QUERY_ENGINE_PARSE_ERROR;
@@ -424,3 +424,105 @@ int oph_query_field_type(const char* field, oph_query_field_types *field_type){
 	*field_type = OPH_QUERY_FIELD_TYPE_UNKNOWN;
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
+
+int oph_query_check_procedure_string(char **param)
+{
+	if (!param){	
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);    
+		return OPH_QUERY_ENGINE_NULL_PARAM;
+	}
+
+	char *str_start = *param;
+	char *str_end = (*param) + strlen(*param) -1;
+
+	//No charachters provided
+	if(str_start >= str_end)
+	{
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);	
+		return OPH_QUERY_ENGINE_EXEC_ERROR;
+	}
+
+	short int double_quote_flag = 0;	
+	short int single_quote_flag = 0;	
+	short int no_double_quote_flag = 0;
+
+	//Remove leading quotes and spaces
+	while(*str_start == ' ' || *str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER || *str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2 ){
+		if(*str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2){
+			double_quote_flag = 1;
+			str_start++;
+			break;					
+		}
+		if(*str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER){
+			single_quote_flag = 1;
+			no_double_quote_flag = 1;
+			str_start++;
+			break;					
+		}
+		str_start++;
+	}
+
+	if(!single_quote_flag && !double_quote_flag){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);	
+		return OPH_QUERY_ENGINE_EXEC_ERROR;
+	}
+
+	//Remove trailing quotes and spaces
+	while(*str_end == ' ' || *str_end == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER || *str_end == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2 ){
+		if(*str_end == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2){
+			if(single_quote_flag){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);	
+				return OPH_QUERY_ENGINE_EXEC_ERROR;
+			}				
+			double_quote_flag = 0;
+			str_end--;
+			break;					
+		}
+		if(*str_end == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER){
+			if(double_quote_flag){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);	
+				return OPH_QUERY_ENGINE_EXEC_ERROR;
+			}				
+			single_quote_flag = 0;
+			str_end--;
+			break;					
+		}
+		str_end--;
+	}
+
+	if(single_quote_flag || double_quote_flag){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);	
+		return OPH_QUERY_ENGINE_EXEC_ERROR;
+	}
+
+	if(str_start == str_end){
+		//Return empty string
+		(*param)[0] = '\0';
+		return OPH_QUERY_ENGINE_SUCCESS;
+	}
+
+	//Move string	
+	memmove (*param, str_start, (str_end-str_start+1));
+	(*param)[str_end-str_start+1] = '\0';
+
+	if(no_double_quote_flag){
+		str_start = *param;
+		while(*str_start != '\0'){
+			if(*str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NO_STRING, *param);	
+				return OPH_QUERY_ENGINE_EXEC_ERROR;
+			}
+			str_start++;
+		}
+	}
+
+	return OPH_QUERY_ENGINE_SUCCESS;
+}
+

@@ -363,8 +363,46 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
   else if(STRCMP(query_oper,OPH_QUERY_ENGINE_LANG_OP_FUNCTION) ==0){
     //Compose query by selecting fields in the right order 
 
-    //TODO Implement function management
+    //Check if current DB is setted
+    //TODO Improve how current DB is found
+    if(thread_status->current_db == NULL || thread_status->device == NULL){
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);	
+        return OPH_IO_SERVER_METADB_ERROR;             
+    }
 
+	//Fetch procedure name
+	char *function_name = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FUNC);
+	if (function_name == NULL)
+	{
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FUNC);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FUNC);	
+		return OPH_IO_SERVER_EXEC_ERROR;        
+	}
+
+	//Remove unwanted tokens
+	if(_oph_query_parser_remove_query_tokens(function_name)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, function_name);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, function_name);   
+		return OPH_IO_SERVER_PARSE_ERROR;
+	}
+
+	//Switch on procedure
+	if(STRCMP(function_name, OPH_IO_SERVER_PROCEDURE_SUBSET) ==0){
+		//Call Subset internal procedure
+		if(oph_io_server_run_subset_procedure(meta_db, dev_handle, thread_status, args, query_args)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Subset Procedure");
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Subset Procedure");	
+			return OPH_IO_SERVER_EXEC_ERROR;        
+		}
+	}	
+	else{
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, function_name);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, function_name);	
+		return OPH_IO_SERVER_EXEC_ERROR;        
+	}
+	//Other procedures
+	
   }
   else{
       pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_OPERATION_UNKNOWN, query_oper);
