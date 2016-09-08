@@ -25,6 +25,7 @@
 #include "oph_query_expression_evaluator.h"
 
 #define OPH_PLUGIN_FILE_LINE 1024
+#define OPH_QUERY_ENGINE_MAX_PLUGIN_NUMBER 1000
 
 //Macros used to access primitives list file
 #define OPH_PLUGIN_LIST_FUNCTION_DESC 	"fun"
@@ -78,13 +79,14 @@ int oph_free_plugin(oph_plugin *plugin);
  * \param function_htable      Pointer to symtable used to store plugin list
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_load_plugins (HASHTBL **plugin_htable, oph_query_expr_symtable *function_table);
+int oph_load_plugins (HASHTBL **plugin_htable, oph_query_expr_symtable **function_table);
 
 /**
  * \brief			        Clean plugin list in plugin table
  * \param plugin_htable      Pointer to hash table to be freed
+ * \param function_htable      Pointer to symtable to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_unload_plugins(HASHTBL *plugin_htable);
+int oph_unload_plugins(HASHTBL **plugin_htable, oph_query_expr_symtable **function_table);
 
 #endif /* OPH_QUERY_PLUGIN_LOADER_H */

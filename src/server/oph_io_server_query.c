@@ -20,7 +20,6 @@
 
 #include "oph_io_server_interface.h"
 
-#include "oph_query_engine.h"
 #include "oph_query_plugin_loader.h"
 #include "oph_query_engine_language.h"
 

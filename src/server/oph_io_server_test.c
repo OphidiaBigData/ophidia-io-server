@@ -21,7 +21,7 @@
 #include "oph_server_utility.h"
 #include "oph_server_confs.h"
 #include "oph_metadb_interface.h"
-#include "oph_query_engine.h"
+#include "oph_query_plugin_loader.h"
 #include <pthread.h>
 #include <unistd.h>
 #include <errno.h>
@@ -113,10 +113,10 @@ int main(int argc, char *argv[])
   
   omp_threads = strtol(omp, NULL, 10);
 
-	if(oph_query_engine_start(&plugin_table, &oph_function_table)){
+	if(oph_load_plugins (&plugin_table, &oph_function_table)){
 		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to load plugin table\n");
 		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to load plugin table\n");
-		oph_query_engine_end(&plugin_table, &oph_function_table);
+		oph_unload_plugins(&plugin_table, &oph_function_table);
     oph_server_conf_unload(&conf_db);
 		return -1;
 	}
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
   if(oph_metadb_load_schema (&db_table, 0)){
 		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to load MetaDB\n");
 		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to load MetaDB\n");
-		oph_query_engine_end(&plugin_table, &oph_function_table);
+		oph_unload_plugins(&plugin_table, &oph_function_table);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
     return -1;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
   {
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while listening TCP socket\n");
     logging(LOG_ERROR,__FILE__,__LINE__,"Error while listening TCP socket\n");
-		oph_query_engine_end(&plugin_table, &oph_function_table);
+		oph_unload_plugins(&plugin_table, &oph_function_table);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
     return -1;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
   {
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to allocate buffer for client address\n");
     logging(LOG_ERROR,__FILE__,__LINE__,"Unable to allocate buffer for client address\n");
-		oph_query_engine_end(&plugin_table, &oph_function_table);
+		oph_unload_plugins(&plugin_table, &oph_function_table);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
     return -1;
@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
     free(cliaddr);
     oph_metadb_unload_schema (db_table);
     oph_server_conf_unload(&conf_db);
-    oph_query_engine_end(&plugin_table, &oph_function_table);
+    oph_unload_plugins(&plugin_table, &oph_function_table);
     return -1;
   }
 
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
   free(cliaddr);
   oph_metadb_unload_schema (db_table);
   oph_server_conf_unload(&conf_db);
-  oph_query_engine_end(&plugin_table, &oph_function_table);
+  oph_unload_plugins(&plugin_table, &oph_function_table);
 
   return 0;
 }

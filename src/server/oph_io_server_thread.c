@@ -19,7 +19,6 @@
 #define _GNU_SOURCE 
 #include <poll.h> 
 #include "oph_io_server_interface.h"
-#include "oph_query_engine.h"
 
 #include <string.h>
 

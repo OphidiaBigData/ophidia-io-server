@@ -20,7 +20,6 @@
 
 #include "oph_io_server_interface.h"
 #include "oph_query_engine_language.h"
-#include "oph_query_engine.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,6 +37,7 @@
 #include "oph_server_utility.h"
 
 #include "oph_iostorage_interface.h"
+#include "oph_query_plugin_loader.h"
 #include "oph_query_expression_evaluator.h"
 #include "oph_query_expression_functions.h"
 
@@ -238,7 +238,7 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 	}
 
 	oph_query_expr_symtable *table;
-	if(oph_query_expr_create_symtable(&table, OPH_IO_SERVER_MAX_PLUGIN_NUMBER)){
+	if(oph_query_expr_create_symtable(&table, OPH_QUERY_ENGINE_MAX_PLUGIN_NUMBER)){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		oph_query_expr_delete_node(e, table);
@@ -1119,7 +1119,7 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					return OPH_IO_SERVER_EXEC_ERROR;     
 				}
 
-				if(oph_query_expr_create_symtable(&table, OPH_IO_SERVER_MAX_PLUGIN_NUMBER)){
+				if(oph_query_expr_create_symtable(&table, OPH_QUERY_ENGINE_MAX_PLUGIN_NUMBER)){
 					free(updated_query);
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);	
@@ -1661,7 +1661,7 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
 					return OPH_IO_SERVER_EXEC_ERROR;     
 				}
 
-				if(oph_query_expr_create_symtable(&table, OPH_IO_SERVER_MAX_PLUGIN_NUMBER)){
+				if(oph_query_expr_create_symtable(&table, OPH_QUERY_ENGINE_MAX_PLUGIN_NUMBER)){
 					free(updated_query);
 					oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, value_list[i]);

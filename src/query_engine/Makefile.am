@@ -36,7 +36,7 @@ liboph_query_parser_la_CFLAGS = $(OPT) -I../common -I..  -I../iostorage -fPIC @I
 liboph_query_parser_la_LIBADD = @LIBLTDL@ -L../common -ldebug -lhashtbl -loph_server_util
 liboph_query_parser_la_LDFLAGS = -module -static 
 
-liboph_query_engine_la_SOURCES = oph_query_engine.c oph_query_plugin_executor.c oph_query_plugin_loader.c oph_query_expression_functions.c oph_query_expression_parser.y oph_query_expression_lexer.l oph_query_expression_evaluator.c
+liboph_query_engine_la_SOURCES = oph_query_plugin_executor.c oph_query_plugin_loader.c oph_query_expression_functions.c oph_query_expression_parser.y oph_query_expression_lexer.l oph_query_expression_evaluator.c
 if HAVE_OPENMP
 liboph_query_engine_la_CFLAGS = ${OPENMP_CFLAGS} $(OPT) -I../common -I../metadb  -I../iostorage -I. -fPIC @INCLTDL@ ${MYSQL_CFLAGS}  -DOPH_IO_SERVER_PREFIX=\"${prefix}\" -DOPH_OMP
 else
@@ -48,15 +48,7 @@ liboph_query_engine_la_LDFLAGS = -module -static
 bindir=${prefix}/bin
 
 if DEBUG
-bin_PROGRAMS=oph_query_client oph_query_expression_client
-
-oph_query_client_SOURCES = oph_query_client.c
-if HAVE_OPENMP
-oph_query_client_CFLAGS = ${OPENMP_CFLAGS} $(OPT) -I../common  -I../iostorage -I../metadb @INCLTDL@ ${MYSQL_CFLAGS}  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
-else
-oph_query_client_CFLAGS = $(OPT) -I../common  -I../iostorage -I../metadb @INCLTDL@ ${MYSQL_CFLAGS}  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
-endif
-oph_query_client_LDADD = -L. -loph_query_engine -loph_query_parser -L../common -ldebug -loph_server_util -L../iostorage -loph_iostorage_data 
+bin_PROGRAMS=oph_query_expression_client
 
 oph_query_expression_client_SOURCES = oph_query_expression_client.c
 oph_query_expression_client_CFLAGS = $(OPT) -I../common -I../iostorage -I. @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\" ${MYSQL_CFLAGS}
