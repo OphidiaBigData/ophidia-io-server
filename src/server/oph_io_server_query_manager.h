@@ -90,6 +90,8 @@
 #define OPH_IO_SERVER_LOG_WRONG_PROCEDURE_ARG   			"Arguments of %s procedure are not correct\n"
 #define OPH_IO_SERVER_LOG_ARG_NO_STRING   					"Argument %s is not a valid string\n"
 #define OPH_IO_SERVER_LOG_ARG_NO_LONG   					"Argument %s is not a valid integer\n"
+#define OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR   				"Only numeric (int or real) columns can be used for sorting\n"
+#define OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR   				"Unable to perform row sorting\n"
 
 #define OPH_IO_SERVER_BUFFER 1024
 
@@ -120,6 +122,14 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
  * \return              0 if successfull, non-0 otherwise
  */
 int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, long long *limit);
+
+/**
+ * \brief               Internal function used to order output recordset (ORDER block)
+ * \param query_args    Hash table containing args to be selected
+ * \param rs 			Recordset to be sorted (it will be modified)
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_io_server_query_order_output(HASHTBL *query_args, oph_iostore_frag_record_set *rs);
 
 /**
  * \brief               Internal function used to release memory for input record sets of a query (FROM and WHERE blocks). Used in case of select and create as select. 

@@ -183,8 +183,19 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
 			if(field_list) free(field_list);
 			if (rs) oph_iostore_destroy_frag_recordset(&rs);
 			free(frag_components);
-			return OPH_IO_SERVER_PARSE_ERROR;
+			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+
+		//Order rows
+		if(_oph_io_server_query_order_output(query_args, rs)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR);    
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+			if(field_list) free(field_list);
+			if (rs) oph_iostore_destroy_frag_recordset(&rs);
+			free(frag_components);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}		
 	}
 	else{
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_EMPTY_SELECTION);
@@ -320,7 +331,15 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 				if(_oph_ioserver_query_build_select_columns(query_args, field_list, field_list_num, offset, total_row_number, args, record_sets, rs)){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);
 					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR);    
-					error = OPH_IO_SERVER_PARSE_ERROR;
+					error = OPH_IO_SERVER_EXEC_ERROR;
+				}
+				else{
+					//Order rows
+					if(_oph_io_server_query_order_output(query_args, rs)){
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR);
+						logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR);    
+						error = OPH_IO_SERVER_EXEC_ERROR;
+					}		
 				}
 			}
 		}

@@ -89,6 +89,71 @@ int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, 
   return OPH_IO_SERVER_SUCCESS;
 }
 
+int _oph_io_server_query_order_output(HASHTBL *query_args, oph_iostore_frag_record_set *rs)
+{
+	if (!query_args || !rs || !rs->record_set){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	char *order = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ORDER);
+	if(order)
+	{
+		int i = 0;
+		long long j = 1, l = 0;
+		oph_iostore_frag_record *tmp = NULL;
+		for(i = 0; i < rs->field_num; i++){
+			if(!STRCMP(order,rs->field_name[i])){
+				//If single row, then no order required
+				if(!rs->record_set[j]) break;
+
+				if(rs->field_type[i] == OPH_IOSTORE_REAL_TYPE){
+					//Run insertion sort routine
+					while (rs->record_set[j])
+					{
+						tmp = rs->record_set[j];
+						for(l = j-1; l >= 0 ; l--){
+							if(*((double *)tmp->field[i]) >= *((double *)rs->record_set[l]->field[i])) break;
+							else rs->record_set[l+1] = rs->record_set[l];
+						}
+						rs->record_set[l+1] = tmp;
+						j++;
+					}
+					break;
+				} 
+				else if(rs->field_type[i] == OPH_IOSTORE_LONG_TYPE){
+					//Run insertion sort routine
+					while (rs->record_set[j])
+					{
+						tmp = rs->record_set[j];
+						for(l = j-1; l >= 0 ; l--){
+							if(*((long long *)tmp->field[i]) >= *((long long *)rs->record_set[l]->field[i])) break;
+							else rs->record_set[l+1] = rs->record_set[l];
+						}
+						rs->record_set[l+1] = tmp;
+						j++;
+					}
+					break;
+				}
+				else{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR);	
+					return OPH_IO_SERVER_EXEC_ERROR;     
+				}
+			}
+		}	
+		if(i == rs->field_num){				
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, order);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, order);	
+			return OPH_IO_SERVER_EXEC_ERROR;     
+		}
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+
 int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle, oph_iostore_frag_record_set **stored_rs, oph_iostore_frag_record_set **input_rs){
 	if (!dev_handle){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
