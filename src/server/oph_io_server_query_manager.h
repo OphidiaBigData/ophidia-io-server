@@ -16,8 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPH_IO_SERVER_INTERFACE_H
-#define OPH_IO_SERVER_INTERFACE_H
+#ifndef OPH_IO_SERVER_QUERY_MANAGER_H
+#define OPH_IO_SERVER_QUERY_MANAGER_H
+
+// Prototypes
+
+#include "hashtbl.h"
+#include "oph_io_server_thread.h"
+#include "oph_iostorage_data.h"
+#include "oph_iostorage_interface.h"
+#include "oph_query_parser.h"
+#include "oph_metadb_interface.h"
 
 // error codes
 #define OPH_IO_SERVER_SUCCESS                             0
@@ -82,79 +91,13 @@
 #define OPH_IO_SERVER_LOG_ARG_NO_STRING   					"Argument %s is not a valid string\n"
 #define OPH_IO_SERVER_LOG_ARG_NO_LONG   					"Argument %s is not a valid integer\n"
 
-//Packet codes
-
-#define OPH_IO_SERVER_MSG_TYPE_LEN 2
-#define OPH_IO_SERVER_MSG_LONG_LEN sizeof(unsigned long long)
-#define OPH_IO_SERVER_MSG_SHORT_LEN sizeof(unsigned int)
-
-#define OPH_IO_SERVER_MSG_PING "PG"
-#define OPH_IO_SERVER_MSG_RESULT "RS"
-#define OPH_IO_SERVER_MSG_USE_DB "UD"
-#define OPH_IO_SERVER_MSG_SET_QUERY "SQ"
-#define OPH_IO_SERVER_MSG_EXEC_QUERY "EQ"
-
-#define OPH_IO_SERVER_MSG_ARG_DATA_LONG "DL"
-#define OPH_IO_SERVER_MSG_ARG_DATA_DOUBLE "DD"
-#define OPH_IO_SERVER_MSG_ARG_DATA_NULL "DN"
-#define OPH_IO_SERVER_MSG_ARG_DATA_VARCHAR "DV"
-#define OPH_IO_SERVER_MSG_ARG_DATA_BLOB "DB"
-
-#define OPH_IO_SERVER_REQ_ERROR   "ER"
-
-// enum and struct
-#define OPH_IO_SERVER_MAX_LONG_LEN 24
-#define OPH_IO_SERVER_MAX_DOUBLE_LEN 32
-
 #define OPH_IO_SERVER_BUFFER 1024
 
 //procedures names
 
 #define OPH_IO_SERVER_PROCEDURE_SUBSET "oph_subset"
 
-// Prototypes
-
-#include "hashtbl.h"
-#include "oph_iostorage_data.h"
-#include "oph_iostorage_interface.h"
-#include "oph_query_parser.h"
-#include "oph_metadb_interface.h"
-
-/**
- * \brief			            Structure to contain info about a running statement (query executed in multiple runs)
- * \param tot_run         Total number of times the query should be executed
- * \param curr_run        Current value of execution counter
- * \param partial_result_set	Pointer to last result set retrieved by a selection query
- * \param device        	Device where result set belongs
- * \param frag       	    Frag name related to result set
- * \param mi_prev_rows     If multi-insert remainder rows are expected, it will contain the rows already inserted otherwise it will be zero
- */
-typedef struct{
-  unsigned long long          tot_run;
-  unsigned long long          curr_run;
-  oph_iostore_frag_record_set *partial_result_set;
-  char                        *device;
-  char                        *frag;
-  unsigned long long          size;
-  unsigned long long          mi_prev_rows;
-}oph_io_server_running_stmt;
-
-/**
- * \brief			            Structure to store thread status info
- * \param current_db 	    Pointer to current (default) database, if defined
- * \param last_result_set	Pointer to last result set retrieved by a selection query
- * \param device        	Device selected for operations
- * \param curr_stmt       Current statement being executed, if any
- */
-typedef struct{
-  //oph_metadb_db_row *current_db; 
-  char *current_db;
-  oph_iostore_frag_record_set *last_result_set;
-  char *device;
-  oph_io_server_running_stmt *curr_stmt;
-}oph_io_server_thread_status;
-
-//Server Auxiliary functions
+//Server Main manager function
 /**
  * \brief               Function used to dispatch query and execute the correct operation
  * \param meta_db       Pointer to metadb
@@ -263,12 +206,7 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
  */
 int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args, oph_iostore_frag_record **new_record);
 
-/**
- * \brief               Function used to release thread status resources
- * \param status        Thread status
- * \return              0 if successfull, non-0 otherwise
- */
-int oph_io_server_free_status(oph_io_server_thread_status *status);
+//Functions used to run main query blocks
 
 /**
  * \brief               Internal function used to execute create as select operation 
@@ -362,4 +300,4 @@ int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* 
 //Internal server procedures
 int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
 
-#endif /* OPH_IO_SERVER_INTERFACE_H */
+#endif /* OPH_IO_SERVER_QUERY_MANAGER_H */

@@ -18,18 +18,15 @@
 
 #define _GNU_SOURCE
 
-#include "oph_io_server_interface.h"
+#include "oph_io_server_query_manager.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <debug.h>
-
 #include <pthread.h>
 
 #include "oph_server_utility.h"
-#include "oph_iostorage_interface.h"
 #include "oph_query_engine_language.h"
 
 extern int msglevel;
@@ -219,7 +216,7 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
 	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, tot_size, &rs);
 
 	//Destroy tmp recordset 
-	oph_iostore_destroy_frag_recordset(&rs);
+	if (rs) oph_iostore_destroy_frag_recordset(&rs);
 
 	if(ret){
 		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);

@@ -16,22 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "oph_io_server_thread.h"
+
+#include <signal.h>
+#include <unistd.h>
+#include <malloc.h>
 #include "debug.h"
+
 #include "hashtbl.h"
+
 #include "oph_server_confs.h"
 #include "oph_metadb_interface.h"
-#include <unistd.h>
-
-#include <pthread.h>
-#include <signal.h>
-#include <errno.h>
 #include "oph_network.h"
-
-#include <malloc.h>
-
 #include "oph_query_expression_evaluator.h"
 #include "oph_query_plugin_loader.h"
-#include "oph_io_server_interface.h"
 
 //TODO put globals into global struct 
 //Global server variables (read only)

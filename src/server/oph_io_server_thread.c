@@ -17,19 +17,22 @@
 */
 
 #define _GNU_SOURCE 
+
+#include "oph_io_server_thread.h"
+
 #include <poll.h> 
-#include "oph_io_server_interface.h"
-
 #include <string.h>
-
-#include <pthread.h>
 #include <errno.h>
-
-#include "oph_server_utility.h"
-
 #include "debug.h"
 #include "taketime.h"
 
+#include "hashtbl.h"
+#include "oph_server_utility.h"
+#include "oph_io_server_query_manager.h"
+
+#include "oph_iostorage_data.h"
+#include "oph_query_parser.h"
+#include "oph_metadb_interface.h"
 #include "oph_network.h"
 
 extern int msglevel;

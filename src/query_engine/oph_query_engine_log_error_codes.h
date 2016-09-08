@@ -53,6 +53,4 @@
 #define OPH_QUERY_ENGINE_LOG_UNKNOWN_TYPE         	"Unknown variable type\n"
 #define OPH_QUERY_ENGINE_LOG_VAR_EXTRACTION_ERROR   "Error while extracting variables from AST\n"
 
-
-
 #endif  //__OPH_QUERY_ENGINE_LOG_ERROR_CODES_H

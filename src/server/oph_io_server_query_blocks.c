@@ -18,28 +18,22 @@
 
 #define _GNU_SOURCE
 
-#include "oph_io_server_interface.h"
-#include "oph_query_engine_language.h"
+#include "oph_io_server_query_manager.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <ltdl.h>
 #include <string.h>
-
-#include <ctype.h>
-#include <unistd.h>
-
 #include <debug.h>
-
 #include <errno.h>
 #include <pthread.h>
 
 #include "oph_server_utility.h"
+#include "oph_query_engine_language.h"
 
-#include "oph_iostorage_interface.h"
-#include "oph_query_plugin_loader.h"
 #include "oph_query_expression_evaluator.h"
 #include "oph_query_expression_functions.h"
+#include "oph_query_plugin_loader.h"
 
 extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;

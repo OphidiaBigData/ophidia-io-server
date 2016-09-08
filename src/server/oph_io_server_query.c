@@ -18,22 +18,16 @@
 
 #define _GNU_SOURCE
 
-#include "oph_io_server_interface.h"
-
-#include "oph_query_plugin_loader.h"
-#include "oph_query_engine_language.h"
+#include "oph_io_server_query_manager.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #include <debug.h>
-
 #include <pthread.h>
 
 #include "oph_server_utility.h"
-
-#include "oph_iostorage_interface.h"
+#include "oph_query_engine_language.h"
 
 extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;
@@ -165,7 +159,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 			int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, thread_status->current_db, thread_status->curr_stmt->size, &(thread_status->curr_stmt->partial_result_set));
 
       //Clean global status 
-	    oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
+	   if(thread_status->curr_stmt->partial_result_set != NULL) oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
       free(thread_status->curr_stmt->device);
       free(thread_status->curr_stmt->frag);
       free(thread_status->curr_stmt);
@@ -253,7 +247,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 
 		    //Clean global status 
 				thread_status->curr_stmt->mi_prev_rows = 0;
-		    oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
+		    if(thread_status->curr_stmt->partial_result_set != NULL) oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
 		    free(thread_status->curr_stmt->device);
 		    free(thread_status->curr_stmt->frag);
 		    free(thread_status->curr_stmt);
