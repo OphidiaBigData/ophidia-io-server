@@ -231,8 +231,8 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FINAL_STATEMENT);	
 				return OPH_IO_SERVER_EXEC_ERROR;        
 			}
-			short int final_stmt_flag = 0;
-			if(STRCMP(final_stmt, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0) final_stmt_flag = 1;
+			//If final statement is set, then activate flag
+			short int final_stmt_flag = (STRCMP(final_stmt, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0);
 
 			//Add rows inserted by current statement
 			thread_status->curr_stmt->mi_prev_rows += (thread_status->curr_stmt->tot_run ? thread_status->curr_stmt->tot_run : 1)*insert_num;				

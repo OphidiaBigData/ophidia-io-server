@@ -51,6 +51,10 @@ int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARG);	
 		return OPH_IO_SERVER_EXEC_ERROR;        
 	}
+
+	//Length used for new query
+	unsigned int query_len = strlen(function_args) + 200;
+
 	char **func_args_list = NULL;
 	int func_args_num = 0;
 	if(oph_query_parse_multivalue_arg (function_args, &func_args_list, &func_args_num)){
@@ -182,17 +186,18 @@ int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_
 			free(func_args_list);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
-		if((func_args_list[4])[0] != 0) where_flag = 1;
+		//If arg list 4 is set, then activate where flag
+		where_flag = ((func_args_list[4])[0] != 0);
 	}
 
-	char new_query[OPH_IO_SERVER_BUFFER] = {'\0'};
+	char new_query[query_len];
 
 	//Check if where is enabled
 	if(where_flag){
-		snprintf(new_query,OPH_IO_SERVER_BUFFER-1,"operation=create_frag_select;frag_name=%s;field=id_dim|%s;select_alias=|measure;from=%s;where=%s;sequential_id=%lld;", out_frag_name, func_args_list[2], in_frag_name, func_args_list[4], id_start);
+		snprintf(new_query, query_len-1,"operation=create_frag_select;frag_name=%s;field=id_dim|%s;select_alias=|measure;from=%s;where=%s;sequential_id=%lld;", out_frag_name, func_args_list[2], in_frag_name, func_args_list[4], id_start);
 	}
 	else{
-		snprintf(new_query,OPH_IO_SERVER_BUFFER-1,"operation=create_frag_select;frag_name=%s;field=id_dim|%s;select_alias=|measure;from=%s;", out_frag_name, func_args_list[2], in_frag_name);
+		snprintf(new_query, query_len-1,"operation=create_frag_select;frag_name=%s;field=id_dim|%s;select_alias=|measure;from=%s;", out_frag_name, func_args_list[2], in_frag_name);
 	}
 
 	free(in_frag_components);

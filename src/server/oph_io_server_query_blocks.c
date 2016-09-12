@@ -108,39 +108,45 @@ int _oph_io_server_query_order_output(HASHTBL *query_args, oph_iostore_frag_reco
 				//If single row, then no order required
 				if(!rs->record_set[j]) break;
 
-				if(rs->field_type[i] == OPH_IOSTORE_REAL_TYPE){
-					//Run insertion sort routine
-					while (rs->record_set[j])
+				switch(rs->field_type[i]){
+					case OPH_IOSTORE_REAL_TYPE:
 					{
-						tmp = rs->record_set[j];
-						for(l = j-1; l >= 0 ; l--){
-							if(*((double *)tmp->field[i]) >= *((double *)rs->record_set[l]->field[i])) break;
-							else rs->record_set[l+1] = rs->record_set[l];
+						//Run insertion sort routine
+						while (rs->record_set[j])
+						{
+							tmp = rs->record_set[j];
+							for(l = j-1; l >= 0 ; l--){
+								if(*((double *)tmp->field[i]) >= *((double *)rs->record_set[l]->field[i])) break;
+								else rs->record_set[l+1] = rs->record_set[l];
+							}
+							rs->record_set[l+1] = tmp;
+							j++;
 						}
-						rs->record_set[l+1] = tmp;
-						j++;
-					}
-					break;
-				} 
-				else if(rs->field_type[i] == OPH_IOSTORE_LONG_TYPE){
-					//Run insertion sort routine
-					while (rs->record_set[j])
+						break;
+					} 
+					case OPH_IOSTORE_LONG_TYPE:
 					{
-						tmp = rs->record_set[j];
-						for(l = j-1; l >= 0 ; l--){
-							if(*((long long *)tmp->field[i]) >= *((long long *)rs->record_set[l]->field[i])) break;
-							else rs->record_set[l+1] = rs->record_set[l];
+						//Run insertion sort routine
+						while (rs->record_set[j])
+						{
+							tmp = rs->record_set[j];
+							for(l = j-1; l >= 0 ; l--){
+								if(*((long long *)tmp->field[i]) >= *((long long *)rs->record_set[l]->field[i])) break;
+								else rs->record_set[l+1] = rs->record_set[l];
+							}
+							rs->record_set[l+1] = tmp;
+							j++;
 						}
-						rs->record_set[l+1] = tmp;
-						j++;
+						break;
 					}
-					break;
+					default:
+					{
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR);	
+						return OPH_IO_SERVER_EXEC_ERROR;     
+					}
 				}
-				else{
-					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR);
-					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR);	
-					return OPH_IO_SERVER_EXEC_ERROR;     
-				}
+				break;
 			}
 		}	
 		if(i == rs->field_num){				
@@ -499,20 +505,29 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 		if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
 			//Create index record
 			long long result = 0;
-			if(res->type == OPH_QUERY_EXPR_TYPE_DOUBLE){
-				result = (long long) res->data.double_value;
-				free(res);
-			}else if(res->type == OPH_QUERY_EXPR_TYPE_LONG){
-			  result = res->data.long_value;
-			  free(res);
-			}else {
-			  free(res);
-				oph_query_expr_delete_node(e, table);
-				oph_query_expr_destroy_symtable(table);
-				free(var_list);
-			  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-			  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-			  return OPH_IO_SERVER_PARSE_ERROR;
+			switch(res->type){
+				case OPH_QUERY_EXPR_TYPE_DOUBLE:
+				{
+					result = (long long) res->data.double_value;
+					free(res);
+					break;
+				}
+				case OPH_QUERY_EXPR_TYPE_LONG:
+				{
+				  result = res->data.long_value;
+				  free(res);
+					break;
+				}
+				default:
+				{
+					free(res);
+					oph_query_expr_delete_node(e, table);
+					oph_query_expr_destroy_symtable(table);
+					free(var_list);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
+					return OPH_IO_SERVER_PARSE_ERROR;
+				}
 			}
 
 			//Add result to each index table
@@ -1080,11 +1095,9 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 							for(j = 0; j < inputs[l]->field_num; j++){
 								if(!STRCMP(field_components[1],inputs[l]->field_name[j])){
 									field_index = j;
-									if(sequential_id){
+									if(sequential_id && !STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])){
 										//If sequential id  flag is set check if field is called id_dim
-										if(!STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])){
-											use_seq_id = 1;
-										}
+										use_seq_id = 1;
 									}
 									break;
 								}
@@ -1110,11 +1123,9 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					for(j = 0; j < inputs[0]->field_num; j++){
 						if(!STRCMP(field_list[i],inputs[0]->field_name[j])){
 							field_index = j;
-							if(sequential_id){
+							if(sequential_id && !STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])){
 								//If sequential id  flag is set check if field is called id_dim
-								if(!STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])){
-									use_seq_id = 1;
-								}
+								use_seq_id = 1;
 							}
 							break;
 						}
@@ -1421,38 +1432,53 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 						}
 					}
 					if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
-						if(res->type == OPH_QUERY_EXPR_TYPE_DOUBLE){
-							if(!j) output->field_type[i] = OPH_IOSTORE_REAL_TYPE;	
-							output->record_set[j]->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
-							output->record_set[j]->field_length[i] = sizeof(double);
-							free(res);
-						}else if(res->type == OPH_QUERY_EXPR_TYPE_LONG){
-							if(!j) output->field_type[i] = OPH_IOSTORE_LONG_TYPE;	
-							output->record_set[j]->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
-							output->record_set[j]->field_length[i] = sizeof(unsigned long long);
-							free(res);
-						}else if(res->type == OPH_QUERY_EXPR_TYPE_STRING){
-							if(!j) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
-							output->record_set[j]->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
-							output->record_set[j]->field_length[i] = strlen(res->data.string_value) + 1;
-							free(res->data.string_value);
-							free(res);
-						}else if(res->type == OPH_QUERY_EXPR_TYPE_BINARY){
-							if(!j) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
-							output->record_set[j]->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
-							output->record_set[j]->field_length[i] = res->data.binary_value->arg_length;
-							free(res->data.binary_value->arg);
-							free(res->data.binary_value);
-							free(res);
-						}else {
-							free(res);
-							free(updated_query);
-							oph_query_expr_delete_node(e, table);
-							oph_query_expr_destroy_symtable(table);
-							free(var_list);
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-							return OPH_IO_SERVER_EXEC_ERROR;     
+						switch(res->type){						
+							case OPH_QUERY_EXPR_TYPE_DOUBLE:
+							{
+								if(!j) output->field_type[i] = OPH_IOSTORE_REAL_TYPE;	
+								output->record_set[j]->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
+								output->record_set[j]->field_length[i] = sizeof(double);
+								free(res);
+								break;
+							}
+							case OPH_QUERY_EXPR_TYPE_LONG:
+							{
+								if(!j) output->field_type[i] = OPH_IOSTORE_LONG_TYPE;	
+								output->record_set[j]->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
+								output->record_set[j]->field_length[i] = sizeof(unsigned long long);
+								free(res);
+								break;
+							}
+							case OPH_QUERY_EXPR_TYPE_STRING:
+							{
+								if(!j) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
+								output->record_set[j]->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
+								output->record_set[j]->field_length[i] = strlen(res->data.string_value) + 1;
+								free(res->data.string_value);
+								free(res);
+								break;
+							}
+							case OPH_QUERY_EXPR_TYPE_BINARY:
+							{
+								if(!j) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
+								output->record_set[j]->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
+								output->record_set[j]->field_length[i] = res->data.binary_value->arg_length;
+								free(res->data.binary_value->arg);
+								free(res->data.binary_value);
+								free(res);
+								break;
+							}
+							default:
+							{
+								free(res);
+								free(updated_query);
+								oph_query_expr_delete_node(e, table);
+								oph_query_expr_destroy_symtable(table);
+								free(var_list);
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								return OPH_IO_SERVER_EXEC_ERROR;     
+							}
 						}
 					}
 					else
@@ -1469,7 +1495,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 
 				//Update current binary args used
 				for(k = 0; k < var_count; k++){
-					if(field_binary[k]) curr_arg++;
+					//If field_binary[k] is 1 then increment curr_arg
+					curr_arg += field_binary[k];
 				}	
 				oph_query_expr_delete_node(e, table);
 				oph_query_expr_destroy_symtable(table);
@@ -1688,18 +1715,49 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
 		if(oph_query_field_type(value_list[i], &field_type)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);
 			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);    
-      oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+			oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
 			return OPH_IO_SERVER_PARSE_ERROR;
 		}
 
 		switch(field_type){
-			case OPH_QUERY_FIELD_TYPE_VARIABLE:
-			case OPH_QUERY_FIELD_TYPE_UNKNOWN:
+			case OPH_QUERY_FIELD_TYPE_BINARY:
 			{
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);
-				logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);    
-	      oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-				return OPH_IO_SERVER_PARSE_ERROR;
+				//For each value check if argument contains ? and substitute with arg[i]
+				//Check column type with arg_type ...  
+				//if(args[*arg_count]->arg_type != partial_result_set->field_type)
+				//EXIT
+				if (!args){
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+					oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+					return OPH_IO_SERVER_NULL_PARAM;
+				}
+
+				(*new_record)->field_length[i] = args[*arg_count]->arg_length;
+				(*new_record)->field[i] = (void *)memdup(args[*arg_count]->arg,(*new_record)->field_length[i]);
+				(*arg_count)++;
+				break;
+			}
+			//No substitution occurs, use directly strings
+			case OPH_QUERY_FIELD_TYPE_STRING:
+			{
+				(*new_record)->field_length[i] = strlen(value_list[i]) + 1;
+				(*new_record)->field[i] = (char *)strndup(value_list[i],(*new_record)->field_length[i]);
+				break;
+			}
+			case OPH_QUERY_FIELD_TYPE_DOUBLE:
+			{
+				tmpD = (double)strtod(value_list[i], NULL);
+				(*new_record)->field_length[i] = sizeof(double);
+				(*new_record)->field[i] = (void *)memdup((const void *)&tmpD,(*new_record)->field_length[i]);
+				break;
+			}
+			case OPH_QUERY_FIELD_TYPE_LONG:
+			{
+				tmpL = (long long)strtoll(value_list[i], NULL, 10);
+				(*new_record)->field_length[i] = sizeof(long long);
+				(*new_record)->field[i] = (void *)memdup((const void *)&tmpL,(*new_record)->field_length[i]);
+				break;
 			}
 			case OPH_QUERY_FIELD_TYPE_FUNCTION:
 			{
@@ -1782,35 +1840,50 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
 				}
 
 				if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
-					if(res->type == OPH_QUERY_EXPR_TYPE_DOUBLE){
-						(*new_record)->field_length[i] = sizeof(double);
-						(*new_record)->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
-						free(res);
-					}else if(res->type == OPH_QUERY_EXPR_TYPE_LONG){
-						(*new_record)->field_length[i] =  sizeof(unsigned long long);
-						(*new_record)->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
-						free(res);
-					}else if(res->type == OPH_QUERY_EXPR_TYPE_STRING){
-						(*new_record)->field_length[i] = strlen(res->data.string_value) + 1;
-						(*new_record)->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
-						free(res->data.string_value);
-						free(res);
-					}else if(res->type == OPH_QUERY_EXPR_TYPE_BINARY){
-						(*new_record)->field_length[i] = res->data.binary_value->arg_length;
-						(*new_record)->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
-						free(res->data.binary_value->arg);
-						free(res->data.binary_value);
-						free(res);
-					}else {
-						free(res);
-						free(updated_query);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-						free(var_list);
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, value_list[i]);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, value_list[i]);
-						return OPH_IO_SERVER_EXEC_ERROR;     
+					switch(res->type){
+						case OPH_QUERY_EXPR_TYPE_DOUBLE:
+						{
+							(*new_record)->field_length[i] = sizeof(double);
+							(*new_record)->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
+							free(res);
+							break;
+						}
+						case OPH_QUERY_EXPR_TYPE_LONG:
+						{
+							(*new_record)->field_length[i] =  sizeof(unsigned long long);
+							(*new_record)->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
+							free(res);
+							break;
+						}
+						case OPH_QUERY_EXPR_TYPE_STRING:
+						{
+							(*new_record)->field_length[i] = strlen(res->data.string_value) + 1;
+							(*new_record)->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
+							free(res->data.string_value);
+							free(res);
+							break;
+						}
+						case OPH_QUERY_EXPR_TYPE_BINARY:
+						{
+							(*new_record)->field_length[i] = res->data.binary_value->arg_length;
+							(*new_record)->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
+							free(res->data.binary_value->arg);
+							free(res->data.binary_value);
+							free(res);
+							break;
+						}
+						default:
+						{
+							free(res);
+							free(updated_query);
+							oph_query_expr_delete_node(e, table);
+							oph_query_expr_destroy_symtable(table);
+							oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+							free(var_list);
+							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, value_list[i]);
+							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, value_list[i]);
+							return OPH_IO_SERVER_EXEC_ERROR;     
+						}
 					}
 				}
 				else
@@ -1831,44 +1904,13 @@ int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, 
 				free(updated_query);
 				break;
 			}
-			case OPH_QUERY_FIELD_TYPE_BINARY:
+			case OPH_QUERY_FIELD_TYPE_VARIABLE:
+			case OPH_QUERY_FIELD_TYPE_UNKNOWN:
 			{
-				//For each value check if argument contains ? and substitute with arg[i]
-				//Check column type with arg_type ...  
-				//if(args[*arg_count]->arg_type != partial_result_set->field_type)
-				//EXIT
-				if (!args){
-					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
-					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
-					oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
-					return OPH_IO_SERVER_NULL_PARAM;
-				}
-
-				(*new_record)->field_length[i] = args[*arg_count]->arg_length;
-				(*new_record)->field[i] = (void *)memdup(args[*arg_count]->arg,(*new_record)->field_length[i]);
-				(*arg_count)++;
-				break;
-			}
-			//No substitution occurs, use directly strings
-			case OPH_QUERY_FIELD_TYPE_STRING:
-			{
-				(*new_record)->field_length[i] = strlen(value_list[i]) + 1;
-				(*new_record)->field[i] = (char *)strndup(value_list[i],(*new_record)->field_length[i]);
-				break;
-			}
-			case OPH_QUERY_FIELD_TYPE_DOUBLE:
-			{
-				tmpD = (double)strtod(value_list[i], NULL);
-				(*new_record)->field_length[i] = sizeof(double);
-				(*new_record)->field[i] = (void *)memdup((const void *)&tmpD,(*new_record)->field_length[i]);
-				break;
-			}
-			case OPH_QUERY_FIELD_TYPE_LONG:
-			{
-				tmpL = (long long)strtoll(value_list[i], NULL, 10);
-				(*new_record)->field_length[i] = sizeof(long long);
-				(*new_record)->field[i] = (void *)memdup((const void *)&tmpL,(*new_record)->field_length[i]);
-				break;
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);
+				logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR,value_list[i]);    
+				oph_iostore_destroy_frag_record(new_record, partial_result_set->field_num);
+				return OPH_IO_SERVER_PARSE_ERROR;
 			}
 		}
 
