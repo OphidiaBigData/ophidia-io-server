@@ -1265,7 +1265,6 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 	return 0;
 }
 
-
 int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args){
 	if(!function || !dlh || !initid || !internal_args)
 		return -1;
@@ -1463,6 +1462,11 @@ pthread_mutex_unlock(&libtool_lock);
 				}
 		        memcpy ((char *)tmp_args->args[l], &(args[l].data.long_value), tmp_args->lengths[l]*sizeof(char)); 
 				break;
+			case OPH_QUERY_EXPR_TYPE_NULL:
+				tmp_args->arg_type[l] = INT_RESULT;
+				tmp_args->lengths[l] =  0;
+				tmp_args->args[l] = NULL;
+				break;
 			default:
 				free(message);
 				free_udf_arg(tmp_args);
@@ -1495,6 +1499,7 @@ pthread_mutex_unlock(&libtool_lock);
 	//Check if some field type has been updated by init
     for(l = 0; l < arg_count ; l++){
 		switch(args[l].type){
+			case OPH_QUERY_EXPR_TYPE_NULL:
 			case OPH_QUERY_EXPR_TYPE_STRING:
 			case OPH_QUERY_EXPR_TYPE_BINARY:
 				break;
@@ -1601,6 +1606,8 @@ int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid
 		        	memcpy ((char *)internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l]*sizeof(char)); 
 				}
 				break;
+			case OPH_QUERY_EXPR_TYPE_NULL:
+				break;	
 			default:
 				return -1;
 		}

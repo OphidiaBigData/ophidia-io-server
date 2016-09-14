@@ -37,6 +37,7 @@ WS          [ \r\n\t]*
 "|"|OR|OR   	{ return '|'; }
 MOD|% 			{ return '%'; }  
 !|NOT 			{ return '!'; }
+"NULL"|"null"	{ return VNULL; }
 -?[0-9]+	{
 				yylval->long_value = strtoll(yytext, NULL, 10); 
 				return INTEGER;

@@ -63,7 +63,8 @@ typedef void* yyscan_t;
      SYMBOL = 259,
      STRING = 260,
      DECIMAL = 261,
-     INTEGER = 262
+     INTEGER = 262,
+     VNULL = 263
    };
 #endif
 /* Tokens.  */
@@ -72,6 +73,7 @@ typedef void* yyscan_t;
 #define STRING 260
 #define DECIMAL 261
 #define INTEGER 262
+#define VNULL 263
 
 
 
@@ -88,7 +90,7 @@ typedef union YYSTYPE
 
 
 /* Line 2058 of yacc.c  */
-#line 92 "oph_query_expression_parser.h"
+#line 94 "oph_query_expression_parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

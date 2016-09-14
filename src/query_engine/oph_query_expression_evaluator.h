@@ -37,7 +37,8 @@ typedef enum _oph_query_expr_value_type
     OPH_QUERY_EXPR_TYPE_DOUBLE,
     OPH_QUERY_EXPR_TYPE_LONG,
     OPH_QUERY_EXPR_TYPE_STRING,
-    OPH_QUERY_EXPR_TYPE_BINARY
+    OPH_QUERY_EXPR_TYPE_BINARY,
+    OPH_QUERY_EXPR_TYPE_NULL
 } oph_query_expr_value_type;
 
 //
@@ -62,7 +63,7 @@ typedef struct _oph_query_expr_value
         oph_query_arg* binary_value;
     }data;
 
-	short int free_flag;
+	char free_flag;
 }oph_query_expr_value;
 
 /**
@@ -277,6 +278,11 @@ oph_query_expr_node *oph_query_expr_create_double(double value);
 */
 oph_query_expr_node *oph_query_expr_create_long(long long value);
 
+/**
+* \brief               Creates a eValue node
+* \return              Returns the newly created node or NULL in case of error
+*/
+oph_query_expr_node *oph_query_expr_create_null();
 
 /**
 * \brief               Creates a eValue node

@@ -86,6 +86,21 @@ oph_query_expr_node *oph_query_expr_create_long(long long value)
     return b;
 }
 
+oph_query_expr_node *oph_query_expr_create_null()
+{
+    oph_query_expr_node *b = allocate_node();
+
+    if (b == NULL)
+        //no space for allocation
+        return NULL;
+
+    b->type = eVALUE;
+    b->value.type = OPH_QUERY_EXPR_TYPE_NULL;
+    b->value.free_flag = 0;
+ 
+    return b;
+}
+
 oph_query_expr_node *oph_query_expr_create_string(char* value)
 {
     oph_query_expr_node *b = allocate_node();
@@ -429,6 +444,11 @@ int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_
                 sp->value.type = OPH_QUERY_EXPR_TYPE_BINARY;
                 break;
             }
+        case OPH_QUERY_EXPR_TYPE_NULL: 
+            {
+                sp->value.type = OPH_QUERY_EXPR_TYPE_NULL;
+                break;
+            }
         default: 
             {
                 pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_UNKNOWN_TYPE);
@@ -745,6 +765,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
 										break;
 									case OPH_QUERY_EXPR_TYPE_DOUBLE:
 									case OPH_QUERY_EXPR_TYPE_LONG:
+                                    case OPH_QUERY_EXPR_TYPE_NULL:
 										break;
 								}
 							}

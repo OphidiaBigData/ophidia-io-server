@@ -48,6 +48,7 @@ typedef void* yyscan_t;
 %token <sym> STRING
 %token <double_value> DECIMAL
 %token <long_value> INTEGER
+%token VNULL
 
 %type <expression> arg_list
 %type <expression> expr
@@ -73,6 +74,7 @@ expr
     | '(' expr ')' {if(mode) $$ = $2; }
     | DECIMAL {if(mode) $$ = oph_query_expr_create_double($1);}
     | INTEGER {if(mode) $$ = oph_query_expr_create_long($1);}
+    | VNULL {if(mode) $$ = oph_query_expr_create_null();}
     | SYMBOL {if(mode) $$ = oph_query_expr_create_variable($1);
               else free($1);}
     | SYMBOL '(' arg_list ')' {if(mode) $$ = oph_query_expr_create_function($1,$3);
