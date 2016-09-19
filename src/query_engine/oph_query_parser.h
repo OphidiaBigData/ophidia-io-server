@@ -118,6 +118,12 @@ int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *va
  */
 int oph_query_field_type(const char* field, oph_query_field_types *field_type);
 
+/**
+ *\brief                Saves in result a copy of the query with all the question masks numbered from 1 to n  
+ *\param query          The query
+ *\param result         A reference to the pointer that will point to the query with numbered question marks
+ */
+int oph_query_expr_update_binary_args(char* query, char** result);
 
 /**
  * \brief               Function to check if procedure input arguments are strings. It also removes leading/trailing spaces and quotes. (It modifies input string)

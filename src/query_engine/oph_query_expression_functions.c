@@ -37,6 +37,7 @@ oph_query_expr_value oph_id(oph_query_expr_value* args, int num_args, char* name
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     res.free_flag = 0;
+    res.jump_flag = 0;
     if(destroy || !er) return res;
     
     long long id = get_long_value(args[0], er, "oph_id");
@@ -55,6 +56,7 @@ oph_query_expr_value oph_id2(oph_query_expr_value* args, int num_args, char* nam
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     res.free_flag = 0;
+    res.jump_flag = 0;
     if(destroy || !er) return res;
 
     long long id = get_long_value(args[0], er, "oph_id2");
@@ -74,6 +76,7 @@ oph_query_expr_value oph_id3(oph_query_expr_value* args, int num_args, char* nam
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     res.free_flag = 0;
+    res.jump_flag = 0;
     if(destroy || !er) return res;
 
     long long k = get_long_value(args[0], er, "oph_id3") - 1;
@@ -130,6 +133,7 @@ oph_query_expr_value oph_id_to_index(oph_query_expr_value *args, int num_args, c
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     res.free_flag = 0;
+    res.jump_flag = 0;
     if(destroy || !er) return res;
 
     long long size;
@@ -161,6 +165,7 @@ oph_query_expr_value oph_id_to_index2(oph_query_expr_value* args, int num_args, 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     res.free_flag = 0;
+    res.jump_flag = 0;
     if(destroy || !er) return res;
 
     long long id = get_long_value(args[0], er, "oph_id_to_index2");
@@ -180,6 +185,7 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, 
     oph_query_expr_value res;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     res.free_flag = 0;
+    res.jump_flag = 0;
     if(destroy || !er) return res;
     
     long long id = get_long_value(args[0], er, "oph_is_in_subset");
@@ -195,11 +201,12 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
 {
     oph_query_expr_value res;
     res.free_flag = 0;
+    res.jump_flag = 0;
     res.data.long_value = 1;
     res.type = OPH_QUERY_EXPR_TYPE_LONG;
     if(!er) return res;
 
-    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic long\n");
+    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic long: %s\n", name);
 
     if(destroy) 
     {
@@ -209,32 +216,52 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
     {
         if(!descriptor->initialized)
         {
-			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args);
+			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args, &(descriptor->aggregate));
 			if(!er){
 				return res;
 			}
             descriptor->initialized = 1; 
-            descriptor->clear = 1;
+
+            //if aggregate and first group execute clear
+            if(descriptor->aggregate){
+                *er = oph_query_plugin_clear(&(descriptor->function), descriptor->dlh, descriptor->initid);
+                if(!er){
+                    return res;
+                }
+            }
         }
 
-        //if aggregate and group changed (or first group execute clear)
-        if(descriptor->aggregate && descriptor->clear)
-        {
-            //execute clear code
-            descriptor->clear = 0;
+        if(!descriptor->aggregate){
+    		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+    		if(*er){
+    			return res;
+    		}
         }
-
-        //if aggregate execute add after exec
-        if(descriptor->aggregate)
-        {
+        else{
             //execute add code
-        }
+            *er = oph_query_plugin_add(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, num_args, args);
+            if(*er){
+                return res;
+            }
 
-		res.free_flag = 0;
-		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
-		if(*er){
-			return res;
-		}
+            //If aggregation function on intermediate row        
+            res.jump_flag = 1;
+
+            //if aggregate and last row in group  execute clear
+            if(descriptor->clear){
+                *er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+                if(*er){
+                    return res;
+                }
+                res.jump_flag = 0;
+
+                *er = oph_query_plugin_clear(&(descriptor->function), descriptor->dlh, descriptor->initid);
+                if(!er){
+                    return res;
+                }
+                descriptor->clear = 0;
+            }
+        }    
 
         return res;
     }
@@ -244,11 +271,12 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
 {
     oph_query_expr_value res;
     res.free_flag = 0;
+    res.jump_flag = 0;
     res.data.double_value = 1.0;
     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
     if(!er) return res;
     
-    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic double\n");
+    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic double: %s\n", name);
 
     if(destroy) 
     {
@@ -258,33 +286,52 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
     {
         if(!descriptor->initialized)
         {
-			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args);
+			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args, &(descriptor->aggregate));
 			if(!er){
 				return res;
 			}
-            descriptor->initialized = 1; 
-            descriptor->clear = 1;
+            descriptor->initialized = 1;  
+
+            //if aggregate and first group execute clear
+            if(descriptor->aggregate){
+                *er = oph_query_plugin_clear(&(descriptor->function), descriptor->dlh, descriptor->initid);
+                if(!er){
+                    return res;
+                }
+            }
         }
 
-        //if aggregate and group changed (or first group execute clear)
-        if(descriptor->aggregate && descriptor->clear)
-        {
-            //execute clear code
-            descriptor->clear = 0;
+        if(!descriptor->aggregate){
+    		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+    		if(*er){
+    			return res;
+    		}
         }
-
-        //if aggregate execute add after exec
-        if(descriptor->aggregate)
-        {
+        else {
             //execute add code
-        }
+            *er = oph_query_plugin_add(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, num_args, args);
+            if(*er){
+                return res;
+            }
 
-		res.free_flag = 0;
-		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
-		if(*er){
-			return res;
-		}
+            //If aggregation function on intermediate row        
+            res.jump_flag = 1;
 
+            //if aggregate and last row in group  execute clear
+            if(descriptor->clear){
+                *er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+                if(*er){
+                    return res;
+                }
+                res.jump_flag = 0;
+
+                *er = oph_query_plugin_clear(&(descriptor->function), descriptor->dlh, descriptor->initid);
+                if(!er){
+                    return res;
+                }
+                descriptor->clear = 0;
+            }
+        }    
         return res;
     }
 }
@@ -293,10 +340,12 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
 {
     oph_query_expr_value res;
     res.free_flag = 0;
+    res.jump_flag = 0;
+    res.data.binary_value = NULL;
     res.type = OPH_QUERY_EXPR_TYPE_BINARY;
     if(!er) return res;
     
-    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic binary\n");
+    pmesg(LOG_DEBUG, __FILE__, __LINE__, "Running generic binary: %s\n", name);
 
     if(destroy) 
     {
@@ -306,33 +355,54 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int nu
     {
         if(!descriptor->initialized)
         {
-			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args);
+			*er = oph_query_plugin_init(&(descriptor->function), &(descriptor->dlh), &(descriptor->initid), &(descriptor->internal_args), name, num_args, args, &(descriptor->aggregate));
 			if(!er){
 				return res;
 			}
             descriptor->initialized = 1; 
-            descriptor->clear = 1;
+
+            //if aggregate and first group execute clear
+            if(descriptor->aggregate){
+                *er = oph_query_plugin_clear(&(descriptor->function), descriptor->dlh, descriptor->initid);
+                if(!er){
+                    return res;
+                }
+            }
         }
 
-        //if aggregate and group changed (or first group execute clear)
-        if(descriptor->aggregate && descriptor->clear)
-        {
-            //execute clear code
-            descriptor->clear = 0;
+        if(!descriptor->aggregate){
+            res.free_flag = 1;
+            *er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+            if(*er){
+                return res;
+            }
         }
-
-        //if aggregate execute add after exec
-        if(descriptor->aggregate)
-        {
+        else {
             //execute add code
+            *er = oph_query_plugin_add(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, num_args, args);
+            if(*er){
+                return res;
+            }
+
+            //If aggregation function on intermediate row        
+            res.jump_flag = 1;
+
+            //if aggregate and last row in group  execute clear
+            if(descriptor->clear){
+                res.free_flag = 1;
+                *er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
+                if(*er){
+                    return res;
+                }
+                res.jump_flag = 0;
+
+                *er = oph_query_plugin_clear(&(descriptor->function), descriptor->dlh, descriptor->initid);
+                if(!er){
+                    return res;
+                }
+                descriptor->clear = 0;
+            }
         }
-
-		res.free_flag = 1;
-		*er = oph_query_plugin_exec(&(descriptor->function), descriptor->dlh, descriptor->initid, descriptor->internal_args, name, num_args, args, &res);
-		if(*er){
-			return res;
-		}
-
         return res;
     }
 }
@@ -345,6 +415,7 @@ oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int nu
 
     oph_query_expr_value res;
     res.free_flag = 0;
+    res.jump_flag = 0;
     res.data.string_value = "";
     res.type = OPH_QUERY_EXPR_TYPE_STRING;
     if(!er) return res;

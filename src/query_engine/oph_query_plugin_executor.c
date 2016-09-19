@@ -1265,6 +1265,30 @@ int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostor
 	return 0;
 }
 
+
+int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid){
+	if(!function || !dlh || !initid)
+		return -1;
+
+	char is_null = 0, error = 0;
+
+
+	//Clear function
+	if (!(_oph_plugin_clear = (void (*)(UDF_INIT*, char *, char *)) function->clear_api)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin CLEAR function\n");
+		return -1;
+	}
+
+	_oph_plugin_clear (initid, &is_null, &error);    
+	if(error){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin CLEAR function\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+
 int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args){
 	if(!function || !dlh || !initid || !internal_args)
 		return -1;
@@ -1311,8 +1335,8 @@ pthread_mutex_unlock(&libtool_lock);
 	return 0;
 }
 
-int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args){
-	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
+int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, char *is_aggregate){
+	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table || !is_aggregate)
 		return -1;
 
 	//Load plugin shared library
@@ -1362,6 +1386,9 @@ pthread_mutex_unlock(&libtool_lock);
 		function->add_api = lt_dlsym (*dlh, plugin_add_name);
 	}
 	pthread_mutex_unlock(&libtool_lock);
+
+	*is_aggregate = (plugin->plugin_type == OPH_AGGREGATE_PLUGIN_TYPE); 
+  
 
 	//Initialize function
 	if (!(_oph_plugin_init = (my_bool (*)(UDF_INIT*, UDF_ARGS *, char *)) function->init_api)){
@@ -1546,6 +1573,83 @@ pthread_mutex_unlock(&libtool_lock);
 	return 0;
 }
 
+int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, int arg_count, oph_query_expr_value* args){
+	if(!function || !dlh || !initid || !internal_args || !arg_count || !args)
+		return -1;
+
+	char is_null = 0, error = 0;
+
+    //Add function
+	if (!(_oph_plugin_add = (void (*)(UDF_INIT*,  UDF_ARGS*, char*, char*)) function->add_api)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin ADD function\n");
+		return -1;
+	}
+
+  	int l = 0;
+
+    //Update UDF fields
+    for(l = 0; l < arg_count ; l++){
+		switch(args[l].type){
+			case OPH_QUERY_EXPR_TYPE_STRING:
+				internal_args->lengths[l] =  (unsigned long)(strlen(args[l].data.string_value) +1);
+				if(internal_args->args[l]) free(internal_args->args[l]);
+				internal_args->args[l] = (char *)malloc(internal_args->lengths[l]*sizeof(char));
+				if(!internal_args->args[l])	
+				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin ADD function\n");
+					return -1;
+				}
+		        memcpy ((char *)internal_args->args[l], args[l].data.string_value, internal_args->lengths[l]*sizeof(char)); 
+				break;
+			case OPH_QUERY_EXPR_TYPE_BINARY:
+				internal_args->lengths[l] =  (unsigned long)args[l].data.binary_value->arg_length;
+				if(internal_args->args[l]) free(internal_args->args[l]);
+				internal_args->args[l] = (char *)malloc(internal_args->lengths[l]*sizeof(char));
+				if(!internal_args->args[l])	
+				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin ADD function\n");
+					return -1;
+				}
+		        memcpy ((char *)internal_args->args[l], args[l].data.binary_value->arg, internal_args->lengths[l]*sizeof(char)); 
+				break;
+			case OPH_QUERY_EXPR_TYPE_DOUBLE:
+				//Check if type should be casted
+				if ((internal_args->arg_type[l] != DECIMAL_RESULT) && (internal_args->arg_type[l] != REAL_RESULT)){
+					long long val_l = (long long)args[l].data.double_value;
+		        	memcpy ((char *)internal_args->args[l], &(val_l), internal_args->lengths[l]*sizeof(char)); 
+				}
+				else{
+		        	memcpy ((char *)internal_args->args[l], &(args[l].data.double_value), internal_args->lengths[l]*sizeof(char)); 
+				}
+				break;
+			case OPH_QUERY_EXPR_TYPE_LONG:
+				//Check if type should be casted
+				if (internal_args->arg_type[l] != INT_RESULT){
+					double val_d = (double)args[l].data.long_value;
+		        	memcpy ((char *)internal_args->args[l], &(val_d), internal_args->lengths[l]*sizeof(char)); 
+				}
+				else{
+		        	memcpy ((char *)internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l]*sizeof(char)); 
+				}
+				break;
+			case OPH_QUERY_EXPR_TYPE_NULL:
+				break;	
+			default:
+				return -1;
+		}
+	}	
+
+	//Run add function
+	_oph_plugin_add (initid, internal_args, &is_null, &error);
+	if(error){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin ADD function\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+
 int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res){
 	if(!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
 		return -1;
@@ -1567,7 +1671,7 @@ int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid
 			case OPH_QUERY_EXPR_TYPE_STRING:
 				internal_args->lengths[l] =  (unsigned long)(strlen(args[l].data.string_value) +1);
 				if(internal_args->args[l]) free(internal_args->args[l]);
-				internal_args->args[l] = (char *)malloc(internal_args->lengths[l]*sizeof(char));
+				internal_args->args[l] = (char *)malloc((internal_args->lengths[l]+1)*sizeof(char));
 				if(!internal_args->args[l])	
 				{
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin EXEC function\n");

@@ -336,8 +336,6 @@ int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record
 	return OPH_IOSTORAGE_SUCCESS;
 } 
 
-
-
 int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num){
 	if( !record_set || !field_num){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);
@@ -346,44 +344,13 @@ int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, 
   }
 
 	//Create a null-terminated record set of set_size+1 records (last one is NULL)
-	*record_set = (oph_iostore_frag_record_set*)malloc(1*sizeof(oph_iostore_frag_record_set));
-  if(!*record_set)
-  {
+  if(oph_iostore_create_frag_recordset_only(record_set, set_size, field_num)){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-    return OPH_IOSTORAGE_MEMORY_ERR;
-  }
-  (*record_set)->frag_name = NULL;
-  (*record_set)->field_num = field_num;
-  (*record_set)->field_type = NULL;
-  (*record_set)->record_set = NULL;
-  (*record_set)->field_name = (char **)calloc(field_num,sizeof(char *));
-  if(!(*record_set)->field_name)
-  {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-    oph_iostore_destroy_frag_recordset(record_set);
-    return OPH_IOSTORAGE_MEMORY_ERR;
-  }
-  (*record_set)->field_type = (oph_iostore_field_type*)calloc(field_num,sizeof(oph_iostore_field_type));
-  if(!(*record_set)->field_type)
-  {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-    oph_iostore_destroy_frag_recordset(record_set);
     return OPH_IOSTORAGE_MEMORY_ERR;
   }
 
   if(set_size != 0){
-    (*record_set)->record_set = (oph_iostore_frag_record**)calloc(set_size +1,sizeof(oph_iostore_frag_record*));
-    if(!(*record_set)->record_set)
-    {
-		  pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-		  logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-      oph_iostore_destroy_frag_recordset(record_set);
-      return OPH_IOSTORAGE_MEMORY_ERR;
-    }
-
     oph_iostore_frag_record **new = (*record_set)->record_set;
 	  long long i = 0;	
 	  for(i = 0; i < set_size; i++){
@@ -398,6 +365,55 @@ int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, 
 	  new[i] = NULL;
   }
 	return OPH_IOSTORAGE_SUCCESS;
+}
+
+int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num){
+  if( !record_set || !field_num){
+    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);
+    logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);    
+    return OPH_IOSTORAGE_NULL_PARAM;
+  }
+
+  //Create a null-terminated record set of set_size+1 records (last one is NULL)
+  *record_set = (oph_iostore_frag_record_set*)malloc(1*sizeof(oph_iostore_frag_record_set));
+  if(!*record_set)
+  {
+    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+    logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+    return OPH_IOSTORAGE_MEMORY_ERR;
+  }
+  (*record_set)->frag_name = NULL;
+  (*record_set)->field_num = field_num;
+  (*record_set)->field_type = NULL;
+  (*record_set)->record_set = NULL;
+  (*record_set)->field_name = (char **)calloc(field_num,sizeof(char *));
+  if(!(*record_set)->field_name)
+  {
+    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+    logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+    oph_iostore_destroy_frag_recordset(record_set);
+    return OPH_IOSTORAGE_MEMORY_ERR;
+  }
+  (*record_set)->field_type = (oph_iostore_field_type*)calloc(field_num,sizeof(oph_iostore_field_type));
+  if(!(*record_set)->field_type)
+  {
+    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+    logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+    oph_iostore_destroy_frag_recordset(record_set);
+    return OPH_IOSTORAGE_MEMORY_ERR;
+  }
+
+  if(set_size != 0){
+    (*record_set)->record_set = (oph_iostore_frag_record**)calloc(set_size +1,sizeof(oph_iostore_frag_record*));
+    if(!(*record_set)->record_set)
+    {
+      pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+      logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
+      oph_iostore_destroy_frag_recordset(record_set);
+      return OPH_IOSTORAGE_MEMORY_ERR;
+    }
+  }
+  return OPH_IOSTORAGE_SUCCESS;
 }
 
 int oph_iostore_create_sample_frag(const long long row_number, const long long array_length, oph_iostore_frag_record_set **record_set){

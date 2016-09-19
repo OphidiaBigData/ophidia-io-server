@@ -158,6 +158,15 @@ int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record
 int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num);
 
 /**
+ * \brief             Create an empty recordset. It does not create internal record structures.
+ * \param record_set  Record set to be allocated
+ * \param set_size    Number of rows in record set
+ * \param field_num   Number of fields in each record
+ * \return            0 if successfull, non-0 otherwise
+ */
+int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num);
+
+/**
  * \brief			        Create a sample recordset (for test purposes). It does not set the frag_name.
  * \param row_number  Number of rows in record set
  * \param array_length Length of each measure array

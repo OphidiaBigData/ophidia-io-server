@@ -328,23 +328,37 @@ int oph_query_parser(char *query_string, HASHTBL **query_args)
 	  return OPH_QUERY_ENGINE_PARSE_ERROR;
 	}
 
+	char *updated_query = NULL;
+
+	//First update string ? to ?#
+	if(oph_query_expr_update_binary_args(query_string, &updated_query)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);	
+		return OPH_QUERY_ENGINE_ERROR;     
+	}
+
+
   //Create hash table for arguments
   *query_args = NULL;
   
 	if( !(*query_args = hashtbl_create(OPH_QUERY_ENGINE_QUERY_ARGS, NULL)) ){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_HASHTBL_CREATE_ERROR);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_HASHTBL_CREATE_ERROR);   
+  		free(updated_query);
 		return OPH_QUERY_ENGINE_ERROR;
 	}
 
 	//Split all arguments and load each one into hash table
-	if(_oph_query_parser_load_query_params(query_string, *query_args) ){
+	if(_oph_query_parser_load_query_params(updated_query, *query_args) ){
     pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_ARG_LOAD_ERROR);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_ARG_LOAD_ERROR);   
     hashtbl_destroy(*query_args);
     *query_args = NULL;
+	free(updated_query);
     return OPH_QUERY_ENGINE_PARSE_ERROR;
 	}
+
+	free(updated_query);
 
 	//Check supported keywords
 	if(_oph_query_check_query_params(*query_args) ){
@@ -423,6 +437,68 @@ int oph_query_field_type(const char* field, oph_query_field_types *field_type){
 
 	*field_type = OPH_QUERY_FIELD_TYPE_UNKNOWN;
 	return OPH_QUERY_ENGINE_SUCCESS;
+}
+
+int oph_query_expr_update_binary_args(char* query, char** result)
+{
+    //number of question marks
+    if (query == NULL)     
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        return OPH_QUERY_ENGINE_NULL_PARAM;
+    }
+    unsigned int query_length = strlen(query)+1;
+    unsigned int i = 0, count = 0, additional_size = 0, open_string = 0;
+    char current;
+
+    for(; i < query_length; i++)
+    {
+        current = query[i];
+        if(current == '\'') open_string = !open_string;
+        else if(current == '?')
+        {
+            if(!open_string)
+            {
+                count++;
+                additional_size += snprintf(NULL,0,"%d", count);
+            } 
+        }
+    }
+
+    if(open_string)
+    {
+        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR);
+        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR);
+        return OPH_QUERY_ENGINE_PARSE_ERROR;
+    } 
+
+    (*result) = malloc(sizeof(char) * (query_length + additional_size));
+
+    i = 0, count = 0, open_string = 0;
+    int copy_to = 0;
+
+    for(; i < query_length; i++)
+    {  
+        current = query[i];
+        if(current == '\'')
+        {
+            open_string = !open_string;
+            (*result)[copy_to] = current;
+        } 
+        else if(current == '?')
+        {
+            if(!open_string)
+            {
+                count++;
+                (*result)[copy_to] = current;
+                int num_size = snprintf((*result)+copy_to+1, snprintf(NULL,0,"%d",count)+1,"%d",count);
+                copy_to += num_size; 
+            }else (*result)[copy_to] = current;
+        }else (*result)[copy_to] = current; 
+        copy_to++;
+    }
+    return OPH_QUERY_ENGINE_SUCCESS;
 }
 
 int oph_query_check_procedure_string(char **param)

@@ -134,13 +134,11 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
 	//Prepare output record set
 	oph_iostore_frag_record_set *rs = NULL;
 	int i = 0;
-	long long j = 0, total_row_number = 0, output_rows = 0;
-	int aggregation = 0;
+	long long j = 0, total_row_number = 0;
 
 	//If recordset is not empty proceed
 	if(record_sets[0]->record_set[0] != NULL){
 		//Count number of rows to compute
-		//TODO Check aggregation
 		if (!offset || (offset<row_number))
 		{
 			j = offset;
@@ -148,11 +146,7 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
 		}
 
 		//Create output record set
-		//TODO Handle aggregation
-		if (aggregation) output_rows = 1;
-		else output_rows = total_row_number;
-
-		if(oph_iostore_create_frag_recordset(&rs, output_rows, field_list_num))	
+		if(oph_iostore_create_frag_recordset(&rs, total_row_number, field_list_num))	
 		{
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
@@ -291,14 +285,13 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 
 	//Prepare output record set
 	oph_iostore_frag_record_set *rs = NULL;
-	long long j = 0, total_row_number = 0, output_rows = 0;
-	int error = 0, aggregation = 0;
+	long long j = 0, total_row_number = 0;
+	int error = 0;
 
 	//If recordset is not empty proceed
 	if(record_sets[0]->record_set[0] != NULL){
 
 		//Count number of rows to compute
-		//TODO Check aggregation
 		if (!offset || (offset<row_number))
 		{
 			j = offset;
@@ -306,11 +299,7 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		}
 
 		//Create output record set
-		//TODO Handle aggregation
-		if (aggregation) output_rows = 1;
-		else output_rows = total_row_number;
-
-		if(oph_iostore_create_frag_recordset(&rs, output_rows, field_list_num))	
+		if(oph_iostore_create_frag_recordset(&rs, total_row_number, field_list_num))	
 		{
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
@@ -431,10 +420,15 @@ int oph_io_server_run_insert(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 
 	//Define record struct
 	oph_iostore_frag_record *new_record = NULL;     
-	int arg_count = 0;
+	unsigned int arg_count = 0;
 	unsigned long long row_size = 0;
+	unsigned int l = 0;
 
-	if(_oph_ioserver_query_build_row(&arg_count, &row_size, rs, field_list, value_list, args, &new_record)){
+	if (args != NULL){
+		while(args[l++]) arg_count++;
+	}
+
+	if(_oph_ioserver_query_build_row(arg_count, &row_size, rs, field_list, value_list, args, &new_record)){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);	
 		if(field_list) free(field_list);
@@ -548,16 +542,20 @@ int oph_io_server_run_multi_insert(oph_metadb_db_row **meta_db, oph_iostore_hand
 
 	//Define record struct
 	oph_iostore_frag_record *new_record = NULL;     
-	int arg_count = 0;
+	unsigned int arg_count = 0;
 	unsigned long long row_size = 0;
 	unsigned long long cumulative_size = 0;
 
 	unsigned int l = 0;
 
+	if (args != NULL){
+		while(args[l++]) arg_count++;
+	}
+
 	unsigned long long curr_start_row = thread_status->curr_stmt->mi_prev_rows + ((thread_status->curr_stmt->curr_run ? thread_status->curr_stmt->curr_run : 1) - 1) * insert_num;
 	for(l = 0; l < insert_num; l++){
 
-		if(_oph_ioserver_query_build_row(&arg_count, &row_size, tmp, field_list, ((char **)value_list+(2*l)), args, &new_record)){
+		if(_oph_ioserver_query_build_row(arg_count, &row_size, tmp, field_list, ((char **)value_list+(2*l)), args, &new_record)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);	
 			if(field_list) free(field_list);

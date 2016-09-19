@@ -50,6 +50,7 @@ typedef enum _oph_query_expr_value_type
 * \param string_value Value if type is string
 * \param binary_value Pointer to value if type is binary
 * \param free_flag 	  Flag set to 1 if value is a result computed by a function and should be manually freed, 0 otherwise
+* \param jump_flag    Flag set to 1 if result must be jumped by other functions, 0 otherwise
 */
 typedef struct _oph_query_expr_value 
 {
@@ -64,6 +65,7 @@ typedef struct _oph_query_expr_value
     }data;
 
 	char free_flag;
+    char jump_flag;
 }oph_query_expr_value;
 
 /**
@@ -96,9 +98,9 @@ typedef struct{
 */
 typedef struct _oph_query_expr_udf_descriptor
 {   
-    int initialized;
-    int aggregate; 
-    int clear; 
+    char initialized;
+    char aggregate; 
+    char clear; 
     void* dlh;
     oph_plugin_api function;
     UDF_INIT* initid;
@@ -410,12 +412,5 @@ int oph_query_expr_change_group(oph_query_expr_node *e);
  * \return              Returns 0 if operation was successfull; non-0 if otherwise;
  */
 int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *var_count);
-
-/**
- *\brief                Saves in result a copy of the query with all the question masks numbered from 1 to n  
- *\param query          The query
- *\param result         A reference to the pointer that will point to the query with numbered question marks
- */
-int oph_query_expr_update_binary_args(char* query, char** result);
 
 #endif // __OPH_QUERY_EXPRESSION_EVALUATOR_H__

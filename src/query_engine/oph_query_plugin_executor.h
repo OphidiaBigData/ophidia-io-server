@@ -163,6 +163,15 @@ int oph_free_udf_arg(oph_udf_arg *arg);
 int oph_parse_plugin(const char* query_string, HASHTBL *plugin_table, oph_iostore_frag_record_set *record_set, oph_plugin **plugin, oph_query_arg **stmt_args, oph_udf_arg **args, unsigned int *arg_count);
 
 /**
+ * \brief               Function to run plugin CLEAR function 
+ * \param function    Set of pointers to all plugins functions 
+ * \param dlh       Pointer to plugin handler 
+ * \param initid      Pointer to initid used by plugin functions 
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid);
+
+/**
  * \brief               Function to run plugin DEINIT function 
  * \param function  	Set of pointers to all plugins functions 
  * \param dlh 			Pointer to plugin handler 
@@ -181,9 +190,23 @@ int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initi
  * \param plugin_name   Name of plugin to be run
  * \param args_count    Number of query arguments 
  * \param args          Array of query arguments
+ * \param is_aggregate  Flag set by init function if plugin is aggregating
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args);
+int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, char *is_aggregate);
+
+
+/**
+ * \brief               Function to run plugin ADD function 
+ * \param function    Set of pointers to all plugins functions 
+ * \param dlh       Pointer to plugin handler 
+ * \param initid      Pointer to initid used by plugin functions 
+ * \param internal_args Pointer with internal argument structures used within plugin functions
+ * \param args_count    Number of query arguments 
+ * \param args          Array of query arguments
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, int arg_count, oph_query_expr_value* args);
 
 /**
  * \brief               Function to run plugin EXEC function 

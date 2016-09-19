@@ -65,6 +65,7 @@ oph_query_expr_node *oph_query_expr_create_double(double value)
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
     b->value.free_flag = 0;
+    b->value.jump_flag = 0;
     b->value.data.double_value = value;
 
     return b;
@@ -81,6 +82,7 @@ oph_query_expr_node *oph_query_expr_create_long(long long value)
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_LONG;
     b->value.free_flag = 0;
+    b->value.jump_flag = 0;
     b->value.data.long_value = value;
 
     return b;
@@ -96,6 +98,7 @@ oph_query_expr_node *oph_query_expr_create_null()
 
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_NULL;
+    b->value.jump_flag = 0;
     b->value.free_flag = 0;
  
     return b;
@@ -112,6 +115,7 @@ oph_query_expr_node *oph_query_expr_create_string(char* value)
     b->type = eVALUE;
     b->value.type = OPH_QUERY_EXPR_TYPE_STRING;
     b->value.free_flag = 0;
+    b->value.jump_flag = 0;
     b->value.data.string_value = value;
 
     return b;
@@ -143,7 +147,7 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
     b->name = name;
     b->descriptor.initialized = 0;
     b->descriptor.aggregate = 0;
-    b->descriptor.clear = 1;
+    b->descriptor.clear = 0;
     b->descriptor.dlh = NULL;
     b->descriptor.initid = NULL;
     b->descriptor.internal_args = NULL;
@@ -416,6 +420,7 @@ int oph_query_expr_add_variable(const char* name, oph_query_expr_value_type var_
 
     sp->type = 1;
     sp->value.free_flag = 0;
+    sp->value.jump_flag = 0;
 
     switch(var_type) 
     {
@@ -502,7 +507,7 @@ int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_
 
 int eeparse(int mode , oph_query_expr_node **expression,  yyscan_t scanner);
 
-oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type, int *numArgs, int* er, oph_query_expr_symtable *table);
+oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type, int *numArgs, int* er, oph_query_expr_symtable *table, char *jump_flag);
 
 int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
 {   
@@ -615,6 +620,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l * r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }
         case ePLUS:
@@ -627,6 +633,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l + r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }  
         case eMINUS:    
@@ -639,6 +646,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l - r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }   
         case eDIVIDE:
@@ -651,6 +659,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = l * r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }    
         case eEQUAL:
@@ -663,6 +672,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long)(l == r);
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }    
         case eMOD:
@@ -675,6 +685,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = ((int) l % (int) r);
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }   
          case eAND:
@@ -687,6 +698,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long) l && r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }  
         case eOR:
@@ -699,6 +711,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long) (l || r);
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }
         case eNOT:
@@ -709,6 +722,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_LONG;
                 res.data.long_value = (long long) !r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }
         case eNEG:
@@ -719,6 +733,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = -r;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             } 
          case eVAR:
@@ -736,6 +751,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                     res.data.double_value = 0;
 				    res.free_flag = 0;
+                    res.jump_flag = 0;
                     return res;
                 }
             }
@@ -746,7 +762,39 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 if(r != NULL && r->type == 2)
                 {   
                     double record_args_num = r->numArgs;
-                    oph_query_expr_value* args = get_array_args(e->name, e->left, r->fun_type, &(r->numArgs), er, table);
+                    char jump_flag = 0;
+                    oph_query_expr_value* args = get_array_args(e->name, e->left, r->fun_type, &(r->numArgs), er, table, &jump_flag);
+                    if(jump_flag){    
+                        if(args) {
+                            //Remove intermediate computed values
+                            int i;
+                            for(i = 0; i < r->numArgs; i++)
+                            {
+                                if(args[i].free_flag){
+                                    switch(args[i].type){
+                                        case OPH_QUERY_EXPR_TYPE_STRING:
+                                            free(args[i].data.string_value);
+                                            break;
+                                        case OPH_QUERY_EXPR_TYPE_BINARY:
+                                            free(args[i].data.binary_value->arg);
+                                            free(args[i].data.binary_value);
+                                            break;
+                                        case OPH_QUERY_EXPR_TYPE_DOUBLE:
+                                        case OPH_QUERY_EXPR_TYPE_LONG:
+                                        case OPH_QUERY_EXPR_TYPE_NULL:
+                                            break;
+                                    }
+                                }
+                            } 
+                            free(args);
+                        }
+                        oph_query_expr_value res;
+                        res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
+                        res.data.double_value = 0;
+                        res.free_flag = 0;
+                        res.jump_flag = 1;
+                        return res;
+                    }
                     if(args != NULL)
                     {   
                         oph_query_expr_value res = r->function (args, r->numArgs, e->name, &(e->descriptor), 0, er);
@@ -785,6 +833,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                         res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                         res.data.double_value = 0;
 					    res.free_flag = 0;
+                        res.jump_flag = 0;
                         return res;
                     }
                 }
@@ -797,6 +846,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                     res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                     res.data.double_value = 0;
 				    res.free_flag = 0;
+                    res.jump_flag = 0;
                     return res; 
                 }
             }
@@ -807,16 +857,18 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
                 res.type = OPH_QUERY_EXPR_TYPE_DOUBLE;
                 res.data.double_value = 0;
 			    res.free_flag = 0;
+                res.jump_flag = 0;
                 return res;
             }
     }
 }
 
 //helper of evaluate
-oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *num_args_required, int *er, oph_query_expr_symtable *table)
+oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun_type,  int *num_args_required, int *er, oph_query_expr_symtable *table, char *jump_flag)
 {   
     int num_args_provided = 0;
     oph_query_expr_node *cur = e;
+    *jump_flag = 0;        
 
     while(cur != NULL){
         num_args_provided++;
@@ -842,8 +894,18 @@ oph_query_expr_value* get_array_args(char* name, oph_query_expr_node *e, int fun
     //the loop is reversed so they are put in the array in the same order they appeared in the query
     int i = num_args_provided-1;
     for(;i >= 0; i--){
+        *er = 0;
         arr[i] = evaluate(cur->left, er, table);
+        if(*er){
+            //In this case terminate execution of whole expression    
+            *jump_flag = 0;
+            free(arr);
+            return NULL;  
+        } 
         cur = cur->right;
+        if(arr[i].jump_flag){
+            *jump_flag = 1;        
+        } 
     }
     *num_args_required = num_args_provided;
     return arr;
@@ -902,8 +964,8 @@ int oph_query_expr_change_group(oph_query_expr_node *b)
     //base case for recursion and error case if null pointer is passed by user
     if (b == NULL)
     {
-        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
-        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        pmesg(LOG_WARNING, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+        logging(LOG_WARNING, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
         return OPH_QUERY_ENGINE_NULL_PARAM;
     }
         
@@ -987,66 +1049,4 @@ int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *
 	*var_count = current_size;
 	*var_list = names;
    return OPH_QUERY_ENGINE_SUCCESS;
-}
-
-int oph_query_expr_update_binary_args(char* query, char** result)
-{
-    //number of question marks
-    if (query == NULL)     
-    {
-        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
-        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
-        return OPH_QUERY_ENGINE_NULL_PARAM;
-    }
-    unsigned int query_length = strlen(query)+1;
-    unsigned int i = 0, count = 0, additional_size = 0, open_string = 0;
-    char current;
-
-    for(; i < query_length; i++)
-    {
-        current = query[i];
-        if(current == '\'') open_string = !open_string;
-        else if(current == '?')
-        {
-            if(!open_string)
-            {
-                count++;
-                additional_size += snprintf(NULL,0,"%d", count);
-            } 
-        }
-    }
-
-    if(open_string)
-    {
-        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR);
-        logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR);
-        return OPH_QUERY_ENGINE_PARSE_ERROR;
-    } 
-
-    (*result) = malloc(sizeof(char) * (query_length + additional_size));
-
-    i = 0, count = 0, open_string = 0;
-    int copy_to = 0;
-
-    for(; i < query_length; i++)
-    {  
-        current = query[i];
-        if(current == '\'')
-        {
-            open_string = !open_string;
-            (*result)[copy_to] = current;
-        } 
-        else if(current == '?')
-        {
-            if(!open_string)
-            {
-                count++;
-                (*result)[copy_to] = current;
-                int num_size = snprintf((*result)+copy_to+1, snprintf(NULL,0,"%d",count)+1,"%d",count);
-                copy_to += num_size; 
-            }else (*result)[copy_to] = current;
-        }else (*result)[copy_to] = current; 
-        copy_to++;
-    }
-    return OPH_QUERY_ENGINE_SUCCESS;
 }

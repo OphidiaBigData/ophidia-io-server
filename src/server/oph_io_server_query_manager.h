@@ -205,7 +205,7 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
 
 /**
  * \brief               Internal function used to create a row from query. Used in case of insert and multi-insert. 
- * \param arg_count     Pointer to variable used to reference current number of arguments used in previous rows
+ * \param arg_count     Number of total arguments available
  * \param row_size 		Variable used to save row size
  * \param partial_result_set 	Pointer with partial recordset being created in the IO server
  * \param field_list 	List of insert fields
@@ -214,7 +214,7 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
  * \param new_record 	Record to be created
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_row(int *arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args, oph_iostore_frag_record **new_record);
+int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args, oph_iostore_frag_record **new_record);
 
 //Functions used to run main query blocks
 
