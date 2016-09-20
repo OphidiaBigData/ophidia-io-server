@@ -40,6 +40,609 @@ extern int msglevel;
 extern pthread_rwlock_t rwlock;
 extern HASHTBL *plugin_table;
 
+//Internal structures used to manage group of rows
+typedef struct oph_ioserver_group_elem{
+	long long elem_index;
+	struct oph_ioserver_group_elem *next;	
+}oph_ioserver_group_elem;
+
+typedef struct oph_ioserver_group_elem_list{
+	struct oph_ioserver_group_elem *last;	
+	struct oph_ioserver_group_elem *first;
+	long long length;	
+}oph_ioserver_group_elem_list;
+
+typedef struct oph_ioserver_group{
+	oph_ioserver_group_elem_list *group_list;
+	struct oph_ioserver_group *next;	
+}oph_ioserver_group;
+
+int _oph_ioserver_query_add_group_elem(oph_ioserver_group_elem_list *list, long long index)
+{
+	if (!list){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_ioserver_group_elem *tmp = (oph_ioserver_group_elem *)malloc(sizeof(oph_ioserver_group_elem));
+	if(!tmp){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	tmp->next = NULL;
+	tmp->elem_index = index;
+
+	if(list->first == NULL){
+		list->first = tmp;
+	}
+	else{	
+		list->last->next = tmp;
+	}
+	list->last = tmp;
+	list->length++;
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_query_add_group(oph_ioserver_group **current, oph_ioserver_group_elem_list *index)
+{
+	if (!current || !index){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_ioserver_group *tmp = (oph_ioserver_group *)malloc(sizeof(oph_ioserver_group));
+	if(!tmp){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	tmp->next = NULL;
+	tmp->group_list = index;
+
+	if(*current != NULL){
+		(*current)->next = tmp;
+	}
+	*current = tmp;
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_query_delete_group_elem_list(oph_ioserver_group_elem_list *list)
+{
+	if (!list){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_ioserver_group_elem *tmp = NULL;
+	while(list->first){
+		tmp = list->first;
+		list->first = list->first->next;
+		free(tmp);
+	}
+	free(list);
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+
+int _oph_ioserver_query_build_groups(HASHTBL *query_groups, char *group, long long row, oph_ioserver_group **head_group, oph_ioserver_group **current_group, long long *group_num)
+{
+	if (!query_groups || !group || !head_group || !current_group || !group_num){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	if(!(*head_group)){
+		//Create first group list
+		oph_ioserver_group_elem_list *list = (oph_ioserver_group_elem_list *)malloc(sizeof(oph_ioserver_group_elem_list));
+		if(!list){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+		list->first = list->last = NULL;
+		list->length = 0;
+		if(_oph_ioserver_query_add_group_elem(list, row)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			free(list);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+		if(_oph_ioserver_query_add_group(head_group, list)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			free(list);
+			_oph_ioserver_query_delete_group_elem_list(list);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+		*current_group = *head_group;
+	    hashtbl_insert(query_groups, (char *)group, (void *)(*current_group));
+	    (*group_num)++;
+	}
+	else{
+		if(!(*current_group)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+			logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+			return OPH_IO_SERVER_NULL_PARAM;			
+		}
+		//Check if group is already available
+		oph_ioserver_group *group_index = (oph_ioserver_group *)hashtbl_get(query_groups, group);
+		if(!group_index){
+			//Add group to hash table
+			oph_ioserver_group_elem_list *list = (oph_ioserver_group_elem_list *)malloc(sizeof(oph_ioserver_group_elem_list));
+			if(!list){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+			list->first = list->last = NULL;
+			list->length = 0;
+			if(_oph_ioserver_query_add_group_elem(list, row)){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				free(list);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+			if(_oph_ioserver_query_add_group(current_group, list)){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				free(list);
+				_oph_ioserver_query_delete_group_elem_list(list);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+		    hashtbl_insert(query_groups, (char *)group, (void *)(*current_group));
+    	    (*group_num)++;
+		}
+		else{
+			//Simply extend the group list
+			if(_oph_ioserver_query_add_group_elem(group_index->group_list, row)){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		}
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_query_get_groups(HASHTBL *query_args, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, int table_num, long long *output_row_num, oph_ioserver_group_elem_list ***group_lists)
+{
+	if (!query_args || !total_row_number || !table_num || !inputs || !output_row_num || !group_lists ){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	int k, l, i;
+	long long j;
+
+	*output_row_num = 0;
+	*group_lists = NULL;
+
+	// Check group by clause
+	char *group_by = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_GROUP);
+	if(group_by){
+		//Extract groups
+		char **group_list = NULL;
+		int group_list_num = 0; 
+
+		//Check binary fields if available
+		unsigned int arg_count = 0; 
+		i = 0;
+		if (args != NULL){
+			while(args[i++]) arg_count++;
+		}
+   
+		if(oph_query_parse_multivalue_arg (group_by, &group_list, &group_list_num) || group_list_num != 1){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_TOO_MANY_GROUPS, group_by);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_TOO_MANY_GROUPS, group_by);	
+			if(group_list) free(group_list);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		if(group_list) free(group_list);	
+
+		//Find id columns in each table
+		short int id_indexes[table_num];
+		for(l = 0; l < table_num; l++){
+			for(i = 0; i < inputs[l]->field_num; i++){
+				if (!STRCMP(inputs[l]->field_name[i],OPH_NAME_ID)){
+					id_indexes[l] = i;
+					break;
+				}
+			}
+			//Id not found	
+			if(i == inputs[l]->field_num){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN,OPH_NAME_ID);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN,OPH_NAME_ID);
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+		}
+
+		oph_query_expr_node *e = NULL; 
+
+		if(oph_query_expr_get_ast(group_by, &e) != 0){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, group_by);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, group_by);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
+
+		oph_query_expr_symtable *table;
+		if(oph_query_expr_create_symtable(&table, OPH_QUERY_ENGINE_MAX_PLUGIN_NUMBER)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			oph_query_expr_delete_node(e, table);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+
+		int var_count = 0;
+		char **var_list = NULL;
+
+		//Read all variables and link them to input record set fields
+		if(oph_query_expr_get_variables(e, &var_list, &var_count)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, group_by);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, group_by);	
+			oph_query_expr_delete_node(e, table);
+			oph_query_expr_destroy_symtable(table);
+			return OPH_IO_SERVER_EXEC_ERROR;     
+		}
+
+		unsigned int field_indexes[var_count];
+		int frag_indexes[var_count];
+		char field_binary[var_count];
+
+		if(var_count > 0){
+			if(_oph_ioserver_query_get_variable_indexes(arg_count, var_list, var_count, inputs, table_num, field_indexes, frag_indexes, field_binary, 1, id_indexes)){				
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR, group_by);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR, group_by);	
+				oph_query_expr_delete_node(e, table);
+				oph_query_expr_destroy_symtable(table);
+				free(var_list);
+				return OPH_IO_SERVER_EXEC_ERROR;     
+			}
+		}
+		else {				
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NO_VARIABLE_FOR_GROUP, group_by);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NO_VARIABLE_FOR_GROUP, group_by);
+			oph_query_expr_delete_node(e, table);
+			oph_query_expr_destroy_symtable(table);
+			free(var_list);
+			return OPH_IO_SERVER_PARSE_ERROR; 
+		}
+
+		oph_query_expr_value* res = NULL;
+
+		//TODO Count actual number of string/binary variables
+		oph_query_arg val_b[var_count];
+
+		//Create group hash table
+		HASHTBL *query_groups = hashtbl_create(2*total_row_number, NULL);
+		if(!query_groups){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			return OPH_IO_SERVER_MEMORY_ERROR;			
+		}	
+
+		oph_ioserver_group *head = NULL, *current = NULL;
+		long long group_number = 0;
+
+		char result[OPH_IO_SERVER_BUFFER] = {'\0'};	
+
+		for (j = 0; j < total_row_number; j++)
+		{
+			if(_oph_ioserver_query_set_parser_variables(args, var_list, var_count, inputs, table, field_indexes, frag_indexes, field_binary, val_b, group_by, j, NULL)){
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, group_by);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, group_by);
+				oph_query_expr_delete_node(e, table);
+				oph_query_expr_destroy_symtable(table);
+				free(var_list);
+				for(current = head; current; current=current->next) if(current->group_list) _oph_ioserver_query_delete_group_elem_list(current->group_list);
+				hashtbl_destroy(query_groups);
+				return OPH_IO_SERVER_PARSE_ERROR;     
+			}
+
+			if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
+				//Create index record
+				switch(res->type){
+					case OPH_QUERY_EXPR_TYPE_DOUBLE:
+					{
+						snprintf(result, OPH_IO_SERVER_BUFFER - 1, "%f", res->data.double_value);
+						free(res);
+						break;
+					}
+					case OPH_QUERY_EXPR_TYPE_LONG:
+					{
+						snprintf(result, OPH_IO_SERVER_BUFFER - 1, "%lld", res->data.long_value);
+					 	free(res);
+						break;
+					}
+					default:
+					{
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, group_by);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, group_by);
+						free(res);
+						oph_query_expr_delete_node(e, table);
+						oph_query_expr_destroy_symtable(table);
+						free(var_list);
+						for(current = head; current; current=current->next) if(current->group_list) _oph_ioserver_query_delete_group_elem_list(current->group_list);
+						hashtbl_destroy(query_groups);
+						return OPH_IO_SERVER_PARSE_ERROR;
+					}
+				}
+
+				//Add row to correct group
+				if(_oph_ioserver_query_build_groups(query_groups, result, j, &head, &current, &group_number))
+				{
+					
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+					oph_query_expr_delete_node(e, table);
+					oph_query_expr_destroy_symtable(table);
+					free(var_list);
+					for(current = head; current; current=current->next) if(current->group_list) _oph_ioserver_query_delete_group_elem_list(current->group_list);
+					hashtbl_destroy(query_groups);
+					return OPH_IO_SERVER_MEMORY_ERROR;
+				}
+			}
+			else
+			{
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR,group_by);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR,group_by);
+				free(var_list);
+				oph_query_expr_delete_node(e, table);
+				oph_query_expr_destroy_symtable(table);
+				for(current = head; current; current=current->next) if(current->group_list) _oph_ioserver_query_delete_group_elem_list(current->group_list);
+				hashtbl_destroy(query_groups);
+				return OPH_IO_SERVER_PARSE_ERROR;
+			}
+		}
+		free(var_list);
+		oph_query_expr_delete_node(e, table);
+		oph_query_expr_destroy_symtable(table);
+
+		oph_ioserver_group_elem_list **groups = (oph_ioserver_group_elem_list **)malloc(group_number*sizeof(oph_ioserver_group_elem_list *));
+		if(!groups){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			for(current = head; current; current=current->next) if(current->group_list) _oph_ioserver_query_delete_group_elem_list(current->group_list);
+			hashtbl_destroy(query_groups);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+
+		for(k = 0; k < group_number; k++){
+			groups[k] = head->group_list;
+			head = head->next;
+		}
+		hashtbl_destroy(query_groups);
+
+		//Return groups
+		*output_row_num = group_number;
+		*group_lists = groups;
+
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, oph_query_expr_symtable *table, unsigned int *field_indexes, int *frag_indexes, char *field_binary, oph_query_arg *binary_var, char *field, long long row, long long *where_start_id)
+{
+	if (!var_list || !var_count || !inputs || !table || !field_indexes || !frag_indexes || !field_binary || !binary_var || !field){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	unsigned int k;
+
+	for(k = 0; k < var_count; k++){
+		if(field_binary[k]){
+			if(args){
+				if(oph_query_expr_add_binary(var_list[k],args[field_indexes[k]],table)){ 
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+					return OPH_IO_SERVER_EXEC_ERROR;     
+				}
+			}
+			else{
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+				return OPH_IO_SERVER_EXEC_ERROR;     				
+			}
+		}
+		else{
+			switch(inputs[frag_indexes[k]]->field_type[field_indexes[k]]){
+				case OPH_IOSTORE_LONG_TYPE:
+				{
+					if(oph_query_expr_add_long(var_list[k],*((long long *)inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field[field_indexes[k]]),table)){ 
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+						return OPH_IO_SERVER_EXEC_ERROR;     
+					} 
+					break;
+				}
+				case OPH_IOSTORE_REAL_TYPE:
+				{
+					if(oph_query_expr_add_double(var_list[k],*((double *)inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field[field_indexes[k]]),table)){ 
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+						return OPH_IO_SERVER_EXEC_ERROR;     
+					}  
+					break;
+				}
+				//TODO Check if string and binary can be treated separately
+				case OPH_IOSTORE_STRING_TYPE:
+				{
+					binary_var[k].arg = inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field[field_indexes[k]];
+					binary_var[k].arg_length = inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field_length[field_indexes[k]];								
+					if(oph_query_expr_add_binary(var_list[k],&(binary_var[k]),table)){ 
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
+						return OPH_IO_SERVER_EXEC_ERROR;     
+					}  
+					break;
+				}
+			}
+		}	
+	}
+
+  	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, unsigned int table_num, unsigned int *field_indexes, int *frag_indexes, char *field_binary, char only_id, short int *id_indexes)
+{
+	if (!var_list || !var_count || !inputs || !table_num || !field_indexes || !frag_indexes || !field_binary || (only_id && !id_indexes)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	unsigned int k, l;
+	long long j;
+	char *tmp_var_list[var_count];
+	for(k = 0; k < var_count; k++){
+		tmp_var_list[k] = (char *)strndup(var_list[k], strlen(var_list[k])+1);
+		if(tmp_var_list[k] == NULL)
+		{
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+	}
+
+	unsigned int binary_index = 0;
+
+	for(k = 0; k < var_count; k++){
+		//Match binary values
+		if(tmp_var_list[k][0] == OPH_QUERY_ENGINE_LANG_ARG_REPLACE){
+			binary_index = strtoll ((char *)(tmp_var_list[k]+1), NULL, 10);
+			field_indexes[k] = (binary_index - 1);
+			frag_indexes[k] = -1;
+			field_binary[k] = 1;
+
+			if(field_indexes[k] >= arg_count){				
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
+				for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+				return OPH_IO_SERVER_PARSE_ERROR;     
+			}
+		}
+		//Match field names
+		else{
+			if(table_num > 1){
+				//Set frag and field index
+				//Split frag name from field name
+				char **field_components = NULL;
+				int field_components_num = 0;
+
+				if(oph_query_parse_hierarchical_args (tmp_var_list[k], &field_components, &field_components_num)){
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);	
+					for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+					return OPH_IO_SERVER_PARSE_ERROR;        
+				}
+
+				if(field_components_num != 2){
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);	
+					for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+					free(field_components);
+					return OPH_IO_SERVER_PARSE_ERROR;
+				}
+
+				if(only_id){
+					//Check if we only have ids, any other field is not allowed
+					if (STRCMP(field_components[1],OPH_NAME_ID)){
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
+						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+						free(field_components);
+						return OPH_IO_SERVER_EXEC_ERROR;
+					}
+				}	
+
+				//Match table
+				for(l = 0; l < table_num; l++){
+					if(!STRCMP(field_components[0], inputs[l]->frag_name)){
+						frag_indexes[k] = l;
+						if(!only_id){
+							for(j = 0; j < inputs[l]->field_num; j++){
+								if(!STRCMP(field_components[1],inputs[l]->field_name[j])){
+									field_indexes[k] = j;
+									field_binary[k] = 0;
+									break;
+								}
+							}	
+							if(j == inputs[l]->field_num){				
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
+								for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+								free(field_components);
+								return OPH_IO_SERVER_PARSE_ERROR;     
+							}
+						}
+						else{
+							field_indexes[k] = id_indexes[l];
+							field_binary[k] = 0;
+						}	
+						break;
+					}
+				}	
+				if(l == table_num){				
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
+					for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+					free(field_components);
+					return OPH_IO_SERVER_PARSE_ERROR;     
+				}
+				free(field_components);
+			}	
+			else{
+				if(!only_id){
+					for(j = 0; j < inputs[0]->field_num; j++){
+						if(!STRCMP(var_list[k],inputs[0]->field_name[j])){
+							field_indexes[k] = j;
+							field_binary[k] = 0;
+							break;
+						}
+					}	
+					if(j == inputs[0]->field_num){				
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
+						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+						return OPH_IO_SERVER_PARSE_ERROR;     
+					}
+				}
+				else{
+					//Check if we only have ids, any other field is not allowed
+					if (STRCMP(tmp_var_list[k],OPH_NAME_ID)){
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
+						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+						return OPH_IO_SERVER_EXEC_ERROR;
+					}
+					//Match field
+					field_indexes[k] = id_indexes[0];
+					field_binary[k] = 0;
+				}		
+				frag_indexes[k] = 0;
+			}
+		}
+	}
+
+	for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
 int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, long long *limit)
 {
 	if (!query_args || !offset || !limit){
@@ -249,7 +852,7 @@ int _oph_ioserver_query_multi_table_where_assert(int table_num, short int *id_in
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs)
+int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg **args, int table_num, oph_iostore_frag_record_set **stored_rs, long long *input_row_num, oph_iostore_frag_record_set **input_rs)
 {
 	if (!where_string || !table_num || !stored_rs || !input_row_num || !input_rs ){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -257,16 +860,20 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 		return OPH_IO_SERVER_NULL_PARAM;
 	}
 
-	int k, l, i;
+	int l, i;
 	long long j;
 
-	//TODO Add support for binary fiedls
+	//Check binary fields if available
+	unsigned int arg_count = 0; 
+	i = 0;
+	if (args != NULL){
+		while(args[i++]) arg_count++;
+	}
 
 	//Find id columns in each table
 	short int id_indexes[table_num];
 	for(l = 0; l < table_num; l++){
 		for(i = 0; i < stored_rs[l]->field_num; i++){
-			//TODO Check what fields are selected
 			if (!STRCMP(stored_rs[l]->field_name[i],OPH_NAME_ID)){
 				id_indexes[l] = i;
 				break;
@@ -324,115 +931,18 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 		return OPH_IO_SERVER_EXEC_ERROR;     
 	}
 
-	int field_indexes[var_count];
+	unsigned int field_indexes[var_count];
 	int frag_indexes[var_count];
-	char **field_components = NULL;
-	int field_components_num = 0;
+	char field_binary[var_count];
 
-	char *tmp_var_list[var_count];
-	for(k = 0; k < var_count; k++){
-		tmp_var_list[k] = (char *)strndup(var_list[k], strlen(var_list[k])+1);
-		if(tmp_var_list[k] == NULL)
-		{
-			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+	if(var_count > 0){
+		if(_oph_ioserver_query_get_variable_indexes(arg_count, var_list, var_count, input_rs, table_num, field_indexes, frag_indexes, field_binary, 1, id_indexes)){				
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR, where_string);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR, where_string);	
 			oph_query_expr_delete_node(e, table);
 			oph_query_expr_destroy_symtable(table);
 			free(var_list);
-			for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-	}
-
-	if(var_count > 0){
-		for(k = 0; k < var_count; k++){
-			if(tmp_var_list[k][0] == OPH_QUERY_ENGINE_LANG_ARG_REPLACE){
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
-				oph_query_expr_delete_node(e, table);
-				oph_query_expr_destroy_symtable(table);
-				free(var_list);
-				for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-				return OPH_IO_SERVER_PARSE_ERROR;     
-			}
-			//Match field names
-			else{
-
-				if(table_num > 1){
-					//Split frag name from field name
-					field_components = NULL;
-					field_components_num = 0;
-
-					if(oph_query_parse_hierarchical_args (tmp_var_list[k], &field_components, &field_components_num)){
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);	
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-						return OPH_IO_SERVER_PARSE_ERROR;        
-					}
-
-					if(field_components_num != 2){
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);	
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-						free(field_components);
-						return OPH_IO_SERVER_PARSE_ERROR;
-					}
-
-					//Check if we only have ids, any other field is not allowed
-					if (STRCMP(field_components[1],OPH_NAME_ID)){
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-						free(field_components);
-						return OPH_IO_SERVER_EXEC_ERROR;
-					}
-
-					//Match table
-					for(l = 0; l < table_num; l++){
-						if(!STRCMP(field_components[0], input_rs[l]->frag_name)){
-							field_indexes[k] = id_indexes[l];
-							frag_indexes[k] = l;
-							break;
-						}
-					}	
-					if(l == table_num){				
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_components[0]);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_components[0]);	
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-						free(field_components);
-						return OPH_IO_SERVER_PARSE_ERROR;     
-					}
-					free(field_components);
-				}
-				else{
-					//Check if we only have ids, any other field is not allowed
-					if (STRCMP(tmp_var_list[k],OPH_NAME_ID)){
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-						return OPH_IO_SERVER_EXEC_ERROR;
-					}
-
-					//Match field
-					field_indexes[k] = id_indexes[0];
-					frag_indexes[k] = 0;
-				}
-			}
+			return OPH_IO_SERVER_EXEC_ERROR;     
 		}
 	}
 	else {				
@@ -445,64 +955,24 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 			return OPH_IO_SERVER_PARSE_ERROR; 
 		}    
 	}
-	for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
 
 	oph_query_expr_value* res = NULL;
 
-	//Temp variables used to assign values to result set
-	double val_d = 0;
-	unsigned long long val_l = 0;
 	//TODO Count actual number of string/binary variables
 	oph_query_arg val_b[var_count];
 	long long curr_row = 0;
 
 	for (j = 0; j < (*input_row_num); j++)
 	{
-		for(k = 0; k < var_count; k++){
-			switch(input_rs[frag_indexes[k]]->field_type[field_indexes[k]]){
-				case OPH_IOSTORE_LONG_TYPE:
-				{
-					val_l = *((long long *)stored_rs[frag_indexes[k]]->record_set[start_row_indexes[frag_indexes[k]] + j]->field[field_indexes[k]]);
-					if(oph_query_expr_add_long(var_list[k],val_l,table)){ 
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						return OPH_IO_SERVER_EXEC_ERROR;     
-					} 
-					break;
-				}
-				case OPH_IOSTORE_REAL_TYPE:
-				{
-					val_d = *((double *)stored_rs[frag_indexes[k]]->record_set[start_row_indexes[frag_indexes[k]] + j]->field[field_indexes[k]]);
-					if(oph_query_expr_add_double(var_list[k],val_d,table)){ 
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						return OPH_IO_SERVER_EXEC_ERROR;     
-					}  
-					break;
-				}
-				//TODO Check if string and binary can be treated separately
-				case OPH_IOSTORE_STRING_TYPE:
-				{
-					val_b[k].arg = stored_rs[frag_indexes[k]]->record_set[start_row_indexes[frag_indexes[k]] + j]->field[field_indexes[k]];
-					val_b[k].arg_length = stored_rs[frag_indexes[k]]->record_set[start_row_indexes[frag_indexes[k]] + j]->field_length[field_indexes[k]];								
-					if(oph_query_expr_add_binary(var_list[k],&(val_b[k]),table)){ 
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						return OPH_IO_SERVER_EXEC_ERROR;     
-					}  
-					break;
-				}
-			}	
-		}
+
+		if(_oph_ioserver_query_set_parser_variables(args, var_list, var_count, stored_rs, table, field_indexes, frag_indexes, field_binary, val_b, where_string, j, start_row_indexes)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
+			oph_query_expr_delete_node(e, table);
+			oph_query_expr_destroy_symtable(table);
+			free(var_list);
+			return OPH_IO_SERVER_PARSE_ERROR;     
+		}  
 
 		if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
 			//Create index record
@@ -558,7 +1028,7 @@ int _oph_ioserver_query_run_where_clause(char *where_string, int table_num, oph_
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs, char *out_db_name, char *out_frag_name)
+int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_arg **args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs, char *out_db_name, char *out_frag_name)
 {
 	if (!dev_handle || !query_args || !stored_rs || !input_row_num || !input_rs || !meta_db || !current_db){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -850,7 +1320,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 		if(where)
 		{
 			//Apply where condition
-			if(_oph_ioserver_query_run_where_clause(where, table_list_num, orig_record_sets, &total_row_number, record_sets)){
+			if(_oph_ioserver_query_run_where_clause(where, args, table_list_num, orig_record_sets, &total_row_number, record_sets)){
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);	
 				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
@@ -868,7 +1338,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
 	else {
 		if(where){
 			//Apply where condition
-			if(_oph_ioserver_query_run_where_clause(where, table_list_num, orig_record_sets, &total_row_number, record_sets)){
+			if(_oph_ioserver_query_run_where_clause(where, args, table_list_num, orig_record_sets, &total_row_number, record_sets)){
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);	
 				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
@@ -892,14 +1362,14 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_metadb_d
   return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_query_arg **args,oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
 {
-	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name);
+	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name);
 }
 
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_query_arg **args,oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
 {
-	return _oph_ioserver_query_build_input_record_set(query_args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL);
+	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL);
 }
 
 int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output)
@@ -969,6 +1439,14 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 		pmesg(LOG_DEBUG,__FILE__,__LINE__,"Column %s is of type %d\n", field_list[i], field_type[i]);
 	}
 
+	//Check group by
+	oph_ioserver_group_elem_list **group_lists = NULL;
+	if(_oph_ioserver_query_get_groups(query_args, total_row_number, args, inputs, table_num, &actual_rows, &group_lists)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_GROUP_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_GROUP_ERROR);    
+		return OPH_IO_SERVER_PARSE_ERROR;
+	}
+
 	for (i=0; i<field_list_num; ++i)
 	{
 		switch(field_type[i]){
@@ -976,6 +1454,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 			{
 				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unsupported execution of %s\n", field_list[i]);
 				logging(LOG_ERROR, __FILE__, __LINE__, "Unsupported execution of %s\n", field_list[i]);	
+				if(group_lists){
+					for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+					free(group_lists);
+				}	
 				return OPH_IO_SERVER_EXEC_ERROR;
 			}
 			case OPH_QUERY_FIELD_TYPE_DOUBLE:
@@ -989,6 +1471,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					{
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_MEMORY_ERROR;
 					}
 
@@ -1009,6 +1495,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					{
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_MEMORY_ERROR;
 					}
 
@@ -1028,6 +1518,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					{
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_MEMORY_ERROR;
 					}
 
@@ -1043,6 +1537,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 				if(binary_index >= arg_count){				
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);	
+					if(group_lists){
+						for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+						free(group_lists);
+					}	
 					return OPH_IO_SERVER_PARSE_ERROR;     
 				}
 
@@ -1054,6 +1552,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					{
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_MEMORY_ERROR;
 					}
 
@@ -1088,6 +1590,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					if(oph_query_parse_hierarchical_args (field_list[i], &field_components, &field_components_num)){
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);	
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_PARSE_ERROR;        
 					}
 
@@ -1095,6 +1601,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);	
 						free(field_components);
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_PARSE_ERROR;
 					}
 
@@ -1116,6 +1626,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
 								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);	
 								free(field_components);
+								if(group_lists){
+									for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+									free(group_lists);
+								}	
 								return OPH_IO_SERVER_PARSE_ERROR;     
 							}
 							break;
@@ -1125,6 +1639,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);	
 						free(field_components);
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_PARSE_ERROR;     
 					}
 					free(field_components);
@@ -1143,6 +1661,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					if(j == inputs[0]->field_num){				
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);	
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
 						return OPH_IO_SERVER_PARSE_ERROR;     
 					}
 					//Take first frag
@@ -1151,18 +1673,41 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 
 				rows = (actual_rows ? actual_rows : total_row_number);
 				if(!use_seq_id){
-					id = offset;
-					for (j = 0; j < rows; j++, id++)
-					{
-						if (memory_check())
+					if(!group_lists){
+						id = offset;
+						for (j = 0; j < rows; j++, id++)
 						{
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-							return OPH_IO_SERVER_MEMORY_ERROR;
+							if (memory_check())
+							{
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+								if(group_lists){
+									for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+									free(group_lists);
+								}	
+								return OPH_IO_SERVER_MEMORY_ERROR;
+							}
+							output->record_set[j]->field[i] = inputs[frag_index]->record_set[id]->field_length[field_index] ? memdup(inputs[frag_index]->record_set[id]->field[field_index], inputs[frag_index]->record_set[id]->field_length[field_index]) : NULL;
+							output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
 						}
-
-						output->record_set[j]->field[i] = inputs[frag_index]->record_set[id]->field_length[field_index] ? memdup(inputs[frag_index]->record_set[id]->field[field_index], inputs[frag_index]->record_set[id]->field_length[field_index]) : NULL;
-						output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
+					}
+					else{
+						//Aggregation is used, no offset allowed
+						for (j = 0; j < rows; j++)
+						{
+							if (memory_check())
+							{
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+								if(group_lists){
+									for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+									free(group_lists);
+								}	
+								return OPH_IO_SERVER_MEMORY_ERROR;
+							}
+							output->record_set[j]->field[i] = inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index] ? memdup(inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field[field_index], inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index]) : NULL;
+							output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index];
+						}
 					}
 				}
 				else{
@@ -1173,6 +1718,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 						{
 							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+							if(group_lists){
+								for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+								free(group_lists);
+							}	
 							return OPH_IO_SERVER_MEMORY_ERROR;
 						}
 						val_l = start_id + j;
@@ -1195,6 +1744,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 				if(oph_query_expr_create_symtable(&table, OPH_QUERY_ENGINE_MAX_PLUGIN_NUMBER)){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);	
+					if(group_lists){
+						for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+						free(group_lists);
+					}	
 					return OPH_IO_SERVER_EXEC_ERROR;     
 				}
 
@@ -1202,6 +1755,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);	
 					oph_query_expr_destroy_symtable(table);
+					if(group_lists){
+						for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+						free(group_lists);
+					}	
 					return OPH_IO_SERVER_EXEC_ERROR;     
 				}
 
@@ -1211,221 +1768,137 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, field_list[i]);	
 					oph_query_expr_delete_node(e, table);
 					oph_query_expr_destroy_symtable(table);
+					if(group_lists){
+						for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+						free(group_lists);
+					}	
 					return OPH_IO_SERVER_EXEC_ERROR;     
 				}
 
 				unsigned int field_indexes[var_count];
 				int frag_indexes[var_count];
 				//Match binary with 1
-				short int field_binary[var_count];
+				char field_binary[var_count];
 				binary_index = 0;
 
 				//TODO Count actual number of string/binary variables
 				oph_query_arg val_b[var_count];
 
-				char *tmp_var_list[var_count];
-				for(k = 0; k < var_count; k++){
-					tmp_var_list[k] = (char *)strndup(var_list[k], strlen(var_list[k])+1);
-					if(tmp_var_list[k] == NULL)
-					{
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+
+				if(var_count > 0){
+					if(_oph_ioserver_query_get_variable_indexes(arg_count, var_list, var_count, inputs, table_num, field_indexes, frag_indexes, field_binary, 0, NULL)){			
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR, field_list[i]);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR, field_list[i]);	
 						oph_query_expr_delete_node(e, table);
 						oph_query_expr_destroy_symtable(table);
 						free(var_list);
-						for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-						return OPH_IO_SERVER_MEMORY_ERROR;
+						if(group_lists){
+							for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}	
+						return OPH_IO_SERVER_EXEC_ERROR;     
 					}
 				}
+						
+				long long function_row_number = 0;	
+				if(!group_lists){
+					//No group by provided	
+					char is_aggregate = 0;	
+					id = offset;
 
-				if(var_count > 0){
-					for(k = 0; k < var_count; k++){
-						//Match binary values
-						if(tmp_var_list[k][0] == OPH_QUERY_ENGINE_LANG_ARG_REPLACE){
-							binary_index = strtoll ((char *)(tmp_var_list[k]+1), NULL, 10);
-							field_indexes[k] = (binary_index - 1);
-							frag_indexes[k] = -1;
-							field_binary[k] = 1;
+					for (j = 0; j < total_row_number; j++, id++)
+					{
+						if (memory_check())
+						{
+							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+							oph_query_expr_delete_node(e, table);
+							oph_query_expr_destroy_symtable(table);
+							free(var_list);
+							return OPH_IO_SERVER_MEMORY_ERROR;
+						}
 
-							if(field_indexes[k] >= arg_count){				
-								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
-								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
+						if(var_count > 0){
+							if(_oph_ioserver_query_set_parser_variables(args, var_list, var_count, inputs, table, field_indexes, frag_indexes, field_binary, val_b, field_list[i], id, NULL)){
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
 								oph_query_expr_delete_node(e, table);
 								oph_query_expr_destroy_symtable(table);
 								free(var_list);
-								for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
 								return OPH_IO_SERVER_PARSE_ERROR;     
 							}
 						}
-						//Match field names
-						else{
-							if(table_num > 1){
-								//Set frag and field index
-								//Split frag name from field name
-								char **field_components = NULL;
-								int field_components_num = 0;
 
-								if(oph_query_parse_hierarchical_args (tmp_var_list[k], &field_components, &field_components_num)){
-									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
-									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);	
-									oph_query_expr_delete_node(e, table);
-									oph_query_expr_destroy_symtable(table);
-									free(var_list);
-									for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-									return OPH_IO_SERVER_PARSE_ERROR;        
-								}
-
-								if(field_components_num != 2){
-									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
-									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);	
-									free(field_components);
-									oph_query_expr_delete_node(e, table);
-									oph_query_expr_destroy_symtable(table);
-									free(var_list);
-									for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-									return OPH_IO_SERVER_PARSE_ERROR;
-								}
-
-								//Match table
-								for(l = 0; l < table_num; l++){
-									if(!STRCMP(field_components[0], inputs[l]->frag_name)){
-										frag_indexes[k] = l;
-										for(j = 0; j < inputs[l]->field_num; j++){
-											if(!STRCMP(field_components[1],inputs[l]->field_name[j])){
-												field_indexes[k] = j;
-												field_binary[k] = 0;
-												break;
-											}
-										}	
-										if(j == inputs[l]->field_num){				
-											pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
-											logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
-											free(field_components);
-											oph_query_expr_delete_node(e, table);
-											oph_query_expr_destroy_symtable(table);
-											free(var_list);
-											for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-											return OPH_IO_SERVER_PARSE_ERROR;     
-										}
-										break;
-									}
-								}	
-								if(l == table_num){				
-									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
-									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
-									oph_query_expr_delete_node(e, table);
-									oph_query_expr_destroy_symtable(table);
-									free(var_list);
-									for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-									free(field_components);
-									return OPH_IO_SERVER_PARSE_ERROR;     
-								}
-								free(field_components);
-							}	
-							else{
-								for(j = 0; j < inputs[0]->field_num; j++){
-									if(!STRCMP(var_list[k],inputs[0]->field_name[j])){
-										field_indexes[k] = j;
-										field_binary[k] = 0;
-										break;
-									}
-								}	
-								if(j == inputs[0]->field_num){				
-									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);
-									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, tmp_var_list[k]);	
-									oph_query_expr_delete_node(e, table);
-									oph_query_expr_destroy_symtable(table);
-									free(var_list);
-									for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-									return OPH_IO_SERVER_PARSE_ERROR;     
-								}
-								frag_indexes[k] = 0;
+						//IF last row of aggregating function	
+						if((total_row_number == 1) || ((j == (total_row_number-1)) && (is_aggregate == 1))){
+							if(oph_query_expr_change_group(e)){
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								oph_query_expr_delete_node(e, table);
+								oph_query_expr_destroy_symtable(table);
+								free(var_list);
+								return OPH_IO_SERVER_PARSE_ERROR;     
 							}
 						}
-					}
-				}
 
-				for(k = 0; k < var_count; k++) if(tmp_var_list[k]) free(tmp_var_list[k]);
-
-				long long function_row_number = 0;	
-				char is_aggregate = 0;	
-
-				id = offset;
-				for (j = 0; j < total_row_number; j++, id++)
-				{
-					if (memory_check())
-					{
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						return OPH_IO_SERVER_MEMORY_ERROR;
-					}
-
-					if(var_count > 0){
-						for(k = 0; k < var_count; k++){
-							if(field_binary[k]){
-								if(oph_query_expr_add_binary(var_list[k],args[field_indexes[k]],table)){ 
-									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-									oph_query_expr_delete_node(e, table);
-									oph_query_expr_destroy_symtable(table);
-									free(var_list);
-									return OPH_IO_SERVER_EXEC_ERROR;     
+						if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
+							if(res->jump_flag == 0){
+								switch(res->type){						
+									case OPH_QUERY_EXPR_TYPE_DOUBLE:
+									{
+										if(!function_row_number) output->field_type[i] = OPH_IOSTORE_REAL_TYPE;	
+										output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
+										output->record_set[function_row_number]->field_length[i] = sizeof(double);
+										free(res);
+										break;
+									}
+									case OPH_QUERY_EXPR_TYPE_LONG:
+									{
+										if(!function_row_number) output->field_type[i] = OPH_IOSTORE_LONG_TYPE;	
+										output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
+										output->record_set[function_row_number]->field_length[i] = sizeof(unsigned long long);
+										free(res);
+										break;
+									}
+									case OPH_QUERY_EXPR_TYPE_STRING:
+									{
+										if(!function_row_number) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
+										output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
+										output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
+										free(res->data.string_value);
+										free(res);
+										break;
+									}
+									case OPH_QUERY_EXPR_TYPE_BINARY:
+									{
+										if(!function_row_number) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
+										output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
+										output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
+										free(res->data.binary_value->arg);
+										free(res->data.binary_value);
+										free(res);
+										break;
+									}
+									default:
+									{
+										pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+										logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+										free(res);
+										oph_query_expr_delete_node(e, table);
+										oph_query_expr_destroy_symtable(table);
+										free(var_list);
+										return OPH_IO_SERVER_EXEC_ERROR;     
+									}
 								}
+								function_row_number++;
 							}
 							else{
-								switch(inputs[frag_indexes[k]]->field_type[field_indexes[k]]){
-									case OPH_IOSTORE_LONG_TYPE:
-									{
-										val_l = *((long long *)inputs[frag_indexes[k]]->record_set[id]->field[field_indexes[k]]);
-										if(oph_query_expr_add_long(var_list[k],val_l,table)){ 
-											pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-											logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-											oph_query_expr_delete_node(e, table);
-											oph_query_expr_destroy_symtable(table);
-											free(var_list);
-											return OPH_IO_SERVER_EXEC_ERROR;     
-										} 
-										break;
-									}
-									case OPH_IOSTORE_REAL_TYPE:
-									{
-										val_d = *((double *)inputs[frag_indexes[k]]->record_set[id]->field[field_indexes[k]]);
-										if(oph_query_expr_add_double(var_list[k],val_d,table)){ 
-											pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-											logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-											oph_query_expr_delete_node(e, table);
-											oph_query_expr_destroy_symtable(table);
-											free(var_list);
-											return OPH_IO_SERVER_EXEC_ERROR;     
-										}  
-										break;
-									}
-									//TODO Check if string and binary can be treated separately
-									case OPH_IOSTORE_STRING_TYPE:
-									{
-										val_b[k].arg = inputs[frag_indexes[k]]->record_set[id]->field[field_indexes[k]];
-										val_b[k].arg_length = inputs[frag_indexes[k]]->record_set[id]->field_length[field_indexes[k]];								
-										if(oph_query_expr_add_binary(var_list[k],&(val_b[k]),table)){ 
-											pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-											logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-											oph_query_expr_delete_node(e, table);
-											oph_query_expr_destroy_symtable(table);
-											free(var_list);
-											return OPH_IO_SERVER_EXEC_ERROR;     
-										}  
-										break;
-									}
-								}
-							}	
+								free(res);
+								is_aggregate = 1;	
+							}
 						}
-					}
-
-					//IF last row of aggregating function	
-					if((total_row_number == 1) || ((j == (total_row_number-1)) && (is_aggregate == 1))){
-						if(oph_query_expr_change_group(e)){
+						else
+						{
 							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
 							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
 							oph_query_expr_delete_node(e, table);
@@ -1435,74 +1908,132 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 						}
 					}
 
+				}	
+				else{
+					//Group by is provided, no offset allowed 
+					oph_ioserver_group_elem *tmp = NULL;	
+					char jump_flag = 1;
 
-					if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
-						if(res->jump_flag == 0){
-							switch(res->type){						
-								case OPH_QUERY_EXPR_TYPE_DOUBLE:
-								{
-									if(!function_row_number) output->field_type[i] = OPH_IOSTORE_REAL_TYPE;	
-									output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
-									output->record_set[function_row_number]->field_length[i] = sizeof(double);
-									free(res);
-									break;
-								}
-								case OPH_QUERY_EXPR_TYPE_LONG:
-								{
-									if(!function_row_number) output->field_type[i] = OPH_IOSTORE_LONG_TYPE;	
-									output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
-									output->record_set[function_row_number]->field_length[i] = sizeof(unsigned long long);
-									free(res);
-									break;
-								}
-								case OPH_QUERY_EXPR_TYPE_STRING:
-								{
-									if(!function_row_number) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
-									output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
-									output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
-									free(res->data.string_value);
-									free(res);
-									break;
-								}
-								case OPH_QUERY_EXPR_TYPE_BINARY:
-								{
-									if(!function_row_number) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
-									output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
-									output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
-									free(res->data.binary_value->arg);
-									free(res->data.binary_value);
-									free(res);
-									break;
-								}
-								default:
-								{
+					for (k = 0; k < actual_rows; k++)
+					{
+						//Loop on groups
+						for (tmp = group_lists[k]->first, j = 0; tmp; tmp = tmp->next, j++)
+						{
+							jump_flag = 1;
+
+							//Loop on rows						
+							if (memory_check())
+							{
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);	
+								oph_query_expr_delete_node(e, table);
+								oph_query_expr_destroy_symtable(table);
+								free(var_list);
+								for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+								free(group_lists);
+								return OPH_IO_SERVER_MEMORY_ERROR;
+							}
+
+							if(var_count > 0){
+								if(_oph_ioserver_query_set_parser_variables(args, var_list, var_count, inputs, table, field_indexes, frag_indexes, field_binary, val_b, field_list[i], tmp->elem_index, NULL)){
 									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
 									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-									free(res);
 									oph_query_expr_delete_node(e, table);
 									oph_query_expr_destroy_symtable(table);
 									free(var_list);
-									return OPH_IO_SERVER_EXEC_ERROR;     
+									for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+									free(group_lists);
+									return OPH_IO_SERVER_PARSE_ERROR;     
 								}
 							}
-							function_row_number++;
+
+							//IF last row of group	
+							if(tmp->next == NULL){
+								if(oph_query_expr_change_group(e)){
+									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+									oph_query_expr_delete_node(e, table);
+									oph_query_expr_destroy_symtable(table);
+									free(var_list);
+									for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+									free(group_lists);
+									return OPH_IO_SERVER_PARSE_ERROR;     
+								}
+								//Unset internal jump flag for non-aggregating functions
+								jump_flag = 0;
+							}
+
+							if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
+								if(res->jump_flag == 0 && jump_flag == 0){
+									switch(res->type){						
+										case OPH_QUERY_EXPR_TYPE_DOUBLE:
+										{
+											if(!function_row_number) output->field_type[i] = OPH_IOSTORE_REAL_TYPE;	
+											output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)&(res->data.double_value),sizeof(double));
+											output->record_set[function_row_number]->field_length[i] = sizeof(double);
+											free(res);
+											break;
+										}
+										case OPH_QUERY_EXPR_TYPE_LONG:
+										{
+											if(!function_row_number) output->field_type[i] = OPH_IOSTORE_LONG_TYPE;	
+											output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)&(res->data.long_value),sizeof(unsigned long long));
+											output->record_set[function_row_number]->field_length[i] = sizeof(unsigned long long);
+											free(res);
+											break;
+										}
+										case OPH_QUERY_EXPR_TYPE_STRING:
+										{
+											if(!function_row_number) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
+											output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)res->data.string_value,strlen(res->data.string_value) +1);
+											output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
+											free(res->data.string_value);
+											free(res);
+											break;
+										}
+										case OPH_QUERY_EXPR_TYPE_BINARY:
+										{
+											if(!function_row_number) output->field_type[i] = OPH_IOSTORE_STRING_TYPE;	
+											output->record_set[function_row_number]->field[i] = (void *)memdup((const void *)res->data.binary_value->arg,res->data.binary_value->arg_length);
+											output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
+											free(res->data.binary_value->arg);
+											free(res->data.binary_value);
+											free(res);
+											break;
+										}
+										default:
+										{
+											pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+											logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+											free(res);
+											oph_query_expr_delete_node(e, table);
+											oph_query_expr_destroy_symtable(table);
+											free(var_list);
+											for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+											free(group_lists);
+											return OPH_IO_SERVER_EXEC_ERROR;     
+										}
+									}
+									function_row_number++;
+								}
+								else{
+									free(res);
+								}
+							}
+							else
+							{
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+								oph_query_expr_delete_node(e, table);
+								oph_query_expr_destroy_symtable(table);
+								free(var_list);
+								for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+								free(group_lists);
+								return OPH_IO_SERVER_PARSE_ERROR;     
+							}
 						}
-						else{
-							free(res);
-							is_aggregate = 1;	
-						}
-					}
-					else
-					{
-						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
-						oph_query_expr_delete_node(e, table);
-						oph_query_expr_destroy_symtable(table);
-						free(var_list);
-						return OPH_IO_SERVER_PARSE_ERROR;     
 					}
 				}
-
 				oph_query_expr_delete_node(e, table);
 				oph_query_expr_destroy_symtable(table);
 				free(var_list);
@@ -1512,6 +2043,10 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 				{
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
 					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field_list[i]);
+					if(group_lists){
+						for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+						free(group_lists);
+					}	
 					return OPH_IO_SERVER_PARSE_ERROR;     
 				}
 				actual_rows = function_row_number;	
@@ -1519,6 +2054,12 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 		}
 	}
 
+	if(group_lists){
+		for(k = 0; k < actual_rows; k++) if(group_lists[k]) _oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+		free(group_lists);
+	}	
+
+	actual_rows = (actual_rows ? actual_rows : total_row_number);
 	if(actual_rows != total_row_number){
 		//Remove unnecessary rows
 		for (j = actual_rows; j < total_row_number; j++){
@@ -1532,6 +2073,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 			return OPH_IO_SERVER_MEMORY_ERROR;			
 		}
 
+		//Set last element of record to NULL
+		tmp[actual_rows] = NULL;
 		output->record_set = tmp;
      }
 
@@ -1697,8 +2240,6 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 		return OPH_IO_SERVER_NULL_PARAM;
 	}
 
-	//TODO Extend management of ?  in order to evaluate also ? inside more complex constructs
-
 	//Created record struct
 	*new_record = NULL;     
 	if(oph_iostore_create_frag_record(new_record, partial_result_set->field_num) == 1){
@@ -1752,9 +2293,6 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 			case OPH_QUERY_FIELD_TYPE_BINARY:
 			{
 				//For each value check if argument contains ? and substitute with arg[i]
-				//Check column type with arg_type ...  
-				//if(args[*arg_count]->arg_type != partial_result_set->field_type)
-				//EXIT
 				if (!args){
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 					logging(LOG_ERROR, __FILE__, __LINE__,OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);    
@@ -1943,4 +2481,3 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 
 	return OPH_IO_SERVER_SUCCESS;
 }
-

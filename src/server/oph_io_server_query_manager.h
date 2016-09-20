@@ -27,71 +27,76 @@
 #include "oph_iostorage_interface.h"
 #include "oph_query_parser.h"
 #include "oph_metadb_interface.h"
+#include "oph_query_expression_evaluator.h"
 
 // error codes
-#define OPH_IO_SERVER_SUCCESS                             0
-#define OPH_IO_SERVER_NULL_PARAM                          1
-#define OPH_IO_SERVER_MEMORY_ERROR                        2
-#define OPH_IO_SERVER_ERROR                               3
-#define OPH_IO_SERVER_PARSE_ERROR                         4
-#define OPH_IO_SERVER_EXEC_ERROR                          5
-#define OPH_IO_SERVER_METADB_ERROR                        6
-#define OPH_IO_SERVER_API_ERROR                           7
+#define OPH_IO_SERVER_SUCCESS						0
+#define OPH_IO_SERVER_NULL_PARAM					1
+#define OPH_IO_SERVER_MEMORY_ERROR					2
+#define OPH_IO_SERVER_ERROR							3
+#define OPH_IO_SERVER_PARSE_ERROR					4
+#define OPH_IO_SERVER_EXEC_ERROR					5
+#define OPH_IO_SERVER_METADB_ERROR					6
+#define OPH_IO_SERVER_API_ERROR						7
 
 //Log error codes
-#define OPH_IO_SERVER_LOG_NULL_INPUT_PARAM                "Missing input argument\n"
-#define OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR              "Memory allocation error\n"
-#define OPH_IO_SERVER_LOG_FILE_OPEN_ERROR                 "Error %d while opening file %s\n"
-#define OPH_IO_SERVER_LOG_HASHTBL_ERROR                   "Error while creating hash table for plugins\n"
-#define OPH_IO_SERVER_LOG_FILE_READ_ERROR                 "Unable to read line from %s\n"
-#define OPH_IO_SERVER_LOG_PLUGIN_FILE_CORRUPTED           "Unable to read plugin file line %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR             "Unable to parse query %s\n"
-#define OPH_IO_SERVER_LOG_PLUGIN_LOAD_ERROR               "Unable to load plugin table\n"
-#define OPH_IO_SERVER_LOG_HASHTBL_CREATE_ERROR            "Unable to create Hash table\n"
-#define OPH_IO_SERVER_LOG_QUERY_ARG_LOAD_ERROR            "Unable to load query args in table\n"
-#define OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT          "Missing argument %s in query\n"
-#define OPH_IO_SERVER_LOG_QUERY_OPERATION_UNKNOWN         "Unknown input operation %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_METADB_ERROR              "Error querying metaDB for %s operation\n"
-#define OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR        "Error creating MetaDB %s record\n"
-#define OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR            "Error running %s operation\n"
-#define OPH_IO_SERVER_LOG_PLUGIN_EXEC_ERROR               "Error while executing %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_DB_EXIST_ERROR            "DB provided already exists\n"
-#define OPH_IO_SERVER_LOG_QUERY_DB_NOT_EXIST_ERROR        "DB provided does not exists\n"
-#define OPH_IO_SERVER_LOG_QUERY_FRAG_EXIST_ERROR          "Frag provided already exists\n"
-#define OPH_IO_SERVER_LOG_QUERY_FRAG_NOT_EXIST_ERROR      "Frag provided does not exists\n"
-#define OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED            "No DB was previously selected\n"
-#define OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED         "Wrong DB selected\n"
-#define OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR      "Error while parsing hierarchical arg %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR      "Error while parsing multivalue arg %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER      "Multivalue args for %s are not the same number\n"
-#define OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR              "Error while executing engine on query %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_TYPE_ERROR                "Data type %s not recognized\n"
-#define OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR       "Unable to perform INSERT operation due to missing table info\n"
-#define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR       "Unable to perform INSERT: field name not found in table\n"
-#define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_TYPE_ERROR  "Unable to perform INSERT: field type does not correspond to table\n"
-#define OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR  		  "Unable to store the fragment\n"
-#define OPH_IO_SERVER_LOG_QUERY_TABLE_COLUMN_CONSTRAINT  	"Only tables with 2 columns can be created\n"
-#define OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR  		  "Unable to create the row\n"
-#define OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR						"Unable to perform SELECTION\n"
-#define OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR								"Unable to compute LIMIT values\n"
+#define OPH_IO_SERVER_LOG_NULL_INPUT_PARAM					"Missing input argument\n"
+#define OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR				"Memory allocation error\n"
+#define OPH_IO_SERVER_LOG_FILE_OPEN_ERROR					"Error %d while opening file %s\n"
+#define OPH_IO_SERVER_LOG_HASHTBL_ERROR						"Error while creating hash table for plugins\n"
+#define OPH_IO_SERVER_LOG_FILE_READ_ERROR					"Unable to read line from %s\n"
+#define OPH_IO_SERVER_LOG_PLUGIN_FILE_CORRUPTED				"Unable to read plugin file line %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR				"Unable to parse query %s\n"
+#define OPH_IO_SERVER_LOG_PLUGIN_LOAD_ERROR					"Unable to load plugin table\n"
+#define OPH_IO_SERVER_LOG_HASHTBL_CREATE_ERROR				"Unable to create Hash table\n"
+#define OPH_IO_SERVER_LOG_QUERY_ARG_LOAD_ERROR				"Unable to load query args in table\n"
+#define OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT			"Missing argument %s in query\n"
+#define OPH_IO_SERVER_LOG_QUERY_OPERATION_UNKNOWN			"Unknown input operation %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_METADB_ERROR				"Error querying metaDB for %s operation\n"
+#define OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR			"Error creating MetaDB %s record\n"
+#define OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR				"Error running %s operation\n"
+#define OPH_IO_SERVER_LOG_PLUGIN_EXEC_ERROR					"Error while executing %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_DB_EXIST_ERROR				"DB provided already exists\n"
+#define OPH_IO_SERVER_LOG_QUERY_DB_NOT_EXIST_ERROR			"DB provided does not exists\n"
+#define OPH_IO_SERVER_LOG_QUERY_FRAG_EXIST_ERROR			"Frag provided already exists\n"
+#define OPH_IO_SERVER_LOG_QUERY_FRAG_NOT_EXIST_ERROR		"Frag provided does not exists\n"
+#define OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED				"No DB was previously selected\n"
+#define OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED			"Wrong DB selected\n"
+#define OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR		"Error while parsing hierarchical arg %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR		"Error while parsing multivalue arg %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER		"Multivalue args for %s are not the same number\n"
+#define OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR				"Error while executing engine on query %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_TYPE_ERROR					"Data type %s not recognized\n"
+#define OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR			"Unable to perform INSERT operation due to missing table info\n"
+#define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_ERROR			"Unable to perform INSERT: field name not found in table\n"
+#define OPH_IO_SERVER_LOG_QUERY_INSERT_COLUMN_TYPE_ERROR	"Unable to perform INSERT: field type does not correspond to table\n"
+#define OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR			"Unable to store the fragment\n"
+#define OPH_IO_SERVER_LOG_QUERY_TABLE_COLUMN_CONSTRAINT		"Only tables with 2 columns can be created\n"
+#define OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR			"Unable to create the row\n"
+#define OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR				"Unable to perform SELECTION\n"
+#define OPH_IO_SERVER_LOG_QUERY_LIMIT_ERROR					"Unable to compute LIMIT values\n"
 #define OPH_IO_SERVER_LOG_QUERY_EMPTY_SELECTION				"Unable to create empty table\n"
-#define OPH_IO_SERVER_LOG_API_SETUP_ERROR                 "Unable to setup specified device: %s\n"
-#define OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR              "Error while executing %s API\n"
-#define OPH_IO_SERVER_LOG_LOCK_ERROR                      "Unable to execute mutex lock\n"
-#define OPH_IO_SERVER_LOG_UNLOCK_ERROR                    "Unable to execute mutex unlock\n"
-#define OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR                "Field type not recognized: %s\n"
-#define OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN               "Field name not found: %s\n"
-#define OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR                "Unable to build select columns\n"
-#define OPH_IO_SERVER_LOG_FIELDS_ALIAS_NOT_MATCH           "Select alias does not match selection field number\n"
-#define OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE         "Missing where in multi-table query\n"
-#define OPH_IO_SERVER_LOG_ID_MULTITABLE_CONSTRAINT_ERROR   "Table %s id column does not guarantee order and uniqueness constraints\n"
-#define OPH_IO_SERVER_LOG_ONLY_ID_ERROR   				"Only id columns can be used in where clauses\n"
-#define OPH_IO_SERVER_LOG_DELETE_OLD_STMT   				"Deleting previous uncompleted statement\n"
-#define OPH_IO_SERVER_LOG_WRONG_PROCEDURE_ARG   			"Arguments of %s procedure are not correct\n"
-#define OPH_IO_SERVER_LOG_ARG_NO_STRING   					"Argument %s is not a valid string\n"
-#define OPH_IO_SERVER_LOG_ARG_NO_LONG   					"Argument %s is not a valid integer\n"
-#define OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR   				"Only numeric (int or real) columns can be used for sorting\n"
-#define OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR   				"Unable to perform row sorting\n"
+#define OPH_IO_SERVER_LOG_API_SETUP_ERROR					"Unable to setup specified device: %s\n"
+#define OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR				"Error while executing %s API\n"
+#define OPH_IO_SERVER_LOG_LOCK_ERROR						"Unable to execute mutex lock\n"
+#define OPH_IO_SERVER_LOG_UNLOCK_ERROR						"Unable to execute mutex unlock\n"
+#define OPH_IO_SERVER_LOG_FIELD_TYPE_ERROR					"Field type not recognized: %s\n"
+#define OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN				"Field name not found: %s\n"
+#define OPH_IO_SERVER_LOG_FIELDS_EXEC_ERROR					"Unable to build select columns\n"
+#define OPH_IO_SERVER_LOG_FIELDS_ALIAS_NOT_MATCH			"Select alias does not match selection field number\n"
+#define OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE			"Missing where in multi-table query\n"
+#define OPH_IO_SERVER_LOG_ID_MULTITABLE_CONSTRAINT_ERROR	"Table %s id column does not guarantee order and uniqueness constraints\n"
+#define OPH_IO_SERVER_LOG_ONLY_ID_ERROR						"Only id columns can be used in where/group by clauses\n"
+#define OPH_IO_SERVER_LOG_DELETE_OLD_STMT					"Deleting previous uncompleted statement\n"
+#define OPH_IO_SERVER_LOG_WRONG_PROCEDURE_ARG				"Arguments of %s procedure are not correct\n"
+#define OPH_IO_SERVER_LOG_ARG_NO_STRING						"Argument %s is not a valid string\n"
+#define OPH_IO_SERVER_LOG_ARG_NO_LONG						"Argument %s is not a valid integer\n"
+#define OPH_IO_SERVER_LOG_ORDER_TYPE_ERROR					"Only numeric (int or real) columns can be used for sorting\n"
+#define OPH_IO_SERVER_LOG_ORDER_EXEC_ERROR					"Unable to perform row sorting\n"
+#define OPH_IO_SERVER_LOG_TOO_MANY_GROUPS					"Only one single group clause is supported: %s\n"
+#define OPH_IO_SERVER_LOG_NO_VARIABLE_FOR_GROUP				"At least one variable is required in group by clause: %s\n"
+#define OPH_IO_SERVER_LOG_GROUP_ERROR						"Error interpreting group by clause\n"
+#define OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR				"Error while extracting variables from %s\n"
 
 #define OPH_IO_SERVER_BUFFER 1024
 
@@ -113,6 +118,40 @@
 int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, HASHTBL *plugin_table);
 
 //Internal functions used to execute query main blocks
+
+/**
+ * \brief               	Support function used to set variables for expression parser function
+ * \param args 				Additional args used in prepared statements (can be NULL)
+ * \param var_list    		List of function variables
+ * \param var_count   		Number of function variables
+ * \param inputs   			Null terminated list of input record sets
+ * \param table 			Symtable related to expression
+ * \param field_indexes 	Array of field indexes related to variables
+ * \param frag_indexes 		Array of fragment indexes related to variables
+ * \param field_binary 		Array of binary flag related to variables
+ * \param binary_var 		Array of binary var used in functions (must be already allocated)
+ * \param field 			Expression being evaluated
+ * \param row 				Input row considered
+ * \param where_start_id 	Array used for where starting point (can be null)
+ * \return              	0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, oph_query_expr_symtable *table, unsigned int *field_indexes, int *frag_indexes, char *field_binary, oph_query_arg *binary_var, char *field, long long row, long long *where_start_id);
+
+/**
+ * \brief               	Support function used to set index of variables used in expression parser
+ * \param arg_count 		Number of additional args used in prepared statements (can be 0)
+ * \param var_list    		List of function variables
+ * \param var_count   		Number of function variables
+ * \param inputs   			Null terminated list of input record sets
+ * \param table_num 		number of input tables
+ * \param field_indexes 	Array of field indexes related to variables
+ * \param frag_indexes 		Array of fragment indexes related to variables
+ * \param field_binary 		Array of binary flag related to variables
+ * \param only_id 			Flag set to 1 if only ID variable can be used, 0 otherwise
+ * \param id_indexes 		Array of the ID columns to be used in case of id flag is set
+ * \return              	0 if successfull, non-0 otherwise
+ */
+int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, unsigned int table_num, unsigned int *field_indexes, int *frag_indexes, char *field_binary, char only_id, short int *id_indexes);
 
 /**
  * \brief               Internal function used to compute offset and limit of a query (LIMIT block)
@@ -143,6 +182,7 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of create as select. 
  * \param query_args    Hash table containing args to be selected
+ * \param args 				Additional args used in prepared statements (can be NULL)
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
  * \param out_db_name 	Name of DB used by output fragment
@@ -153,11 +193,12 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_query_arg **args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
 
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of select. 
  * \param query_args    Hash table containing args to be selected
+ * \param args 				Additional args used in prepared statements (can be NULL)
  * \param meta_db       Pointer to metadb
  * \param dev_handle 		Handler to current IO server device
  * \param current_db 	Name of DB currently selected
@@ -166,7 +207,7 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_m
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_query_arg **args,oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 

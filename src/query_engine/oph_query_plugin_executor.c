@@ -43,7 +43,6 @@ HASHTBL *plugin_table = NULL;
 pthread_mutex_t libtool_lock;
 
 //TODO - Add debug mesg and logging
-//TODO - Split file into differnt libraries
 //TODO - Define specific return codes
 
 int free_udf_arg(UDF_ARGS *args){

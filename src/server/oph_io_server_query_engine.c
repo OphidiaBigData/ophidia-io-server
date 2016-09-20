@@ -82,7 +82,7 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
 
 	}
 
-	if(_oph_ioserver_query_build_input_record_set_create(query_args, meta_db, dev_handle, out_db_name, out_frag_name, current_db, &orig_record_sets, &row_number, &record_sets)){
+	if(_oph_ioserver_query_build_input_record_set_create(query_args, args, meta_db, dev_handle, out_db_name, out_frag_name, current_db, &orig_record_sets, &row_number, &record_sets)){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);	
 		free(frag_components);
@@ -128,8 +128,6 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
 		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;        
 	}
-
-	//TODO read other clauses
 
 	//Prepare output record set
 	oph_iostore_frag_record_set *rs = NULL;
@@ -246,7 +244,7 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 	*output_rs = NULL;
 	long long row_number = 0;
 
-	if(_oph_ioserver_query_build_input_record_set_select(query_args, meta_db, dev_handle, current_db, &orig_record_sets, &row_number, &record_sets)){
+	if(_oph_ioserver_query_build_input_record_set_select(query_args, args, meta_db, dev_handle, current_db, &orig_record_sets, &row_number, &record_sets)){
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);	
 		return OPH_IO_SERVER_EXEC_ERROR;        
@@ -280,8 +278,6 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(field_list) free(field_list);
 		return OPH_IO_SERVER_EXEC_ERROR;        
 	}
-
-	//TODO read other clauses
 
 	//Prepare output record set
 	oph_iostore_frag_record_set *rs = NULL;
