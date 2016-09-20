@@ -1407,8 +1407,8 @@ pthread_mutex_unlock(&libtool_lock);
 	//SETUP UDF_ARG
 	UDF_ARGS *tmp_args = (UDF_ARGS*)malloc(sizeof(UDF_ARGS));
 	if(tmp_args == NULL){
-		free(message);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
+		free(message);
 		return -1;
 	}
 
@@ -1422,10 +1422,10 @@ pthread_mutex_unlock(&libtool_lock);
 
 	if(!tmp_args->arg_type || !tmp_args->args || !tmp_args->lengths)	
 	{
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 		free(message);
 		free_udf_arg(tmp_args);
 		free(tmp_args);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 		return -1;
 	}
 
@@ -1438,10 +1438,10 @@ pthread_mutex_unlock(&libtool_lock);
 				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
 				if(!tmp_args->args[l])	
 				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					free(message);
 					free_udf_arg(tmp_args);
 					free(tmp_args);
-					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					return -1;
 				}
 		        memcpy ((char *)tmp_args->args[l], args[l].data.string_value, tmp_args->lengths[l]*sizeof(char)); 
@@ -1452,10 +1452,10 @@ pthread_mutex_unlock(&libtool_lock);
 				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
 				if(!tmp_args->args[l])	
 				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					free(message);
 					free_udf_arg(tmp_args);
 					free(tmp_args);
-					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					return -1;
 				}
 		        memcpy ((char *)tmp_args->args[l], args[l].data.binary_value->arg, tmp_args->lengths[l]*sizeof(char)); 
@@ -1466,10 +1466,10 @@ pthread_mutex_unlock(&libtool_lock);
 				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
 				if(!tmp_args->args[l])	
 				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					free(message);
 					free_udf_arg(tmp_args);
 					free(tmp_args);
-					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					return -1;
 				}
 		        memcpy ((char *)tmp_args->args[l], &(args[l].data.double_value), tmp_args->lengths[l]*sizeof(char)); 
@@ -1480,10 +1480,10 @@ pthread_mutex_unlock(&libtool_lock);
 				tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
 				if(!tmp_args->args[l])	
 				{
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					free(message);
 					free_udf_arg(tmp_args);
 					free(tmp_args);
-					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 					return -1;
 				}
 		        memcpy ((char *)tmp_args->args[l], &(args[l].data.long_value), tmp_args->lengths[l]*sizeof(char)); 
@@ -1505,19 +1505,19 @@ pthread_mutex_unlock(&libtool_lock);
 
 	*initid = (UDF_INIT *)malloc(sizeof(UDF_INIT));
 	if(*initid == NULL){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 		free(message);
 		free_udf_arg(tmp_args);
 		free(tmp_args);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error before calling plugin INIT function\n");
 		*initid = NULL;
 		return -1;
 	}
 
 	if(_oph_plugin_init (*initid, tmp_args, message)){
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
 		free(message);
 		free_udf_arg(tmp_args);
 		free(tmp_args);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin INIT function: %s\n", message);
 		return -1;
 	}
 	free(message);
@@ -1537,9 +1537,9 @@ pthread_mutex_unlock(&libtool_lock);
 					tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
 					if(!tmp_args->args[l])	
 					{
+						pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin INIT function\n");
 						free_udf_arg(tmp_args);
 						free(tmp_args);
-						pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin INIT function\n");
 						return -1;
 					}
 				}
@@ -1552,9 +1552,9 @@ pthread_mutex_unlock(&libtool_lock);
 					tmp_args->args[l] = (char *)malloc(tmp_args->lengths[l]*sizeof(char));
 					if(!tmp_args->args[l])	
 					{
+						pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin INIT function\n");
 						free_udf_arg(tmp_args);
 						free(tmp_args);
-						pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin INIT function\n");
 						return -1;
 					}
 				}
