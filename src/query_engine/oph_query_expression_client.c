@@ -24,10 +24,13 @@
 #include <string.h>
 #include <math.h>
 #include <debug.h>
+#include <pthread.h>
 
 #define _GNU_SOURCE
 
-extern oph_query_expr_symtable* oph_function_table;
+HASHTBL *plugin_table = NULL;  
+oph_query_expr_symtable *oph_function_table = NULL;
+pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int main(void)
 {

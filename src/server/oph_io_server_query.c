@@ -32,7 +32,6 @@
 extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;
 extern unsigned short omp_threads;
-extern pthread_rwlock_t rwlock;
 extern HASHTBL *plugin_table;
 
 int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, HASHTBL *plugin_table){

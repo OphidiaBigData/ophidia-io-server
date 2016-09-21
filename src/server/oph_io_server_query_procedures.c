@@ -31,8 +31,6 @@
 #include "oph_query_engine_language.h"
 
 extern int msglevel;
-//extern pthread_mutex_t metadb_mutex;
-extern pthread_rwlock_t rwlock;
 
 //Procedure OPH_IO_SERVER_PROCEDURE_SUBSET
 int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args)

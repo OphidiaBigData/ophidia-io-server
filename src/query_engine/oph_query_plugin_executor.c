@@ -38,9 +38,10 @@
 #include <omp.h>
 
 extern int msglevel;
+extern pthread_mutex_t libtool_lock;
+//TODO Move OpenMP code
 extern unsigned long long omp_threads;
-HASHTBL *plugin_table = NULL;  
-pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
+extern HASHTBL *plugin_table;  
 
 //TODO - Add debug mesg and logging
 //TODO - Define specific return codes

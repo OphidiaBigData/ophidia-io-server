@@ -42,14 +42,14 @@ extern int msglevel;
 //TODO save info related to threads
 //TODO save connection status
 
-//Global external vars
+//Global server variables (read-only)
 extern unsigned long long max_packet_length;
 extern unsigned short omp_threads;
-//extern pthread_mutex_t metadb_mutex;
-extern pthread_rwlock_t rwlock;
 extern unsigned short client_ttl;
-extern oph_metadb_db_row *db_table;
 extern HASHTBL *plugin_table;
+
+extern pthread_rwlock_t rwlock;
+extern oph_metadb_db_row *db_table;
 
 //#define DEBUG
 

@@ -28,10 +28,9 @@
 #include <math.h>
 #include <debug.h>
 
-extern int msglevel;
-
 //Global
-oph_query_expr_symtable* oph_function_table = NULL;
+extern int msglevel;
+extern oph_query_expr_symtable* oph_function_table;
 
 #define MIN_VAR_ARRAY_LENGTH 20
 

@@ -52,6 +52,6 @@ bin_PROGRAMS=oph_query_expression_client
 
 oph_query_expression_client_SOURCES = oph_query_expression_client.c
 oph_query_expression_client_CFLAGS = $(OPT) -I../common -I../iostorage -I. @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\" ${MYSQL_CFLAGS}
-oph_query_expression_client_LDADD = -L. -loph_query_engine -loph_query_parser -L../common -ldebug 
+oph_query_expression_client_LDADD = -L. -loph_query_engine -loph_query_parser -L../common -ldebug -lpthread
 
 endif

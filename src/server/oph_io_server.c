@@ -32,19 +32,21 @@
 #include "oph_query_plugin_loader.h"
 
 //TODO put globals into global struct 
-//Global server variables (read only)
+//Global server variables (read-only)
 unsigned long long max_packet_length = 0;
 unsigned short omp_threads = 0;
 unsigned short client_ttl = 0;
-//pthread_mutex_t metadb_mutex  = PTHREAD_MUTEX_INITIALIZER;
+
 pthread_rwlock_t       rwlock = PTHREAD_RWLOCK_INITIALIZER;
+pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
+
 oph_metadb_db_row *db_table = NULL;
-HASHTBL *conf_db = NULL;
-extern HASHTBL *plugin_table;  
-extern oph_query_expr_symtable *oph_function_table;
+HASHTBL *plugin_table = NULL;  
+oph_query_expr_symtable *oph_function_table = NULL;
 
 //Global only in this files (for garbage collection purpose)
 struct sockaddr	*cliaddr;
+HASHTBL *conf_db = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -219,11 +221,7 @@ int main(int argc, char *argv[])
 		if(oph_net_accept(listenfd, cliaddr, &clilen, &tmpconnfd) != 0){
 			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error on connection\n");
 			logging(LOG_ERROR,__FILE__,__LINE__,"Error on connection\n");
-			free(cliaddr);
-			oph_metadb_unload_schema (db_table);
-			oph_server_conf_unload(&conf_db);
-			oph_unload_plugins(&plugin_table, &oph_function_table);
-			return -1;
+			continue;	
 		}
 
 		pmesg(LOG_DEBUG,__FILE__,__LINE__,"Connection established on socket %d\n", tmpconnfd);
@@ -236,11 +234,7 @@ int main(int argc, char *argv[])
 		if ( pthread_create(&tid, NULL, &server_child, (void *) connfd) != 0){
 			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error creating thread\n");
 			logging(LOG_ERROR,__FILE__,__LINE__,"Error creating thread\n");
-			free(cliaddr);
-			oph_metadb_unload_schema (db_table);
-			oph_server_conf_unload(&conf_db);
-			oph_unload_plugins(&plugin_table, &oph_function_table);
-			return -1;
+			continue;
 		}
     connfd = NULL;
 

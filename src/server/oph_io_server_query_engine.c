@@ -30,7 +30,6 @@
 #include "oph_query_engine_language.h"
 
 extern int msglevel;
-//extern pthread_mutex_t metadb_mutex;
 extern pthread_rwlock_t rwlock;
 
 int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_query_arg **args, HASHTBL *query_args)

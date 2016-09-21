@@ -33,10 +33,9 @@
 #include <pthread.h>
 
 extern int msglevel;
+extern pthread_mutex_t libtool_lock;
 
 static int oph_iostore_find_device (const char *device, char **dyn_lib, unsigned short int *is_persitent);
-
-pthread_mutex_t libtool_lock;
 
 int oph_iostore_setup(const char *device, oph_iostore_handler **handle){
   if (!handle){

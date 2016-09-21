@@ -23,6 +23,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+
+pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int main()
 {
