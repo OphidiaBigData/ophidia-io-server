@@ -33,16 +33,7 @@
 //UDF interfaces. UDF_ARGS and UDF_INIT are defined in mysql_com.h
 
 //UDF fixed interface
-my_bool (*_oph_plugin_init)(UDF_INIT*, UDF_ARGS*, char*);
-void (*_oph_plugin_deinit)(UDF_INIT*);
-//UDF depending upon return type (long long, double or char)
-long long (*_oph_plugin1)(UDF_INIT*, UDF_ARGS*, char*, char*);
-double (*_oph_plugin2)(UDF_INIT*, UDF_ARGS*, char*, char*);
-char* (*_oph_plugin3)(UDF_INIT*, UDF_ARGS*,  char*, unsigned long*, char*, char*);
-//UDF aggregate functions interfaces
-void (*_oph_plugin_add)(UDF_INIT*, UDF_ARGS*, char*, char*);
 void (*_oph_plugin_reset)(UDF_INIT*, UDF_ARGS*, char*, char*);
-void (*_oph_plugin_clear)(UDF_INIT*, char*, char*);
 
 /**
  * \brief			          Structure to retrieve data where plugin is applied 
