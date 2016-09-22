@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 
 /*
 SERIALIZATION DEFINITION:
@@ -370,10 +371,20 @@ int _oph_metadb_write_row(char *line, unsigned int line_length, unsigned short i
     return OPH_METADB_IO_ERR;
   }
 
+	int fd = fileno(fp);
+	if(fd == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);  
+		fclose(fp);  
+		return OPH_METADB_IO_ERR;
+	}
+
+	flock(fd, LOCK_EX); 
   if(append_flag == 0) {
     if(fseek (fp, file_offset,SEEK_SET)){
    		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);
     	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);    
+		flock(fd, LOCK_UN); 
       fclose(fp);
       return OPH_METADB_IO_ERR; 
     }
@@ -382,6 +393,7 @@ int _oph_metadb_write_row(char *line, unsigned int line_length, unsigned short i
     if(fseek(fp, 0, SEEK_END)){
    		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);
     	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);    
+		flock(fd, LOCK_UN); 
       fclose(fp);
       return OPH_METADB_IO_ERR; 
     }
@@ -398,11 +410,13 @@ int _oph_metadb_write_row(char *line, unsigned int line_length, unsigned short i
   if(line_length <= 0) {
  		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_WRITE_ERROR,line_length, schema_file);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_WRITE_ERROR,line_length, schema_file);    
+	flock(fd, LOCK_UN); 
     fclose(fp);
     return OPH_METADB_IO_ERR; 
   }
   fwrite (line , sizeof(char), line_length, fp);
   
+	flock(fd, LOCK_UN); 
   fclose(fp);
   
   return OPH_METADB_OK;
@@ -423,9 +437,19 @@ int _oph_metadb_remove_row(char *schema_file, unsigned long long file_offset){
     return OPH_METADB_IO_ERR;
   }
 
+	int fd = fileno(fp);
+	if(fd == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);  
+		fclose(fp);  
+		return OPH_METADB_IO_ERR;
+	}
+
+	flock(fd, LOCK_EX); 
   if(fseek (fp, file_offset + sizeof(unsigned int),SEEK_SET)){
     pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);
     logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);    
+	flock(fd, LOCK_UN); 
     fclose(fp);
     return OPH_METADB_IO_ERR; 
   }
@@ -435,6 +459,7 @@ int _oph_metadb_remove_row(char *schema_file, unsigned long long file_offset){
   //Write active flag to file
   fwrite (&flag , sizeof(char), 1, fp);
   
+	flock(fd, LOCK_UN); 
   fclose(fp);
   
   return OPH_METADB_OK;
@@ -456,9 +481,19 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
     return OPH_METADB_IO_ERR;
   }
 
+	int fd = fileno(fp);
+	if(fd == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);  
+		fclose(fp);  
+		return OPH_METADB_IO_ERR;
+	}
+
+	flock(fd, LOCK_EX); 
   if(fseek (fp, file_offset,SEEK_SET)){
  		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);    
+	flock(fd, LOCK_UN); 
     fclose(fp);
     return OPH_METADB_IO_ERR; 
   }
@@ -474,6 +509,7 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
   if(tmp_active_f == 0){
  		pmesg(LOG_DEBUG,__FILE__,__LINE__,OPH_METADB_LOG_FILE_DEL_READ_ERROR, schema_file);
     logging(LOG_DEBUG, __FILE__, __LINE__, OPH_METADB_LOG_FILE_DEL_READ_ERROR, schema_file);
+	flock(fd, LOCK_UN); 
     fclose(fp);
     *line_length = tmp_len;
     *line = NULL;
@@ -482,6 +518,7 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
   if(tmp_len <= 0) {
  		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR,tmp_len, schema_file);
     logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR,tmp_len, schema_file);
+	flock(fd, LOCK_UN); 
     fclose(fp);
     return OPH_METADB_IO_ERR; 
   }
@@ -490,10 +527,13 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
   {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_MEMORY_ALLOC_ERROR);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_MEMORY_ALLOC_ERROR);    
+	flock(fd, LOCK_UN); 
+    fclose(fp);
     return OPH_METADB_MEMORY_ERR;
   }
   fread (tmp_line , sizeof(char), tmp_len, fp);
 
+	flock(fd, LOCK_UN); 
   fclose(fp);
 
   *line_length = tmp_len;
@@ -517,15 +557,26 @@ int _oph_metadb_count_bytes(char *schema_file, unsigned long long *byte_size){
     return OPH_METADB_IO_ERR;
   }
 
+	int fd = fileno(fp);
+	if(fd == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);  
+		fclose(fp);  
+		return OPH_METADB_IO_ERR;
+	}
+
   //Get file total length
+	flock(fd, LOCK_EX); 
   if(fseek (fp, 0,SEEK_END)){
  		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);
   	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);    
+	flock(fd, LOCK_UN); 
     fclose(fp);
     return OPH_METADB_IO_ERR; 
   }
   long int tot_length = ftell (fp);
   
+	flock(fd, LOCK_UN); 
   fclose(fp);
 
   *byte_size = tot_length;
@@ -596,12 +647,37 @@ int _oph_metadb_delete_procedure(char *schema_file, short int clean_all){
     return OPH_METADB_MEMORY_ERR;
   }
  
+	int fd = fileno(fp);
+	if(fd == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);  
+		free(tmp_line);      
+		fclose(fp);  
+	    fclose(fp_tmp);
+		return OPH_METADB_IO_ERR;
+	}
+	int fd_tmp = fileno(fp_tmp);
+	if(fd_tmp == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, tmp_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, tmp_file);  
+			free(tmp_line);      
+		fclose(fp);  
+	    fclose(fp_tmp);
+		return OPH_METADB_IO_ERR;
+	}
+
+
+	flock(fd, LOCK_EX); 
+	flock(fd_tmp, LOCK_EX); 
+
   while (fread(&tmp_length,sizeof(unsigned int),1,fp) > 0) 
   {
     if(tmp_length <= 0) {
   		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_WRITE_ERROR,tmp_length, schema_file);
     	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_WRITE_ERROR,tmp_length, schema_file);    
       free(tmp_line);      
+		flock(fd, LOCK_UN); 
+		flock(fd_tmp, LOCK_UN); 
       fclose(fp);
       fclose(fp_tmp);
       return OPH_METADB_IO_ERR; 
@@ -616,6 +692,8 @@ int _oph_metadb_delete_procedure(char *schema_file, short int clean_all){
       {
 		    pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_MEMORY_ALLOC_ERROR);
       	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_MEMORY_ALLOC_ERROR);    
+		flock(fd, LOCK_UN); 
+		flock(fd_tmp, LOCK_UN); 
         fclose(fp);
         fclose(fp_tmp);
         return OPH_METADB_MEMORY_ERR;
@@ -648,6 +726,8 @@ int _oph_metadb_delete_procedure(char *schema_file, short int clean_all){
   }
 
   free(tmp_line);      
+	flock(fd, LOCK_UN); 
+	flock(fd_tmp, LOCK_UN); 
 	fclose(fp);
 	fclose(fp_tmp);
 
@@ -678,12 +758,23 @@ int _oph_metadb_count_records(char *schema_file, unsigned long long *record_numb
   unsigned int tmp_length = 0;
   char tmp_flag = 1;
   unsigned long long active_counter = 0;
- 
+
+	int fd = fileno(fp);
+	if(fd == -1){
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_OPEN_ERROR,errno, schema_file);  
+		fclose(fp);  
+		return OPH_METADB_IO_ERR;
+	}
+
+	flock(fd, LOCK_EX); 
+
   while (fread(&tmp_length,sizeof(unsigned int),1,fp) > 0) 
   {
     if(tmp_length <= 0) {
    		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR,tmp_length, schema_file);
       logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR,tmp_length, schema_file);
+		flock(fd, LOCK_UN); 
       fclose(fp);
       return OPH_METADB_IO_ERR; 
     }
@@ -698,6 +789,7 @@ int _oph_metadb_count_records(char *schema_file, unsigned long long *record_numb
     if(fseek (fp, tmp_length + 1, SEEK_CUR)){
    		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);
     	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_SEEK_ERROR,errno, schema_file);    
+		flock(fd, LOCK_UN); 
       fclose(fp);
       return OPH_METADB_IO_ERR; 
     }    
@@ -705,6 +797,7 @@ int _oph_metadb_count_records(char *schema_file, unsigned long long *record_numb
 
   *record_number = active_counter;
 
+	flock(fd, LOCK_UN); 
 	fclose(fp);
 
   return OPH_METADB_OK;
