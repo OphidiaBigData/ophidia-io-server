@@ -25,6 +25,10 @@
 #include <math.h>
 #include <debug.h>
 #include <pthread.h>
+#include <signal.h>
+
+#include "oph_query_plugin_loader.h"
+#include "oph_network.h"
 
 #define _GNU_SOURCE
 
@@ -66,6 +70,7 @@ int main(void)
     oph_query_expr_add_long("id_dim",1,table);    
     printf("Expected result: eval error.\n");
     if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) printf("%lld\n",res->data.long_value);
+    free(res);
     oph_query_expr_delete_node(e, table);
     e = NULL;
 
@@ -170,6 +175,110 @@ int main(void)
     oph_query_expr_delete_node(e4, table4);
     oph_query_expr_destroy_symtable(table4);
     free(variables);
+
     oph_query_expr_destroy_symtable(oph_function_table);
+
+	//Stress test
+    printf("\nTest 8\n");
+    if(oph_load_plugins(&plugin_table, &oph_function_table)){
+        oph_unload_plugins(&plugin_table, &oph_function_table);
+    }
+    else{
+        void *exp_thread(void *arg);
+        void release(int signo);    
+
+         //Signal(SIGPIPE, SIG_IGN);
+        oph_net_signal(SIGINT, release);
+        oph_net_signal(SIGABRT, release);
+        oph_net_signal(SIGQUIT, release);
+
+        int id;
+        int *k;
+        pthread_t tid;
+        for(id = 0; id < 100; id++){
+            k = (int *)malloc(sizeof(int));
+            *k = id;
+            if ( pthread_create(&tid, NULL, &exp_thread, k) != 0){
+                continue;
+            }
+        }
+
+        while(1) ;
+    }
+
     return 1;
+}
+
+//Garbage collecition function
+void release(int signo)
+{
+	//Cleanup procedures
+	pmesg(LOG_DEBUG,__FILE__,__LINE__,"Catched signal %d\n", signo);
+	oph_unload_plugins(&plugin_table, &oph_function_table);
+
+	exit(0);
+}
+
+void *exp_thread(void *arg)
+{
+    if ( pthread_detach(pthread_self()) != 0)
+        return(NULL);
+
+    printf("Running thread %d\n", *((int*)arg));
+
+    //creation of binary variable
+    double bin[10] = {10.1,3.45,2.6,100.234,23.46,67.98,13.91,8.546,923.45,-10.9456};
+    char *vbin = (char*)malloc(10*sizeof(double));
+    memcpy((void*) vbin, (long long*) &bin, 10*sizeof(double));
+
+    oph_query_arg val_b;
+    val_b.arg_length = 10*sizeof(double);
+    val_b.arg = vbin;
+
+    char* stress_test = NULL;
+    switch(*((int*)arg)%3) {
+    	case 0:
+    		stress_test = "oph_get_subarray('OPH_DOUBLE','OPH_DOUBLE',measure,3,4)";
+    		break;
+    	case 1:
+    		stress_test = "oph_reduce('OPH_DOUBLE','OPH_DOUBLE',measure,'OPH_AVG',0,2)";
+    		break;
+    	case 2:
+    		stress_test = "oph_gsl_sort('OPH_DOUBLE','OPH_DOUBLE',measure)";
+    		break;
+    }
+
+    oph_query_expr_node *e = NULL;
+    oph_query_expr_symtable *table;
+    oph_query_expr_create_symtable(&table, 10);
+    oph_query_expr_value *res = NULL;
+
+    oph_query_expr_get_ast(stress_test, &e);
+    oph_query_expr_add_binary("measure", &val_b, table);
+
+    int j;
+    for (j = 0; j < 1; j++){
+        if(e != NULL && !oph_query_expr_eval_expression(e,&res,table)) {
+            printf("Correct execution of thread %d on row %d\n", *((int*)arg), j);
+            free(res->data.binary_value->arg);
+            free(res->data.binary_value);	
+            free(res);
+        }
+        else{
+            printf("Incorrect execution of thread %d on row %d\n", *((int*)arg), j);
+            free(res->data.binary_value->arg);
+            free(res->data.binary_value);	
+            free(res);
+            break;
+        }
+    }
+
+    printf("Ending thread %d\n", *((int*)arg));
+
+    oph_query_expr_delete_node(e, table);
+    oph_query_expr_destroy_symtable(table);
+    free(vbin);
+    free(arg);
+
+    return(NULL);
 }
