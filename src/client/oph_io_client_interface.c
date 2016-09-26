@@ -75,7 +75,7 @@ int oph_io_client_setup (){
 }
 
 //Connect or reconnect
-int oph_io_client_connect (const char *hostname, const char *port, oph_io_client_connection **connection){
+int oph_io_client_connect (const char *hostname, const char *port, const char *db_name, const char *device, oph_io_client_connection **connection){
 	if (!hostname || !port || !connection)
 	{
 		pmesg(LOG_ERROR,__FILE__,__LINE__,"Parameters are not given\n");
@@ -123,9 +123,20 @@ int oph_io_client_connect (const char *hostname, const char *port, oph_io_client
 
   strncpy((*connection)->port, port, OPH_IO_CLIENT_PORT_LEN );
   strncpy((*connection)->host, hostname, OPH_IO_CLIENT_HOST_LEN );
+  memset((*connection)->db_name, 0, OPH_IO_CLIENT_DB_LEN);
   (*connection)->port[OPH_IO_CLIENT_PORT_LEN-1] = 0;
   (*connection)->host[OPH_IO_CLIENT_HOST_LEN-1] = 0;
   (*connection)->socket = fd;
+
+	//Set default db
+	if(db_name){
+		if(oph_io_client_use_db (db_name, device, *connection))
+		{
+			pmesg(LOG_ERROR,__FILE__,__LINE__,"Connection error\n");
+			return OPH_IO_CLIENT_INTERFACE_IO_ERR;
+		}
+		strncpy((*connection)->db_name, db_name, OPH_IO_CLIENT_DB_LEN );	
+	}
 
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }

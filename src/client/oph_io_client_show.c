@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
   oph_io_client_connection *connection = NULL;  
 	pmesg(LOG_DEBUG,__FILE__,__LINE__,"Connection to server...\n");
-	if ((res = oph_io_client_connect (host, port, &connection)))
+	if ((res = oph_io_client_connect (host, port, NULL, "memory", &connection)))
     pmesg(LOG_ERROR,__FILE__,__LINE__,"Error in connection\n");
   else{
     oph_io_client_query *stmt = NULL;

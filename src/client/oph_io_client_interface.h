@@ -29,6 +29,7 @@
 
 #define OPH_IO_CLIENT_PORT_LEN 10
 #define OPH_IO_CLIENT_HOST_LEN 512
+#define OPH_IO_CLIENT_DB_LEN 1024
 
 //Packet format
 /*
@@ -68,11 +69,13 @@
  * \brief        Structure to contain reference to server connection
  * \param host   String with hostname or IP address of server
  * \param port   Port of the server
+ * \param db   	DB to be used on the server
  * \param socket Id of file descriptor of socket associated to connection
  */
 typedef struct{
 	char host[OPH_IO_CLIENT_HOST_LEN];
 	char port[OPH_IO_CLIENT_PORT_LEN];
+	char db_name[OPH_IO_CLIENT_DB_LEN];
   int socket;
 }oph_io_client_connection;
 
@@ -158,10 +161,12 @@ int oph_io_client_setup ();
  * \brief               Function to connect or reconnect to IO server.
  * \param hostname      Hostname of server
  * \param port          Port of server
+ * \param db_name       DB to be used (can be NULL)
+ * \param device        Name of device where data is stored
  * \param connection    Pointer to IO server connection structure
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_connect (const char *hostname, const char *port, oph_io_client_connection **connection);
+int oph_io_client_connect (const char *hostname, const char *port, const char *db_name, const char *device, oph_io_client_connection **connection);
 
 /**
  * \brief               Function to set default database for specified server.
