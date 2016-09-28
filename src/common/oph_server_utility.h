@@ -27,6 +27,7 @@
 
 #define UNUSED(x) {(void)(x);}
 #define OPH_MIN_MEMORY 1073741824
+#define OPH_MIN_MEMORY_PERC 0.1
 
 #define OPH_NAME_ID "id_dim"
 #define OPH_NAME_MEASURE "measure"

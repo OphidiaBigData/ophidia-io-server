@@ -109,7 +109,9 @@ int memory_check() // Check for memory swap
 
 	if (pthread_rwlock_unlock(&syslock)) return OPH_SERVER_UTIL_ERROR;
 
-	if ((info.freeram + info.bufferram < OPH_MIN_MEMORY) && (info.totalswap - info.freeswap > OPH_MIN_MEMORY))
+	unsigned long long min_free_mem = (unsigned long long)(OPH_MIN_MEMORY_PERC *(info.totalram < OPH_MIN_MEMORY ? OPH_MIN_MEMORY : info.totalram));
+
+	if ((info.freeram + info.bufferram < min_free_mem))
 	{
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Out of memory\n");
 		return OPH_SERVER_UTIL_ERROR;
