@@ -71,6 +71,7 @@ typedef struct{
  * \brief			            Structure to store thread status info
  * \param current_db 	    Pointer to current (default) database, if defined
  * \param last_result_set	Pointer to last result set retrieved by a selection query
+ * \param delete_only_rs	Flag set to 1 if only record set structure should be deleted
  * \param device        	Device selected for operations
  * \param curr_stmt       Current statement being executed, if any
  */
@@ -78,6 +79,7 @@ typedef struct{
   //oph_metadb_db_row *current_db; 
   char *current_db;
   oph_iostore_frag_record_set *last_result_set;
+  char delete_only_rs;
   char *device;
   oph_io_server_running_stmt *curr_stmt;
 }oph_io_server_thread_status;

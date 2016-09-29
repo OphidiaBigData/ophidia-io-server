@@ -520,9 +520,9 @@ int oph_query_check_procedure_string(char **param)
 		return OPH_QUERY_ENGINE_EXEC_ERROR;
 	}
 
-	short int double_quote_flag = 0;	
-	short int single_quote_flag = 0;	
-	short int no_double_quote_flag = 0;
+	char double_quote_flag = 0;	
+	char single_quote_flag = 0;	
+	char no_double_quote_flag = 0;
 
 	//Remove leading quotes and spaces
 	while(*str_start == ' ' || *str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER || *str_start == OPH_QUERY_ENGINE_LANG_STRING_DELIMITER2 ){

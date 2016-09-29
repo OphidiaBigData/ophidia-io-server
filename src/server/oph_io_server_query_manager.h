@@ -97,12 +97,14 @@
 #define OPH_IO_SERVER_LOG_NO_VARIABLE_FOR_GROUP				"At least one variable is required in group by clause: %s\n"
 #define OPH_IO_SERVER_LOG_GROUP_ERROR						"Error interpreting group by clause\n"
 #define OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR				"Error while extracting variables from %s\n"
+#define OPH_IO_SERVER_LOG_TOO_MANY_TABLES					"Only one table can be used in export procedure\n"
 
 #define OPH_IO_SERVER_BUFFER 1024
 
 //procedures names
 
 #define OPH_IO_SERVER_PROCEDURE_SUBSET "oph_subset"
+#define OPH_IO_SERVER_PROCEDURE_EXPORT "oph_export"
 
 //Server Main manager function
 /**
@@ -349,6 +351,26 @@ int oph_io_server_run_create_db(oph_metadb_db_row **meta_db, oph_iostore_handler
 int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, HASHTBL *query_args, char **deleted_db);
 
 //Internal server procedures
+/**
+ * \brief               Internal function used to perform subset function 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param thread_status Status of thread executing the query
+ * \param args          Additional query arguments
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
 int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
+
+/**
+ * \brief               Internal function used to perform export function 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param thread_status Status of thread executing the query
+ * \param args          Additional query arguments
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
 
 #endif /* OPH_IO_SERVER_QUERY_MANAGER_H */

@@ -795,7 +795,7 @@ int _oph_ioserver_query_multi_table_where_assert(int table_num, short int *id_in
 	}
 
 	//Assume to have only inner join where clauses with unique and sorted ids 
-	short int id_error_flag = 0;
+	char id_error_flag = 0;
 	long long a,b,j;
 	long long table_min[table_num];
 	long long table_max[table_num];
@@ -1040,8 +1040,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 	*input_row_num = 0;
 	*input_rs = NULL;
 
-	short int create_flag = 0;
-	if(out_db_name != NULL && out_frag_name != NULL) create_flag = 1;
+	char create_flag = (out_db_name != NULL && out_frag_name != NULL);
 
 	//Extract frag_name arg from query args
 	char *from_frag_name = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FROM);
@@ -1412,8 +1411,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 	while(inputs[i++]) table_num++;	
 
 	//Check if sequential ID are used
-	short int sequential_id = 0;
-	short int use_seq_id = 0;
+	char sequential_id = 0;
+	char use_seq_id = 0;
 	long long start_id = 0;
 	char *sid = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL);
 	if(sid != NULL){

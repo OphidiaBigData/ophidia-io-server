@@ -63,7 +63,13 @@ int oph_io_server_free_status(oph_io_server_thread_status *status){
 	}	
 	if(status->current_db != NULL)	free(status->current_db);
 	if(status->device != NULL)	free(status->device);
-	if(status->last_result_set != NULL)	oph_iostore_destroy_frag_recordset(&status->last_result_set);
+
+	if(status->last_result_set != NULL){
+		if(status->delete_only_rs) oph_iostore_destroy_frag_recordset_only(&(status->last_result_set));
+		else oph_iostore_destroy_frag_recordset(&(status->last_result_set));
+	}
+	status->last_result_set = NULL;
+	status->delete_only_rs = 0;
 
 	return 0;
 }
@@ -132,6 +138,7 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 	oph_io_server_thread_status global_status;
 	global_status.current_db = NULL;
 	global_status.last_result_set = NULL;
+	global_status.delete_only_rs = 0;
 	global_status.device = NULL;
 	global_status.curr_stmt = NULL; 
 

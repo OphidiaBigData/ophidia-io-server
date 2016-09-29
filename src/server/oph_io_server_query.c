@@ -74,8 +74,12 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		//Execute select fragment query  
 
 		//First delete last result set
-		if(thread_status->last_result_set != NULL)	oph_iostore_destroy_frag_recordset(&(thread_status->last_result_set));
+		if(thread_status->last_result_set != NULL){
+			if(thread_status->delete_only_rs) oph_iostore_destroy_frag_recordset_only(&(thread_status->last_result_set));
+			else oph_iostore_destroy_frag_recordset(&(thread_status->last_result_set));
+		}
 		thread_status->last_result_set = NULL;
+		thread_status->delete_only_rs = 0;
 
 		//Check if current DB is setted
 		//TODO Improve how current DB is found
@@ -138,7 +142,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
         return OPH_IO_SERVER_MEMORY_ERROR;             
       }
 
-			//Compute size of record_set variable
+		//Compute size of record_set variable
       thread_status->curr_stmt->size = sizeof(oph_iostore_frag_record *)*(1 + (thread_status->curr_stmt->tot_run ? thread_status->curr_stmt->tot_run : 1));
     }
 
@@ -231,7 +235,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 				return OPH_IO_SERVER_EXEC_ERROR;        
 			}
 			//If final statement is set, then activate flag
-			short int final_stmt_flag = (STRCMP(final_stmt, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0);
+			char final_stmt_flag = (STRCMP(final_stmt, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0);
 
 			//Add rows inserted by current statement
 			thread_status->curr_stmt->mi_prev_rows += (thread_status->curr_stmt->tot_run ? thread_status->curr_stmt->tot_run : 1)*insert_num;				
@@ -385,6 +389,14 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		if(oph_io_server_run_subset_procedure(meta_db, dev_handle, thread_status, args, query_args)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Subset Procedure");
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Subset Procedure");	
+			return OPH_IO_SERVER_EXEC_ERROR;        
+		}
+	}	
+	else if(STRCMP(function_name, OPH_IO_SERVER_PROCEDURE_EXPORT) ==0){
+		//Call Subset internal procedure
+		if(oph_io_server_run_export_procedure(meta_db, dev_handle, thread_status, args, query_args)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Export Procedure");
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Export Procedure");	
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 	}	

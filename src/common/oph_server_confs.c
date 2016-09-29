@@ -60,7 +60,7 @@ int oph_server_conf_load(short unsigned int instance, HASHTBL **hashtbl)
     char *position = NULL, *position2 = NULL;
     const char *param_iter = NULL;
     int i = 0, j = 0;
-    short int instance_flag = 0;
+    char instance_flag = 0;
     char *instance_string = 0;
     short unsigned int instance_number = 0;
 
