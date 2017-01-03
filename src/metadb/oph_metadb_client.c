@@ -304,7 +304,7 @@ void *test_metadb(void *arg)
     printf("Unable to lock mutex\n");
     return(NULL);
   }
-  if(oph_metadb_remove_frag (test_row1, test_frag_row1->frag_name)){
+  if(oph_metadb_remove_frag (test_row1, test_frag_row1->frag_name, NULL)){
     pthread_mutex_unlock( &metadb_mutex );
     printf("Unable to remove data from MetaDB\n");
     return(NULL);

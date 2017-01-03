@@ -765,7 +765,7 @@ int oph_metadb_add_frag (oph_metadb_db_row *db, oph_metadb_frag_row *frag)
   return OPH_METADB_OK;
 }
 
-int oph_metadb_remove_frag (oph_metadb_db_row *db, char *frag_name)
+int oph_metadb_remove_frag (oph_metadb_db_row *db, char *frag_name, oph_iostore_resource_id *frag_id)
 {
   if(!db || !frag_name){
 		pmesg(LOG_ERROR,__FILE__,__LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -796,6 +796,13 @@ int oph_metadb_remove_frag (oph_metadb_db_row *db, char *frag_name)
       else{
         //If first record
         db->first_frag = (struct oph_metadb_frag_row *)tmp_row->next_frag;
+      }
+
+	  if(frag_id)
+      {
+			//Recoved resource id
+			frag_id->id = (void *)memdup(tmp_row->frag_id.id,tmp_row->frag_id.id_length);
+			frag_id->id_length = tmp_row->frag_id.id_length;
       }
       oph_metadb_cleanup_frag_struct (tmp_row);
 

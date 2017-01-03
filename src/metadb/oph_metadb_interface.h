@@ -190,9 +190,10 @@ int oph_metadb_add_frag (oph_metadb_db_row *db, oph_metadb_frag_row *frag);
  * \brief           Function to remove a frag record (if it does exist) from DB. Also update first_frag into DB if necessary.   NOTE: frag is uniquely identified by the couple frag_name and the DB record. 
  * \param db        Pointer to DB where the frag is placed
  * \param frag_name Name of fragment to be removed
+ * \param frag_id 	Resource identifier of fragment to be removed (must be freed by the caller). If null is passed no identifier will be returned.
  * \return          0 if successfull, non-0 otherwise
  */
-int oph_metadb_remove_frag (oph_metadb_db_row *db, char *frag_name);
+int oph_metadb_remove_frag (oph_metadb_db_row *db, char *frag_name, oph_iostore_resource_id *frag_id);
 
 /**
  * \brief           Function to find a frag from MetaDB (after verifying its existance). If frag_name is NULL, then the first frag is found.  NOTE: frag is uniquely identified by the couple frag_name and the DB record. 
