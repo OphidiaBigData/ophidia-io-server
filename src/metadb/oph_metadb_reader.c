@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
 
   test_row = db_table; 
   char tmp[1024];
+  int i;
 
   if(test_row != NULL){
     printf("+============+================================+======================+============+======================+==========================================+\n");
@@ -104,12 +105,14 @@ int main(int argc, char *argv[])
       snprintf(tmp, 1024, "%s: %llu", "Frag num", test_row->frag_number);
       printf("| %-10s | %-30s | %-20s | %-10s | %-20llu | %-40s |\n", "DB", test_row->db_name, test_row->device, (test_row->is_persistent ? "YES" : "NO"),test_row->file_offset, tmp);
       //Display all fragments into DB
-      test_frag_row = (oph_metadb_frag_row *)test_row->first_frag;
-      while(test_frag_row){
-        snprintf(tmp, 1024, "%s: %llu", "Frag size", test_frag_row->frag_size);
-        printf("| %-10s | %-30s | %-20s | %-10s | %-20llu | %-40s |\n", "->FRAG", test_frag_row->frag_name, test_frag_row->device, (test_row->is_persistent ? "YES" : "NO"),test_frag_row->file_offset, tmp);
-        test_frag_row = (oph_metadb_frag_row *)test_frag_row->next_frag; 
-      }
+		for(i = 0; i < test_row->table->size; i++) {
+			test_frag_row = test_row->table->rows[i];
+			while(test_frag_row){
+				snprintf(tmp, 1024, "%s: %llu", "Frag size", test_frag_row->frag_size);
+				printf("| %-10s | %-30s | %-20s | %-10s | %-20llu | %-40s |\n", "->FRAG", test_frag_row->frag_name, test_frag_row->device, (test_row->is_persistent ? "YES" : "NO"),test_frag_row->file_offset, tmp);
+				test_frag_row = (oph_metadb_frag_row *)test_frag_row->next_frag; 
+			}
+		}
       test_frag_row = NULL;
       test_row = (oph_metadb_db_row *)test_row->next_db; 
       if(test_row) printf("+------------+--------------------------------+----------------------+------------+----------------------+------------------------------------------+\n");
