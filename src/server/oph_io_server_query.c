@@ -359,14 +359,6 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
   else if(STRCMP(query_oper,OPH_QUERY_ENGINE_LANG_OP_FUNCTION) ==0){
     //Compose query by selecting fields in the right order 
 
-    //Check if current DB is setted
-    //TODO Improve how current DB is found
-    if(thread_status->current_db == NULL || thread_status->device == NULL){
-        pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);
-        logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);	
-        return OPH_IO_SERVER_METADB_ERROR;             
-    }
-
 	//Fetch procedure name
 	char *function_name = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FUNC);
 	if (function_name == NULL)
@@ -393,10 +385,18 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
 		}
 	}	
 	else if(STRCMP(function_name, OPH_IO_SERVER_PROCEDURE_EXPORT) ==0){
-		//Call Subset internal procedure
+		//Call Export internal procedure
 		if(oph_io_server_run_export_procedure(meta_db, dev_handle, thread_status, args, query_args)){
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Export Procedure");
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Export Procedure");	
+			return OPH_IO_SERVER_EXEC_ERROR;        
+		}
+	}	
+	else if(STRCMP(function_name, OPH_IO_SERVER_PROCEDURE_SIZE) ==0){
+		//Call Compute size internal procedure
+		if(oph_io_server_run_size_procedure(meta_db, dev_handle, thread_status, args, query_args)){
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Size Procedure");
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Size Procedure");	
 			return OPH_IO_SERVER_EXEC_ERROR;        
 		}
 	}	

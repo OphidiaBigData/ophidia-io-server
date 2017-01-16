@@ -105,6 +105,7 @@
 
 #define OPH_IO_SERVER_PROCEDURE_SUBSET "oph_subset"
 #define OPH_IO_SERVER_PROCEDURE_EXPORT "oph_export"
+#define OPH_IO_SERVER_PROCEDURE_SIZE "oph_size"
 
 //Server Main manager function
 /**
@@ -372,5 +373,16 @@ int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
+
+/**
+ * \brief               Internal function used to perform size function 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param thread_status Status of thread executing the query
+ * \param args          Additional query arguments
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
 
 #endif /* OPH_IO_SERVER_QUERY_MANAGER_H */
