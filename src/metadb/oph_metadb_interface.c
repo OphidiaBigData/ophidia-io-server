@@ -40,14 +40,14 @@ void oph_metadb_set_data_prefix(char* p) {
   snprintf(tmp_file, OPH_SERVER_CONF_LINE_LEN, OPH_METADB_TEMP_SCHEMA, p);
 }
 
-static int oph_metadb_hash_function(const char *key)
+static unsigned int oph_metadb_hash_function(const char *key)
 {
-	int hash=0;
-	
-	while(*key) 
-		hash = hash * 65599 + (unsigned char)*key++;
+	/* djb2 hash function - Adapted from http://www.cse.yorku.ca/~oz/hash.html */
+	unsigned int hash = 5381;
+	while (*key)
+		hash = ((hash << 5) + hash) + (unsigned int)*key++;
 
-	return hash & 1023;
+	return hash;
 }
 
 oph_metadb_frag_table *oph_metadb_frag_table_create(int size)

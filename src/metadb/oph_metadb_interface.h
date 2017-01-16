@@ -38,7 +38,7 @@
 #define OPH_METADB_DATA_ERR 4
 
 //default hash table size
-#define OPH_METADB_FRAG_TABLE_SIZE 1000
+#define OPH_METADB_FRAG_TABLE_SIZE 5000
 
 /**
  * \brief			        Structure to contain a database schema record
