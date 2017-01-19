@@ -421,8 +421,8 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 			//Find Frag from MetaDB
 			if(oph_metadb_find_frag (tmp_db, func_args_list[i], &tmp_frag)){
 				pthread_rwlock_unlock(&rwlock);
-				pmesg(LOG_DEBUG, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
-				logging(LOG_DEBUG, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");	
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
 				free(func_args_list);
 				return OPH_IO_SERVER_METADB_ERROR;             
 			}
