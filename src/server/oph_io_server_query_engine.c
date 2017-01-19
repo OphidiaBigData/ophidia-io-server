@@ -792,6 +792,7 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 	oph_metadb_db_row *tmp_db_row = NULL; 
 	if(oph_metadb_setup_db_struct (db_row->db_name, db_row->device, dev_handle->is_persistent, &(db_row->db_id), db_row->frag_number, &tmp_db_row)) {
 		pthread_rwlock_unlock(&rwlock);
+		oph_iostore_delete_frag(dev_handle, &(frag_id));
         free(frag_id.id);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "db");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "db");
@@ -801,6 +802,7 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 	tmp_db_row->frag_number--;
 	if(oph_metadb_update_db (*meta_db, tmp_db_row)){
 		pthread_rwlock_unlock(&rwlock);
+		oph_iostore_delete_frag(dev_handle, &(frag_id));
         free(frag_id.id);
 		oph_metadb_cleanup_db_struct (tmp_db_row);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "db update");
@@ -811,6 +813,7 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 	//UNLOCK FROM HERE
 	if(pthread_rwlock_unlock(&rwlock) != 0){
 		oph_metadb_cleanup_db_struct (tmp_db_row);
+		oph_iostore_delete_frag(dev_handle, &(frag_id));
         free(frag_id.id);
 		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_UNLOCK_ERROR);
 		logging(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_UNLOCK_ERROR);

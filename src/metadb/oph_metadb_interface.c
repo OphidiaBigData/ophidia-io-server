@@ -913,11 +913,11 @@ int oph_metadb_find_frag (oph_metadb_db_row *db, char *frag_name, oph_metadb_fra
 
   if(db->table != NULL){
     //Find Frag in DB stack struct
-    int hash = oph_metadb_hash_function(frag_name) % db->table->size;
-    tmp_row = (oph_metadb_frag_row *)db->table->rows[hash];
-
     if(frag_name){
-      //If db is set
+      //If frag is set
+      int hash = oph_metadb_hash_function(frag_name) % db->table->size;
+      tmp_row = (oph_metadb_frag_row *)db->table->rows[hash];
+
       while(tmp_row){
         if(STRCMP(tmp_row->frag_name, frag_name) == 0)
         {
@@ -928,7 +928,7 @@ int oph_metadb_find_frag (oph_metadb_db_row *db, char *frag_name, oph_metadb_fra
       }
     }
     else{
-      //Get first db
+      //Get first frag
       int i;
       for(i = 0; i < db->table->size; i++) {
         tmp_row = db->table->rows[i];
