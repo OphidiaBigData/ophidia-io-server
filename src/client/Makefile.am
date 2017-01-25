@@ -24,9 +24,9 @@ lib_LTLIBRARIES = liboph_io_client_interface.la
 
 include_HEADERS=oph_io_client_interface.h
 
-bin_PROGRAMS= oph_io_client oph_io_client_show
+bin_PROGRAMS= 
 if DEBUG
-bin_PROGRAMS+=oph_io_client_test 
+bin_PROGRAMS+=oph_io_client_show oph_io_client_test oph_io_client  
 endif
 bindir=${prefix}/bin
 
@@ -35,6 +35,7 @@ liboph_io_client_interface_la_CFLAGS = $(OPT) -I../common  -I../network -fPIC
 liboph_io_client_interface_la_LIBADD = -L../common -ldebug -L../network -loph_network 
 liboph_io_client_interface_la_LDFLAGS = -module -avoid-version -shared
 
+if DEBUG
 oph_io_client_SOURCES = oph_io_client.c
 oph_io_client_CFLAGS= $(OPT)  -I../common 
 oph_io_client_LDADD= -L. -L../common -ldebug -loph_io_client_interface
@@ -43,7 +44,6 @@ oph_io_client_show_SOURCES = oph_io_client_show.c
 oph_io_client_show_CFLAGS= $(OPT) -I../common 
 oph_io_client_show_LDADD= -L. -L../common -ldebug -loph_io_client_interface
 
-if DEBUG
 oph_io_client_test_SOURCES = oph_io_client_test.c
 oph_io_client_test_CFLAGS= $(OPT) -I../common 
 oph_io_client_test_LDADD= -L. -L../common -ldebug -loph_io_client_interface

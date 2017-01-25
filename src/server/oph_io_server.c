@@ -31,6 +31,8 @@
 #include "oph_query_expression_evaluator.h"
 #include "oph_query_plugin_loader.h"
 
+#include "oph_license.h"
+
 //TODO put globals into global struct 
 //Global server variables (read-only)
 unsigned long long max_packet_length = 0;
@@ -65,29 +67,36 @@ int main(int argc, char *argv[])
 
 	int ch;
 	unsigned short int instance = 0;
-	unsigned short int help = 0;
 
+	static char *USAGE = "\nUSAGE:\noph_io_server [-i <instance_number>]\n";
 	
-	while ((ch = getopt(argc, argv, "i:h"))!=-1)
+	fprintf(stdout, "%s", OPH_VERSION);
+	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
+
+	while ((ch = getopt(argc, argv, "i:hxz"))!=-1)
 	{
 		switch (ch)
 		{
 			case 'h':
-				help = 1;
-			break;
+				fprintf(stdout, "%s", USAGE);
+				return 0;
 			case 'i':
 				instance = (unsigned short int)strtol(optarg, NULL, 10);
-			break;
+				break;
+			case 'x':
+				fprintf(stdout, "%s", OPH_WARRANTY);
+				return 0;
+			case 'z':
+				fprintf(stdout, "%s", OPH_CONDITIONS);
+				return 0;
+			default:
+				fprintf(stdout, "%s", USAGE);
+				return 0;
 		}
 	}
 
-	if (help)
-	{
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Execute server: oph_io_server -i <instance_number>\n");
-		exit(0);
-	}
   if(instance == 0){
-		pmesg(LOG_WARNING,__FILE__,__LINE__,"Using default (first) instance in configuration file\n");
+		pmesg(LOG_INFO,__FILE__,__LINE__,"Using default (first) instance in configuration file\n");
   }
 
   //mallopt(M_TRIM_THRESHOLD, 1024);
