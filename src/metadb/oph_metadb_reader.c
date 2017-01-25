@@ -26,57 +26,66 @@
 
 #include "oph_server_confs.h"
 
+#include "oph_license.h"
+
 int main(int argc, char *argv[])
 {
-  oph_metadb_db_row *db_table = NULL;
+	oph_metadb_db_row *db_table = NULL;
 
-  set_debug_level(LOG_ERROR);
+	set_debug_level(LOG_INFO);
 
 	int ch;
 	unsigned short int instance = 0;
-	unsigned short int help = 0;
 
-	while ((ch = getopt(argc, argv, "i:h"))!=-1)
+	static char *USAGE = "\nUSAGE:\noph_metadb_reader [-i <instance_number>]\n";
+	
+	fprintf(stdout, OPH_VERSION2, "MetaDB read client");
+	fprintf(stdout, OPH_DISCLAIMER, "oph_metadb_reader", "oph_metadb_reader");
+
+	while ((ch = getopt(argc, argv, "i:hxz"))!=-1)
 	{
 		switch (ch)
 		{
-			case 'h':
-				help = 1;
-			break;
 			case 'i':
 				instance = (unsigned short int)strtol(optarg, NULL, 10);
-			break;
+				break;
+			case 'h':
+				fprintf(stdout, "%s", USAGE);
+				return 0;
+			case 'x':
+				fprintf(stdout, "%s", OPH_WARRANTY);
+				return 0;
+			case 'z':
+				fprintf(stdout, "%s", OPH_CONDITIONS);
+				return 0;
+			default:
+				fprintf(stdout, "%s", USAGE);
+				return 0;
 		}
 	}
 
-	if (help)
-	{
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Execute MetaDB Reader: oph_metadb_reader -i <instance_number>\n");
-		exit(0);
+	if(instance == 0){
+		pmesg(LOG_INFO,__FILE__,__LINE__,"Using default (first) instance in configuration file\n");
 	}
-  if(instance == 0){
-		pmesg(LOG_WARNING,__FILE__,__LINE__,"Using default (first) instance in configuration file\n");
-  }
 
-  HASHTBL *conf_db = NULL;
+	HASHTBL *conf_db = NULL;
 
-  //Load params from conf files
-  if(oph_server_conf_load(instance, &conf_db)){
+	//Load params from conf files
+	if(oph_server_conf_load(instance, &conf_db)){
 		pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
-		//logging(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
-    return -1;
-  }
+		return -1;
+	}
 
-  char *dir = 0;
+	char *dir = 0;
 
-  if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)){
+	if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)){
 		pmesg(LOG_WARNING,__FILE__,__LINE__,"Unable to get server dir param\n");
 		dir = OPH_IO_SERVER_PREFIX;
-  }
+	}
 
-  //Setup debug and MetaDB directories
-  set_log_prefix(dir);
-  oph_metadb_set_data_prefix(dir);
+	//Setup log and MetaDB directories
+	set_log_prefix(dir);
+	oph_metadb_set_data_prefix(dir);
 
   
   if(oph_metadb_load_schema (&db_table, 0)){
@@ -90,7 +99,6 @@ int main(int argc, char *argv[])
 
   oph_metadb_db_row *test_row = NULL;
   oph_metadb_frag_row *test_frag_row = NULL;
-  //TODO create functions to get metaDB head and so on
 
   test_row = db_table; 
   char tmp[1024];
@@ -108,7 +116,7 @@ int main(int argc, char *argv[])
 		for(i = 0; i < test_row->table->size; i++) {
 			test_frag_row = test_row->table->rows[i];
 			while(test_frag_row){
-				snprintf(tmp, 1024, "%s: %llu", "Frag size", test_frag_row->frag_size);
+				snprintf(tmp, 1024, "%s: %llu B", "Frag size", test_frag_row->frag_size);
 				printf("| %-10s | %-30s | %-20s | %-10s | %-20llu | %-40s |\n", "->FRAG", test_frag_row->frag_name, test_frag_row->device, (test_row->is_persistent ? "YES" : "NO"),test_frag_row->file_offset, tmp);
 				test_frag_row = (oph_metadb_frag_row *)test_frag_row->next_frag; 
 			}
