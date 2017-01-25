@@ -755,8 +755,9 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 		return OPH_IO_SERVER_EXEC_ERROR;        
 	}
 
-	oph_metadb_frag_row *frag = NULL;
 	oph_metadb_db_row *db_row = NULL;
+	oph_iostore_resource_id frag_id;
+    frag_id.id = NULL;
 
 	//LOCK FROM HERE
 	if(pthread_rwlock_wrlock(&rwlock) != 0){
@@ -772,41 +773,27 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");	
 		return OPH_IO_SERVER_METADB_ERROR;             
 	}
-
-	//Check if Frag exists
-	if(oph_metadb_find_frag (db_row, frag_name, &frag)){
-		pthread_rwlock_unlock(&rwlock);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_NOT_EXIST_ERROR, "Frag find");
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_NOT_EXIST_ERROR, "Frag find");	
-		return OPH_IO_SERVER_METADB_ERROR;             
-	}
-    
-	if(frag == NULL){
-		pthread_rwlock_unlock(&rwlock);
-		pmesg(LOG_DEBUG, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
-		logging(LOG_DEBUG, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");	
-		return OPH_IO_SERVER_SUCCESS;             
-	}
-
-	//Call API to delete Frag
-	if(oph_iostore_delete_frag(dev_handle, &(frag->frag_id)) != 0){
-		pthread_rwlock_unlock(&rwlock);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");	
-		return OPH_IO_SERVER_API_ERROR;             
-	} 
     
 	//Remove Frag from MetaDB
-	if(oph_metadb_remove_frag (db_row, frag_name)){
+	if(oph_metadb_remove_frag (db_row, frag_name, &frag_id)){
 		pthread_rwlock_unlock(&rwlock);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag remove");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag remove");	
 		return OPH_IO_SERVER_METADB_ERROR;             
 	}
     
+	if(frag_id.id == NULL){
+		pthread_rwlock_unlock(&rwlock);
+		pmesg(LOG_DEBUG, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
+		logging(LOG_DEBUG, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");	
+		return OPH_IO_SERVER_SUCCESS;             
+	}
+
 	oph_metadb_db_row *tmp_db_row = NULL; 
 	if(oph_metadb_setup_db_struct (db_row->db_name, db_row->device, dev_handle->is_persistent, &(db_row->db_id), db_row->frag_number, &tmp_db_row)) {
 		pthread_rwlock_unlock(&rwlock);
+		oph_iostore_delete_frag(dev_handle, &(frag_id));
+        free(frag_id.id);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "db");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ALLOC_ERROR, "db");
 		return OPH_IO_SERVER_METADB_ERROR;             
@@ -815,6 +802,8 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 	tmp_db_row->frag_number--;
 	if(oph_metadb_update_db (*meta_db, tmp_db_row)){
 		pthread_rwlock_unlock(&rwlock);
+		oph_iostore_delete_frag(dev_handle, &(frag_id));
+        free(frag_id.id);
 		oph_metadb_cleanup_db_struct (tmp_db_row);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "db update");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "db update");	
@@ -824,6 +813,8 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 	//UNLOCK FROM HERE
 	if(pthread_rwlock_unlock(&rwlock) != 0){
 		oph_metadb_cleanup_db_struct (tmp_db_row);
+		oph_iostore_delete_frag(dev_handle, &(frag_id));
+        free(frag_id.id);
 		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_UNLOCK_ERROR);
 		logging(LOG_ERROR,__FILE__,__LINE__,OPH_IO_SERVER_LOG_UNLOCK_ERROR);
 		return OPH_IO_SERVER_EXEC_ERROR;        
@@ -831,6 +822,15 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
 
 	oph_metadb_cleanup_db_struct (tmp_db_row);
 
+	//Call API to delete Frag
+	if(oph_iostore_delete_frag(dev_handle, &(frag_id)) != 0){
+        free(frag_id.id);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");	
+		return OPH_IO_SERVER_API_ERROR;             
+	} 
+    free(frag_id.id);
+    
 	return OPH_IO_SERVER_SUCCESS;
 }
 
@@ -968,26 +968,37 @@ int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* 
 	}
 
 	//Check if DB is empty; otherwise delete all fragments
-	if(db->frag_number != 0 || db->first_frag != NULL){
-		while(db->first_frag){
-			oph_metadb_frag_row *curr_frag = (oph_metadb_frag_row *)db->first_frag;
+	if(db->frag_number != 0 || db->table != NULL){
+		oph_metadb_frag_row *curr_frag, *tmp_frag;
+		int i;
+		for(i = 0; i < db->table->size; i++) {
+			curr_frag = (oph_metadb_frag_row *)db->table->rows[i];
+			while(curr_frag) {
+				tmp_frag = (oph_metadb_frag_row *)curr_frag->next_frag;
 
-			//Call API to delete Frag
-			if(oph_iostore_delete_frag(dev_handle, &(curr_frag->frag_id)) != 0){
-				pthread_rwlock_unlock(&rwlock);
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");	
-				return OPH_IO_SERVER_API_ERROR;             
-			} 
+				//Call API to delete Frag
+				if(oph_iostore_delete_frag(dev_handle, &(curr_frag->frag_id)) != 0){
+					pthread_rwlock_unlock(&rwlock);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_IO_API_ERROR, "delete_frag");	
+					return OPH_IO_SERVER_API_ERROR;             
+				} 
 
-			//Remove Frag from MetaDB
-			if(oph_metadb_remove_frag (db, curr_frag->frag_name)){
-				pthread_rwlock_unlock(&rwlock);
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag remove");
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag remove");	
-				return OPH_IO_SERVER_METADB_ERROR;             
+				//Remove Frag from MetaDB
+				if(oph_metadb_remove_frag (db, curr_frag->frag_name, NULL)){
+					pthread_rwlock_unlock(&rwlock);
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag remove");
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag remove");	
+					return OPH_IO_SERVER_METADB_ERROR;             
+				}
+
+				curr_frag = tmp_frag;
 			}
-		}      
+		}    
+		//Cleanup fragment table
+		free(db->table->rows);
+		free(db->table);
+		db->table = NULL;   
 	}
 
 	//Call API to delete DB

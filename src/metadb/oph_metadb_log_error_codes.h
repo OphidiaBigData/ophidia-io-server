@@ -51,5 +51,6 @@
 #define OPH_METADB_LOG_FRAG_EXIST_ERROR       "Frag already exists\n"
 #define OPH_METADB_LOG_REMOVE_NON_EMPTY_DB    "Unable to remove non-empty database %s\n"
 #define OPH_METADB_LOG_FRAG_DB_ERROR          "Given DB does not match with fragment. Corrupted record!\n"
+#define OPH_METADB_LOG_FRAG_DUPLICATE_ERROR    "Fragment %s already inserted. Corrupted record!\n"
 
 #endif  //__OPH_METADB_LOG_ERROR_CODES_H
