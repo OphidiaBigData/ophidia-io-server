@@ -123,7 +123,7 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 		return;
 	}
  
-	char header[OPH_IO_SERVER_MSG_TYPE_LEN + 1], buffer[OPH_IO_SERVER_MAX_LONG_LEN];
+	char header[OPH_IO_SERVER_MSG_TYPE_LEN + 1], buffer[OPH_IO_SERVER_MAX_DOUBLE_LEN];
 	int res;
 	int m = 0;
 

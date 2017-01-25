@@ -503,9 +503,17 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
   char tmp_active_f = 1;
   char tmp_persistent_f = 0;
 
-  fread (&tmp_len , sizeof(unsigned int), 1, fp);
-  fread (&tmp_active_f , sizeof(char), 1, fp);
-  fread (&tmp_persistent_f , sizeof(char), 1, fp);
+
+    if( fread (&tmp_len , sizeof(unsigned int), 1, fp) != sizeof(unsigned int) || fread (&tmp_active_f , sizeof(char), 1, fp) != 1 || fread (&tmp_persistent_f , sizeof(char), 1, fp) != 1)
+	{
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR, sizeof(unsigned int), schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR, sizeof(unsigned int), schema_file);
+		flock(fd, LOCK_UN); 
+		fclose(fp);
+      	return OPH_METADB_IO_ERR; 
+	}
+
+
   if(tmp_active_f == 0){
  		pmesg(LOG_DEBUG,__FILE__,__LINE__,OPH_METADB_LOG_FILE_DEL_READ_ERROR, schema_file);
     logging(LOG_DEBUG, __FILE__, __LINE__, OPH_METADB_LOG_FILE_DEL_READ_ERROR, schema_file);
@@ -673,8 +681,8 @@ int _oph_metadb_delete_procedure(char *schema_file, short int clean_all){
   while (fread(&tmp_length,sizeof(unsigned int),1,fp) > 0) 
   {
     if(tmp_length <= 0) {
-  		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_WRITE_ERROR,tmp_length, schema_file);
-    	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_WRITE_ERROR,tmp_length, schema_file);    
+  		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR,tmp_length, schema_file);
+    	logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR,tmp_length, schema_file);    
       free(tmp_line);      
 		flock(fd, LOCK_UN); 
 		flock(fd_tmp, LOCK_UN); 
@@ -700,9 +708,16 @@ int _oph_metadb_delete_procedure(char *schema_file, short int clean_all){
       }
     }
 
-    fread (&tmp_active_f , sizeof(char), 1, fp);
-    fread (&tmp_persistent_f , sizeof(char), 1, fp);
-    fread (tmp_line , sizeof(char), tmp_length, fp);
+    if( fread (&tmp_active_f , sizeof(char), 1, fp) != 1 || fread (&tmp_persistent_f , sizeof(char), 1, fp) != 1 || fread (tmp_line , sizeof(char), tmp_length, fp) != tmp_length)
+	{
+   		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR,tmp_length, schema_file);
+      logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR,tmp_length, schema_file);
+		flock(fd, LOCK_UN); 
+		flock(fd_tmp, LOCK_UN); 
+        fclose(fp);
+        fclose(fp_tmp);
+      	return OPH_METADB_IO_ERR; 
+	}
 
     //If record is active and it is persistent, then copy it to new file
     if(clean_all){
@@ -779,7 +794,15 @@ int _oph_metadb_count_records(char *schema_file, unsigned long long *record_numb
       return OPH_METADB_IO_ERR; 
     }
       
-    fread (&tmp_flag , sizeof(char), 1, fp);
+    
+    if( fread (&tmp_flag , sizeof(char), 1, fp) != 1)
+	{
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR,1, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR,1, schema_file);
+		flock(fd, LOCK_UN); 
+		fclose(fp);
+      	return OPH_METADB_IO_ERR; 
+	}
 
 /*    //If record is active, then count it
     if(tmp_flag == 1){
