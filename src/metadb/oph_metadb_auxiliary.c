@@ -539,7 +539,15 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
     fclose(fp);
     return OPH_METADB_MEMORY_ERR;
   }
-  fread (tmp_line , sizeof(char), tmp_len, fp);
+
+    if( fread (tmp_line , sizeof(char), tmp_len, fp) != tmp_len)
+	{
+		pmesg(LOG_ERROR,__FILE__,__LINE__,OPH_METADB_LOG_FILE_READ_ERROR, tmp_len, schema_file);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR, tmp_len, schema_file);
+		flock(fd, LOCK_UN); 
+		fclose(fp);
+      	return OPH_METADB_IO_ERR; 
+	}
 
 	flock(fd, LOCK_UN); 
   fclose(fp);

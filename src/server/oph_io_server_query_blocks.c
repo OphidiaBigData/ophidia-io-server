@@ -1579,8 +1579,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 			case OPH_QUERY_FIELD_TYPE_VARIABLE:
 			{
 				//Get var from input table
-				int field_index;
-				int frag_index;
+				int field_index = 0;
+				int frag_index = 0;
 				if(table_num > 1){
 					//Split frag name from field name
 					char **field_components = NULL;

@@ -521,7 +521,7 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"No reply\n");
 	  return OPH_IO_CLIENT_INTERFACE_CONN_ERR;
   }
-  payload_len = *((unsigned long long*)reply_info);
+  memcpy(&payload_len, reply_info, sizeof(unsigned long long));
   pmesg(LOG_DEBUG,__FILE__,__LINE__,"Response length: %llu\n",payload_len);
 
   unsigned long long num_rows = 0;
@@ -531,7 +531,7 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"No reply\n");
 	  return OPH_IO_CLIENT_INTERFACE_CONN_ERR;
   }
-  num_rows = *((unsigned long long*)reply_info);
+  memcpy(&num_rows, reply_info, sizeof(unsigned long long));
   pmesg(LOG_DEBUG,__FILE__,__LINE__,"Number of rows: %llu\n",num_rows);
 
   unsigned int num_fields = 0;
@@ -541,7 +541,7 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"No reply\n");
 	  return OPH_IO_CLIENT_INTERFACE_CONN_ERR;
   }
-  num_fields = *((unsigned int*)reply_info);
+  memcpy(&num_fields, reply_info, sizeof(unsigned long long));
   pmesg(LOG_DEBUG,__FILE__,__LINE__,"Number of fields: %u\n",num_fields);
 
   //Rebuild result set struct
