@@ -541,7 +541,7 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
 	  pmesg(LOG_ERROR,__FILE__,__LINE__,"No reply\n");
 	  return OPH_IO_CLIENT_INTERFACE_CONN_ERR;
   }
-  memcpy(&num_fields, reply_info, sizeof(unsigned long long));
+  memcpy(&num_fields, reply_info, sizeof(unsigned int));
   pmesg(LOG_DEBUG,__FILE__,__LINE__,"Number of fields: %u\n",num_fields);
 
   //Rebuild result set struct
