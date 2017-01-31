@@ -2,15 +2,14 @@
 
 ### Description
 
-The Ophidia IO Server is the Ophidia native IO server.
+The Ophidia IO Server is the Ophidia native IO server component.
 
 ### Requirements
 
 In order to compile and run the IO Server, make sure you have the following packages properly installed:
 
 1. mysql-community-devel
-2. optionally an OpenMP implementation
-3. optionally bison and flex 
+2. optionally bison and flex 
 
 ### How to Install
 

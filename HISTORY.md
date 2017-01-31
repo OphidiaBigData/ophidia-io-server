@@ -1,4 +1,4 @@
 
-## v0.1.0 - 2016-07-26
+## v0.11.0 - 2017-01-31
 
-- Initial public release
+- Initial public release including support for most Ophidia operators
