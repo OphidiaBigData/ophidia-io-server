@@ -19,7 +19,7 @@
 #ifndef OPH_QUERY_PLUGIN_EXEC_H
 #define OPH_QUERY_PLUGIN_EXEC_H
 
-#include <mysql.h> // It contains UDF-related symbols and data structures
+#include <mysql.h>		// It contains UDF-related symbols and data structures
 #include <mysql_com.h>
 #include <ltdl.h>
 
@@ -33,14 +33,14 @@
 //UDF interfaces. UDF_ARGS and UDF_INIT are defined in mysql_com.h
 
 //UDF fixed interface
-void (*_oph_plugin_reset)(UDF_INIT*, UDF_ARGS*, char*, char*);
+void (*_oph_plugin_reset) (UDF_INIT *, UDF_ARGS *, char *, char *);
 
 /**
  * \brief               Function used to free UDF_ARG argument
  * \param arguments     Pointer to UDF_ARG structure to be freed
  * \return              0 if successfull, non-0 otherwise
  */
-int free_udf_arg(UDF_ARGS *arguments);
+int free_udf_arg(UDF_ARGS * arguments);
 
 /**
  * \brief             Internal function used by other oph_execute to run the exec_api of a plugin
@@ -54,7 +54,8 @@ int free_udf_arg(UDF_ARGS *arguments);
  * \param functions   Structure containing pointer to plugin library symbols
  * \return            0 if successfull, non-0 otherwise
  */
-int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result,  oph_plugin_api *functions);
+int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result,
+			oph_plugin_api * functions);
 
 /**
  * \brief               Function to run plugin CLEAR function 
@@ -63,7 +64,7 @@ int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *init
  * \param initid      Pointer to initid used by plugin functions 
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid);
+int oph_query_plugin_clear(oph_plugin_api * function, void *dlh, UDF_INIT * initid);
 
 /**
  * \brief               Function to run plugin DEINIT function 
@@ -73,7 +74,7 @@ int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid
  * \param internal_args Pointer with internal argument structures used within plugin functions
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args);
+int oph_query_plugin_deinit(oph_plugin_api * function, void *dlh, UDF_INIT * initid, UDF_ARGS * internal_args);
 
 /**
  * \brief               Function to run plugin INIT function 
@@ -87,7 +88,7 @@ int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initi
  * \param is_aggregate  Flag set by init function if plugin is aggregating
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, char *is_aggregate);
+int oph_query_plugin_init(oph_plugin_api * function, void **dlh, UDF_INIT ** initid, UDF_ARGS ** internal_args, char *plugin_name, int arg_count, oph_query_expr_value * args, char *is_aggregate);
 
 
 /**
@@ -100,7 +101,7 @@ int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initi
  * \param args          Array of query arguments
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, int arg_count, oph_query_expr_value* args);
+int oph_query_plugin_add(oph_plugin_api * function, void **dlh, UDF_INIT * initid, UDF_ARGS * internal_args, int arg_count, oph_query_expr_value * args);
 
 /**
  * \brief               Function to run plugin EXEC function 
@@ -114,7 +115,8 @@ int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid,
  * \param res          	Result of execution function
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value* args, oph_query_expr_value *res);
+int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * initid, UDF_ARGS * internal_args, char *plugin_name, int arg_count, oph_query_expr_value * args,
+			  oph_query_expr_value * res);
 
 
-#endif /* OPH_QUERY_PLUGIN_EXEC_H */
+#endif				/* OPH_QUERY_PLUGIN_EXEC_H */

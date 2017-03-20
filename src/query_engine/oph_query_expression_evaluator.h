@@ -19,11 +19,11 @@
 #ifndef __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 #define __OPH_QUERY_EXPRESSION_EVALUATOR_H__
 
-#include <mysql.h> // It contains UDF-related symbols and data structures
+#include <mysql.h>		// It contains UDF-related symbols and data structures
 #include <mysql_com.h>
 #include <ltdl.h>
 
-#include "oph_query_parser.h"  
+#include "oph_query_parser.h"
 
 /* Definition of the structure/functions used to contruct and use the symtable (1), 
 build the syntax tree (2), execute type chacks(3) and interact with the library (4).*/
@@ -32,13 +32,12 @@ build the syntax tree (2), execute type chacks(3) and interact with the library 
 //---------- 1
 
 //value type
-typedef enum _oph_query_expr_value_type
-{
-    OPH_QUERY_EXPR_TYPE_DOUBLE,
-    OPH_QUERY_EXPR_TYPE_LONG,
-    OPH_QUERY_EXPR_TYPE_STRING,
-    OPH_QUERY_EXPR_TYPE_BINARY,
-    OPH_QUERY_EXPR_TYPE_NULL
+typedef enum _oph_query_expr_value_type {
+	OPH_QUERY_EXPR_TYPE_DOUBLE,
+	OPH_QUERY_EXPR_TYPE_LONG,
+	OPH_QUERY_EXPR_TYPE_STRING,
+	OPH_QUERY_EXPR_TYPE_BINARY,
+	OPH_QUERY_EXPR_TYPE_NULL
 } oph_query_expr_value_type;
 
 //
@@ -52,21 +51,19 @@ typedef enum _oph_query_expr_value_type
 * \param free_flag 	  Flag set to 1 if value is a result computed by a function and should be manually freed, 0 otherwise
 * \param jump_flag    Flag set to 1 if result must be jumped by other functions, 0 otherwise
 */
-typedef struct _oph_query_expr_value 
-{
-    oph_query_expr_value_type type;
+typedef struct _oph_query_expr_value {
+	oph_query_expr_value_type type;
 
-    union
-    {
-        double double_value;
-        long long long_value;
-        char* string_value;
-        oph_query_arg* binary_value;
-    }data;
+	union {
+		double double_value;
+		long long long_value;
+		char *string_value;
+		oph_query_arg *binary_value;
+	} data;
 
 	char free_flag;
-    char jump_flag;
-}oph_query_expr_value;
+	char jump_flag;
+} oph_query_expr_value;
 
 /**
  * \brief			            Structure to contain UDF plugins function symbols
@@ -77,7 +74,7 @@ typedef struct _oph_query_expr_value
  * \param exec_api        Pointer to exec function in shared lib
  * \param deinit_api      Pointer to deinit function in shared lib
  */
-typedef struct{
+typedef struct {
 	lt_ptr init_api;
 	lt_ptr reset_api;
 	lt_ptr clear_api;
@@ -96,16 +93,15 @@ typedef struct{
 * \param initid        Pointer used by udf primitives
 * \param internal_args Pointer to structures where the arguments values are stored
 */
-typedef struct _oph_query_expr_udf_descriptor
-{   
-    char initialized;
-    char aggregate; 
-    char clear; 
-    void* dlh;
-    oph_plugin_api function;
-    UDF_INIT* initid;
-    UDF_ARGS* internal_args;
-}oph_query_expr_udf_descriptor;
+typedef struct _oph_query_expr_udf_descriptor {
+	char initialized;
+	char aggregate;
+	char clear;
+	void *dlh;
+	oph_plugin_api function;
+	UDF_INIT *initid;
+	UDF_ARGS *internal_args;
+} oph_query_expr_udf_descriptor;
 
 /**
 * \brief			Symble table record structure
@@ -117,16 +113,16 @@ typedef struct _oph_query_expr_udf_descriptor
 * \param function	Pointer to function (only with type 2)
 */
 typedef struct _oph_query_expr_record {
-    char *name;
-    int   type;
-    
-    //ONLY with type 1
-    oph_query_expr_value value;
-    
-    //ONLY with type 2
-    oph_query_expr_value (*function) (oph_query_expr_value*, int, char*, oph_query_expr_udf_descriptor*, int, int*);
-    int fun_type;
-    int numArgs;
+	char *name;
+	int type;
+
+	//ONLY with type 1
+	oph_query_expr_value value;
+
+	//ONLY with type 2
+	 oph_query_expr_value(*function) (oph_query_expr_value *, int, char *, oph_query_expr_udf_descriptor *, int, int *);
+	int fun_type;
+	int numArgs;
 } oph_query_expr_record;
 
 /**		
@@ -135,8 +131,8 @@ typedef struct _oph_query_expr_record {
 * \param array 		array of pointer to oph_query_expr_records. NULL if pointer is not there		
 */
 typedef struct _oph_query_expr_symtable {
-    int maxSize;
-    oph_query_expr_record **array;
+	int maxSize;
+	oph_query_expr_record **array;
 } oph_query_expr_symtable;
 
 //functions to interact with symtable
@@ -154,14 +150,14 @@ int oph_query_expr_create_function_symtable(int size);
  * \param size          The number of the extra variables/functions that can be added to the symtable (>= 0)
  * \return              0 if succesfull; non-0 otherwise
  */
-int oph_query_expr_create_symtable(oph_query_expr_symtable** table, int size);
+int oph_query_expr_create_symtable(oph_query_expr_symtable ** table, int size);
 
 /**
  * \brief               De-allocates all the resorces used by a symtable  
  * \param table         The reference to the symtable to be destroyed
  * \return              0 if succesfull; non-0 otherwise
  */
-int oph_query_expr_destroy_symtable(oph_query_expr_symtable*);
+int oph_query_expr_destroy_symtable(oph_query_expr_symtable *);
 
 /**
  * \brief               Lookup by name in the symtable 
@@ -169,7 +165,7 @@ int oph_query_expr_destroy_symtable(oph_query_expr_symtable*);
  * \param table         The reference to the symtable to inspect
  * \return              Returns a record with matching name if present; NULL otherwise
  */
-oph_query_expr_record* oph_query_expr_lookup(const char* name, oph_query_expr_symtable *table);
+oph_query_expr_record *oph_query_expr_lookup(const char *name, oph_query_expr_symtable * table);
 
 /**
  * \brief               Add to the symtable a variable of type OPH_QUERY_EXPR_TYPE_DOUBLE 
@@ -178,7 +174,7 @@ oph_query_expr_record* oph_query_expr_lookup(const char* name, oph_query_expr_sy
  * \param table         The reference to the target symtable 
  * \return              0 if succesfull; non-0 otherwise
  */
-int oph_query_expr_add_double(const char* name, double value, oph_query_expr_symtable *table);
+int oph_query_expr_add_double(const char *name, double value, oph_query_expr_symtable * table);
 
 /**
  * \brief               Add to the symtable a variable of type OPH_QUERY_EXPR_TYPE_LONG 
@@ -187,7 +183,7 @@ int oph_query_expr_add_double(const char* name, double value, oph_query_expr_sym
  * \param table         The reference to the target symtable 
  * \return              0 if succesfull; non-0 otherwise
  */
-int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_symtable *table);
+int oph_query_expr_add_long(const char *name, long long value, oph_query_expr_symtable * table);
 
 /**
  * \brief               Add to the symtable a variable of type OPH_QUERY_EXPR_TYPE_STRING
@@ -196,7 +192,7 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \param table         The reference to the target symtable 
  * \return              0 if succesfull; non-0 otherwise
  */
- int oph_query_expr_add_string(const char* name, char* value, oph_query_expr_symtable *table);
+int oph_query_expr_add_string(const char *name, char *value, oph_query_expr_symtable * table);
 
 /**
  * \brief               Add to the symtable a variable of type OPH_QUERY_EXPR_TYPE_BINARY
@@ -205,7 +201,7 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \param table         The reference to the target symtable 
  * \return              0 if succesfull; non-0 otherwise
  */
- int oph_query_expr_add_binary(const char* name, oph_query_arg* value, oph_query_expr_symtable *table);
+int oph_query_expr_add_binary(const char *name, oph_query_arg * value, oph_query_expr_symtable * table);
 
 /**
  * \brief               add a new function to the table (NOTE: doesn't updates old values the same way add_variable does)
@@ -216,8 +212,8 @@ int oph_query_expr_add_long(const char* name, long long value, oph_query_expr_sy
  * \param symtable      A reference to the target symtable
  * \return              0 if succesfull; non-0 otherwise
  */
-int oph_query_expr_add_function(const char* name, int fun_type, int numArgs, oph_query_expr_value (*function) (oph_query_expr_value*, int, char*, 
-    oph_query_expr_udf_descriptor*, int, int*), oph_query_expr_symtable* symtable);
+int oph_query_expr_add_function(const char *name, int fun_type, int numArgs, oph_query_expr_value(*function) (oph_query_expr_value *, int, char *,
+													      oph_query_expr_udf_descriptor *, int, int *), oph_query_expr_symtable * symtable);
 
 
 
@@ -226,23 +222,22 @@ int oph_query_expr_add_function(const char* name, int fun_type, int numArgs, oph
 /**
  * Node types.
  */
-typedef enum _oph_query_expr_node_type
-{
-    eVALUE,
-    eSTRING,
-    eVAR,
-    eMULTIPLY,
-    ePLUS,
-    eMINUS,
-    eDIVIDE,
-    eEQUAL,
-    eMOD,
-    eAND,
-    eOR,
-    eNEG,
-    eNOT,
-    eFUN,
-    eARG
+typedef enum _oph_query_expr_node_type {
+	eVALUE,
+	eSTRING,
+	eVAR,
+	eMULTIPLY,
+	ePLUS,
+	eMINUS,
+	eDIVIDE,
+	eEQUAL,
+	eMOD,
+	eAND,
+	eOR,
+	eNEG,
+	eNOT,
+	eFUN,
+	eARG
 } oph_query_expr_node_type;
 
 /**
@@ -254,16 +249,15 @@ typedef enum _oph_query_expr_node_type
 * \param descriptor	descriptor of udf; valid only when the type is eFUN	
 * \param name		node name; valid only when type is eVAR e eFUN		
 */
-typedef struct _oph_query_expr_node
-{
-    oph_query_expr_node_type type;
-    struct _oph_query_expr_node *left;
-    struct _oph_query_expr_node *right;
+typedef struct _oph_query_expr_node {
+	oph_query_expr_node_type type;
+	struct _oph_query_expr_node *left;
+	struct _oph_query_expr_node *right;
 
-    oph_query_expr_value value;
+	oph_query_expr_value value;
 
-    oph_query_expr_udf_descriptor descriptor;
-    char* name;
+	oph_query_expr_udf_descriptor descriptor;
+	char *name;
 } oph_query_expr_node;
 
 /**
@@ -291,7 +285,7 @@ oph_query_expr_node *oph_query_expr_create_null();
 * \param value         The value of the node (a string)
 * \return              Returns the newly created node or NULL in case of error
 */
-oph_query_expr_node *oph_query_expr_create_string(char* value);
+oph_query_expr_node *oph_query_expr_create_string(char *value);
 
 
 /**
@@ -299,7 +293,7 @@ oph_query_expr_node *oph_query_expr_create_string(char* value);
 * \param name          The value of the node (a string)
 * \return              Returns the newly created node or NULL in case of error
 */
-oph_query_expr_node *oph_query_expr_create_variable(char* name);
+oph_query_expr_node *oph_query_expr_create_variable(char *name);
 
 /**
 * \brief               Creates a eFUN node
@@ -307,7 +301,7 @@ oph_query_expr_node *oph_query_expr_create_variable(char* name);
 * \param args          The reference to child nodes that contains the arguments of the function                 
 * \return              Returns the newly created node or NULL in case of error
 */
-oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_node *args);
+oph_query_expr_node *oph_query_expr_create_function(char *name, oph_query_expr_node * args);
 
 /**
 * \brief               Creates an operation node storing its type, the left and the right operand nodes. 
@@ -316,14 +310,14 @@ oph_query_expr_node *oph_query_expr_create_function(char* name, oph_query_expr_n
 * \param right         A reference to the right side of the tree                 
 * \return              Returns the newly created node or NULL in case of error
 */
-oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type type, oph_query_expr_node *left, oph_query_expr_node *right);
+oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type type, oph_query_expr_node * left, oph_query_expr_node * right);
 
 /**
 * \brief               Recurrently destroys the given tree and frees all its resources 
 * \param b             A reference to the root node of the tree    
 * \return              Returns the newly created node or NULL in case of error
 */
-int oph_query_expr_delete_node(oph_query_expr_node *b,  oph_query_expr_symtable* table);
+int oph_query_expr_delete_node(oph_query_expr_node * b, oph_query_expr_symtable * table);
 
 
 
@@ -340,7 +334,7 @@ int oph_query_expr_delete_node(oph_query_expr_node *b,  oph_query_expr_symtable*
 * \param fun_name      The name of the function that is being parsed.   
 * \return              Returns the correct double_value; -1 in case of type error
 */
-double get_double_value(oph_query_expr_value value, int *er, const char* fun_name);
+double get_double_value(oph_query_expr_value value, int *er, const char *fun_name);
 
 /**
 * \brief               Given an oph_query_expr_value returns its long_value if possible. 
@@ -351,7 +345,7 @@ double get_double_value(oph_query_expr_value value, int *er, const char* fun_nam
 * \param fun_name      The name of the function that is being parsed.
 * \return              Returns the correct long_value; -1 in case of type error
 */
-long long get_long_value(oph_query_expr_value value, int *er, const char* fun_name);
+long long get_long_value(oph_query_expr_value value, int *er, const char *fun_name);
 
 /**
 * \brief               Given an oph_query_expr_value returns its string_value if possible. 
@@ -362,7 +356,7 @@ long long get_long_value(oph_query_expr_value value, int *er, const char* fun_na
 * \param fun_name      The name of the function that is being parsed.
 * \return              Returns the correct string_value; -1 in case of type error
 */
-char* get_string_value(oph_query_expr_value value, int *er, const char* fun_name);
+char *get_string_value(oph_query_expr_value value, int *er, const char *fun_name);
 
 /**
 * \brief               Given an oph_query_expr_value returns its binary_value if possible. 
@@ -373,7 +367,7 @@ char* get_string_value(oph_query_expr_value value, int *er, const char* fun_name
 * \param fun_name      The name of the function that is being parsed.
 * \return              Returns the correct binary_value; -1 in case of type error
 */
-oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char* fun_name);
+oph_query_arg *get_binary_value(oph_query_expr_value value, int *er, const char *fun_name);
 
 
 
@@ -387,7 +381,7 @@ oph_query_arg* get_binary_value(oph_query_expr_value value, int *er, const char*
 * \param e             A reference to the pointer that will point to the created tree     
 * \return              Returns 0 if operation was successfull; non-0 if otherwise;
 */
-int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e);
+int oph_query_expr_get_ast(const char *expr, oph_query_expr_node ** e);
 
 /**
  * \brief               Evaluates the value of the AST based on the content of a symtable 
@@ -396,13 +390,13 @@ int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e);
  * \param table         A reference to the symtable to use during evaluation
  * \return              Returns 0 if operation was successfull; non-0 if otherwise;
  */
-int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value **res, oph_query_expr_symtable *table);
+int oph_query_expr_eval_expression(oph_query_expr_node * e, oph_query_expr_value ** res, oph_query_expr_symtable * table);
 
 /**
  * \brief               Set the value of all the functions clear flag to 1 
  * \param e             A reference to the AST to evaluate
  */
-int oph_query_expr_change_group(oph_query_expr_node *e);
+int oph_query_expr_change_group(oph_query_expr_node * e);
 
 /**
  *\brief                Returns a vector of the names of all the variables in the AST  
@@ -411,6 +405,6 @@ int oph_query_expr_change_group(oph_query_expr_node *e);
  *\param var_count      Number of variables retrieved
  * \return              Returns 0 if operation was successfull; non-0 if otherwise;
  */
-int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *var_count);
+int oph_query_expr_get_variables(oph_query_expr_node * e, char ***var_list, int *var_count);
 
-#endif // __OPH_QUERY_EXPRESSION_EVALUATOR_H__
+#endif				// __OPH_QUERY_EXPRESSION_EVALUATOR_H__

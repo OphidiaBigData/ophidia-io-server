@@ -32,47 +32,47 @@
 #define	OPH_NET_LISTEN_QUEUE		512	/* 2nd argument to listen() */
 
 /* Read "n" bytes from a descriptor. */
-ssize_t	oph_net_readn(int fd, void *buffer, size_t n)
+ssize_t oph_net_readn(int fd, void *buffer, size_t n)
 {
-  /* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
+	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 
-	size_t	nleft;
-	ssize_t	nread;
-	char	  *ptr;
+	size_t nleft;
+	ssize_t nread;
+	char *ptr;
 
 	ptr = buffer;
 	nleft = n;
 	while (nleft > 0) {
-		if ( (nread = read(fd, ptr, nleft)) < 0) {
+		if ((nread = read(fd, ptr, nleft)) < 0) {
 			if (errno == EINTR)
-				nread = 0;		/* and call read() again */
+				nread = 0;	/* and call read() again */
 			else
 				return OPH_NETWORK_ERROR;
 		} else if (nread == 0)
-			break;				/* EOF */
+			break;	/* EOF */
 
 		nleft -= nread;
-		ptr   += nread;
+		ptr += nread;
 	}
-	return(n - nleft);		/* return >= 0 */
+	return (n - nleft);	/* return >= 0 */
 }
 
 int oph_net_connect(const char *host, const char *port, int *fd)
 {
-  /* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
+	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 
-	int				sockfd, n;
-	struct addrinfo	hints, *res, *ressave;
-  *fd = 0;
+	int sockfd, n;
+	struct addrinfo hints, *res, *ressave;
+	*fd = 0;
 
 	bzero(&hints, sizeof(struct addrinfo));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ( (n = getaddrinfo(host, port, &hints, &res)) != 0){
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "tcp_connect error for %s, %s: %s\n",host, port, gai_strerror(n));
-    return OPH_NETWORK_ERROR;
-  }
+	if ((n = getaddrinfo(host, port, &hints, &res)) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "tcp_connect error for %s, %s: %s\n", host, port, gai_strerror(n));
+		return OPH_NETWORK_ERROR;
+	}
 	ressave = res;
 
 	do {
@@ -81,112 +81,109 @@ int oph_net_connect(const char *host, const char *port, int *fd)
 			continue;	/* ignore this one */
 
 		if (connect(sockfd, res->ai_addr, res->ai_addrlen) == 0)
-			break;		/* success */
+			break;	/* success */
 
-    if(close(sockfd) == -1){
-    	pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while closing connection!\n");
-  		return OPH_NETWORK_ERROR;
-    }	/* ignore this one */
-	} while ( (res = res->ai_next) != NULL);
+		if (close(sockfd) == -1) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while closing connection!\n");
+			return OPH_NETWORK_ERROR;
+		}		/* ignore this one */
+	} while ((res = res->ai_next) != NULL);
 
-	if (res == NULL){
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "tcp_connect error for %s, %s\n",host, port);
-    return OPH_NETWORK_ERROR;
-  }
+	if (res == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "tcp_connect error for %s, %s\n", host, port);
+		return OPH_NETWORK_ERROR;
+	}
 
 	freeaddrinfo(ressave);
 
-  *fd = sockfd;
+	*fd = sockfd;
 	return OPH_NETWORK_SUCCESS;
 }
 
-int oph_net_accept(int in_fd, struct sockaddr *sa, socklen_t *salenptr, int *out_fd)
+int oph_net_accept(int in_fd, struct sockaddr *sa, socklen_t * salenptr, int *out_fd)
 {
-  /* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
+	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 
-	int		n;
-  *out_fd = 0;
+	int n;
+	*out_fd = 0;
 
-again:
-	if ( (n = accept(in_fd, sa, salenptr)) < 0) {
+      again:
+	if ((n = accept(in_fd, sa, salenptr)) < 0) {
 #ifdef	EPROTO
 		if (errno == EPROTO || errno == ECONNABORTED)
 #else
 		if (errno == ECONNABORTED)
 #endif
 			goto again;
-		else{
-	    pmesg(LOG_ERROR,__FILE__,__LINE__,"Accept connection error!\n");
-	    return OPH_NETWORK_ERROR;
-    }
+		else {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Accept connection error!\n");
+			return OPH_NETWORK_ERROR;
+		}
 	}
-  *out_fd = n;
+	*out_fd = n;
 	return OPH_NETWORK_SUCCESS;
 }
 
-int oph_net_listen(const char *host, const char *port, socklen_t *addrlenp, int *out_fd)
+int oph_net_listen(const char *host, const char *port, socklen_t * addrlenp, int *out_fd)
 {
-  /* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
+	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 
-	int				listenfd, n;
-	const int		on = 1;
-	struct addrinfo	hints, *res, *ressave;
-  *out_fd = 0;
+	int listenfd, n;
+	const int on = 1;
+	struct addrinfo hints, *res, *ressave;
+	*out_fd = 0;
 
 	bzero(&hints, sizeof(struct addrinfo));
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ( (n = getaddrinfo(host, port, &hints, &res)) != 0)
-  {
-    pmesg(LOG_ERROR,__FILE__,__LINE__,"tcp_listen error for %s, %s: %s\n",host, port, gai_strerror(n));
-    return OPH_NETWORK_ERROR;
-  }
+	if ((n = getaddrinfo(host, port, &hints, &res)) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "tcp_listen error for %s, %s: %s\n", host, port, gai_strerror(n));
+		return OPH_NETWORK_ERROR;
+	}
 	ressave = res;
 
 	do {
 		listenfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (listenfd < 0)
-			continue;		/* error, try next one */
+			continue;	/* error, try next one */
 
-		if( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0)
-    {
-      pmesg(LOG_ERROR,__FILE__,__LINE__,"Tcp socket option error\n");
-      return OPH_NETWORK_ERROR;
-    }
+		if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Tcp socket option error\n");
+			return OPH_NETWORK_ERROR;
+		}
 
 		if (bind(listenfd, res->ai_addr, res->ai_addrlen) == 0)
-			break;			/* success */
+			break;	/* success */
 
 		close(listenfd);	/* bind error, close and try next one */
-	} while ( (res = res->ai_next) != NULL);
+	} while ((res = res->ai_next) != NULL);
 
-	if (res == NULL)	/* errno from final socket() or bind() */
-  {
-    pmesg(LOG_ERROR,__FILE__,__LINE__,"tcp_listen error for %s, %s\n", host, port);
-    return OPH_NETWORK_ERROR;
-  }
+	if (res == NULL) {	/* errno from final socket() or bind() */
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "tcp_listen error for %s, %s\n", host, port);
+		return OPH_NETWORK_ERROR;
+	}
 
-	if(listen(listenfd, OPH_NET_LISTEN_QUEUE) != 0){
-    pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while listening socket!\n");
-    return OPH_NETWORK_ERROR;
-  }
+	if (listen(listenfd, OPH_NET_LISTEN_QUEUE) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while listening socket!\n");
+		return OPH_NETWORK_ERROR;
+	}
 
 	if (addrlenp)
 		*addrlenp = res->ai_addrlen;	/* return size of protocol address */
 
 	freeaddrinfo(ressave);
-  *out_fd = listenfd;
+	*out_fd = listenfd;
 
 	return OPH_NETWORK_SUCCESS;
 }
 
 int oph_net_signal(int signo, void *func)
 {
-  /* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
+	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 
-	struct sigaction	new_act, old_act;
+	struct sigaction new_act, old_act;
 
 	new_act.sa_handler = func;
 	sigemptyset(&new_act.sa_mask);
@@ -198,14 +195,14 @@ int oph_net_signal(int signo, void *func)
 #endif
 	} else {
 #ifdef	SA_RESTART
-		new_act.sa_flags |= SA_RESTART;		/* SVR4, 44BSD */
+		new_act.sa_flags |= SA_RESTART;	/* SVR4, 44BSD */
 #endif
 	}
 
-  int res;
-  if( (res = sigaction(signo, &new_act, &old_act)) < 0){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to setup signal\n");
+	int res;
+	if ((res = sigaction(signo, &new_act, &old_act)) < 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to setup signal\n");
 		return OPH_NETWORK_ERROR;
-  }
+	}
 	return res;
 }

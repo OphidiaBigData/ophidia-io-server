@@ -36,62 +36,60 @@ int main(int argc, char *argv[])
 {
 	int ch, msglevel = LOG_DEBUG, res;
 	char *query = OPH_DEFAULT_QUERY;
-  char *dbname = NULL;
+	char *dbname = NULL;
 	char request[1000];
-  char *host = NULL, *port = NULL;
-  char *type = NULL;
-	
-	while ((ch = getopt(argc, argv, "c:h:l:p:q:d:t:vw"))!=-1)
-	{
-		switch (ch)
-		{
+	char *host = NULL, *port = NULL;
+	char *type = NULL;
+
+	while ((ch = getopt(argc, argv, "c:h:l:p:q:d:t:vw")) != -1) {
+		switch (ch) {
 			case 'h':
 				host = optarg;
-			break;
+				break;
 			case 'p':
 				port = optarg;
-			break;
+				break;
 			case 'q':
 				query = optarg;
-			break;
+				break;
 			case 'd':
 				dbname = optarg;
-			break;
+				break;
 			case 't':
 				type = optarg;
-			break;
+				break;
 			case 'v':
 				msglevel = LOG_DEBUG;
-			break;
+				break;
 			case 'w':
-				if (msglevel<LOG_WARNING) msglevel = LOG_WARNING;
-			break;
+				if (msglevel < LOG_WARNING)
+					msglevel = LOG_WARNING;
+				break;
 		}
 	}
 	set_debug_level(msglevel);
 
-	if (!strcasecmp(query,OPH_DEFAULT_QUERY) || !dbname || !port || !host || !type)
-	{
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Specify a query (not using oph_dump) and database... use: oph-client -h <host> -p <port> -q <query> -d <db_name> -t <dumping_type>\n");
+	if (!strcasecmp(query, OPH_DEFAULT_QUERY) || !dbname || !port || !host || !type) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Specify a query (not using oph_dump) and database... use: oph-client -h <host> -p <port> -q <query> -d <db_name> -t <dumping_type>\n");
 		exit(0);
 	}
 
 	snprintf(request, sizeof(request), "%s\n", query);
 
-  oph_io_client_connection *connection = NULL;  
-	pmesg(LOG_DEBUG,__FILE__,__LINE__,"Connection to server...\n");
-	if ((res = oph_io_client_connect (host, port, NULL, "memory", &connection)))
-    pmesg(LOG_ERROR,__FILE__,__LINE__,"Error in connection\n");
-  else{
-	  pmesg(LOG_DEBUG,__FILE__,__LINE__,"Sending request...\n");
-	  if ((res = oph_io_client_use_db(dbname, "memory", connection))){
-			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error %d in selecting database '%s'\n",res,dbname);
-      res = oph_io_client_close (connection);
-      exit(0);
-    }
-    oph_io_client_query *query = NULL;
+	oph_io_client_connection *connection = NULL;
+	pmesg(LOG_DEBUG, __FILE__, __LINE__, "Connection to server...\n");
+	if ((res = oph_io_client_connect(host, port, NULL, "memory", &connection)))
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in connection\n");
+	else {
+		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Sending request...\n");
+		if ((res = oph_io_client_use_db(dbname, "memory", connection))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error %d in selecting database '%s'\n", res, dbname);
+			res = oph_io_client_close(connection);
+			exit(0);
+		}
+		oph_io_client_query *query = NULL;
 
-          //set example arg buffer
+		//set example arg buffer
 /*          oph_io_client_query_arg *args[3]; 
           oph_io_client_query_arg arg1, arg2;
           
@@ -107,85 +105,78 @@ int main(int argc, char *argv[])
           arg2.arg_type = OPH_IO_CLIENT_TYPE_LONG;
           arg2.arg_length = 8;
           arg2.arg = &id;
-  */        
-          //TODO SET arg buffer
+  */
+		//TODO SET arg buffer
 
-    if((res = oph_io_client_setup_query (connection, request, "Memory", 0, (oph_io_client_query_arg **)NULL, &query))){
-		  pmesg(LOG_ERROR,__FILE__,__LINE__,"Error %d in setup query '%s'\n",res,query);
-      oph_io_client_free_query (query);
-      res = oph_io_client_close (connection);
-      exit(0);          
-    }
-      
-	  if ((res = oph_io_client_execute_query(connection, query))){
-		  pmesg(LOG_ERROR,__FILE__,__LINE__,"Error %d in executing query '%s'\n",res,request);
-      oph_io_client_free_query (query);
-      res = oph_io_client_close (connection);
-      exit(0);
-    }
+		if ((res = oph_io_client_setup_query(connection, request, "Memory", 0, (oph_io_client_query_arg **) NULL, &query))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error %d in setup query '%s'\n", res, query);
+			oph_io_client_free_query(query);
+			res = oph_io_client_close(connection);
+			exit(0);
+		}
 
-	  printf("Query submitted correctly.\n");
-    oph_io_client_free_query (query);
+		if ((res = oph_io_client_execute_query(connection, query))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error %d in executing query '%s'\n", res, request);
+			oph_io_client_free_query(query);
+			res = oph_io_client_close(connection);
+			exit(0);
+		}
 
-    oph_io_client_result *result_set = NULL;
-	  if ((res = oph_io_client_get_result(connection, &result_set))){
-		  pmesg(LOG_ERROR,__FILE__,__LINE__,"Error %d in retrieving result set\n",res);
-      res = oph_io_client_close (connection);
-      exit(0);
-    }
-    //Output the result set (assuming array of double is gathered)
-    oph_io_client_record *current_row = NULL;
-    oph_io_client_fetch_row(result_set, &current_row);
-    int num_elems = 0, j;
+		printf("Query submitted correctly.\n");
+		oph_io_client_free_query(query);
 
-    if(!STRCMP(type, "int"))
-    {
-      while(current_row){
-        num_elems = (int)current_row->field_length[1]/sizeof(int); 
-        printf("ID: %s ", current_row->field[0]);
-        for(j = 0; j < num_elems; j++){
-          printf(" %d ", *((int *)(current_row->field[1] + j*sizeof(int))));
-        }
-        oph_io_client_fetch_row(result_set, &current_row);
-      }
-    }
-    else if(!STRCMP(type, "float"))
-    {
-      while(current_row){
-        num_elems = (int)current_row->field_length[1]/sizeof(float); 
-        printf("ID: %s ", current_row->field[0]);
-        for(j = 0; j < num_elems; j++){
-          printf(" %f ", *((float *)(current_row->field[1] + j*sizeof(float))));
-        }
-        oph_io_client_fetch_row(result_set, &current_row);
-      }
-    }
-    else if(!STRCMP(type, "long"))
-    {
-      while(current_row){
-        num_elems = (int)current_row->field_length[1]/sizeof(long long); 
-        printf("ID: %s ", current_row->field[0]);
-        for(j = 0; j < num_elems; j++){
-          printf(" %lld ", *((long long *)(current_row->field[1] + j*sizeof(long long))));
-        }
-        oph_io_client_fetch_row(result_set, &current_row);
-      }
-    }
-    else if(!STRCMP(type, "double"))
-    {
-      while(current_row){
-        num_elems = (int)current_row->field_length[1]/sizeof(double); 
-        printf("ID: %s ", current_row->field[0]);
-        for(j = 0; j < num_elems; j++){
-          printf(" %f ", *((double *)(current_row->field[1] + j*sizeof(double))));
-        }
-        oph_io_client_fetch_row(result_set, &current_row);
-      }
-    }
+		oph_io_client_result *result_set = NULL;
+		if ((res = oph_io_client_get_result(connection, &result_set))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error %d in retrieving result set\n", res);
+			res = oph_io_client_close(connection);
+			exit(0);
+		}
+		//Output the result set (assuming array of double is gathered)
+		oph_io_client_record *current_row = NULL;
+		oph_io_client_fetch_row(result_set, &current_row);
+		int num_elems = 0, j;
 
-    oph_io_client_free_result(result_set);
-  }
-  res = oph_io_client_close (connection);
+		if (!STRCMP(type, "int")) {
+			while (current_row) {
+				num_elems = (int) current_row->field_length[1] / sizeof(int);
+				printf("ID: %s ", current_row->field[0]);
+				for (j = 0; j < num_elems; j++) {
+					printf(" %d ", *((int *) (current_row->field[1] + j * sizeof(int))));
+				}
+				oph_io_client_fetch_row(result_set, &current_row);
+			}
+		} else if (!STRCMP(type, "float")) {
+			while (current_row) {
+				num_elems = (int) current_row->field_length[1] / sizeof(float);
+				printf("ID: %s ", current_row->field[0]);
+				for (j = 0; j < num_elems; j++) {
+					printf(" %f ", *((float *) (current_row->field[1] + j * sizeof(float))));
+				}
+				oph_io_client_fetch_row(result_set, &current_row);
+			}
+		} else if (!STRCMP(type, "long")) {
+			while (current_row) {
+				num_elems = (int) current_row->field_length[1] / sizeof(long long);
+				printf("ID: %s ", current_row->field[0]);
+				for (j = 0; j < num_elems; j++) {
+					printf(" %lld ", *((long long *) (current_row->field[1] + j * sizeof(long long))));
+				}
+				oph_io_client_fetch_row(result_set, &current_row);
+			}
+		} else if (!STRCMP(type, "double")) {
+			while (current_row) {
+				num_elems = (int) current_row->field_length[1] / sizeof(double);
+				printf("ID: %s ", current_row->field[0]);
+				for (j = 0; j < num_elems; j++) {
+					printf(" %f ", *((double *) (current_row->field[1] + j * sizeof(double))));
+				}
+				oph_io_client_fetch_row(result_set, &current_row);
+			}
+		}
+
+		oph_io_client_free_result(result_set);
+	}
+	res = oph_io_client_close(connection);
 	exit(0);
 
 }

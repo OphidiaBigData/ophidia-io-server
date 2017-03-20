@@ -33,10 +33,10 @@ typedef enum {
  * \param field_length 	Array containing the length for each cell in the record
  * \param field			    Array containing the cell values
  */
-typedef struct{
-  unsigned long long  *field_length;
-  void                **field;
-}oph_iostore_frag_record;
+typedef struct {
+	unsigned long long *field_length;
+	void **field;
+} oph_iostore_frag_record;
 
 /**
  * \brief			          Structure containing information about a fragment record set (entire table)
@@ -46,31 +46,31 @@ typedef struct{
  * \param field_type		Array containing type of each cell
  * \param record_set		NULL terminated array with pointers to actual records
  */
-typedef struct{
-  char                    *frag_name;
-  unsigned short          field_num;
-  char                    **field_name;
-  oph_iostore_field_type  *field_type;
-  oph_iostore_frag_record **record_set;
-}oph_iostore_frag_record_set;
+typedef struct {
+	char *frag_name;
+	unsigned short field_num;
+	char **field_name;
+	oph_iostore_field_type *field_type;
+	oph_iostore_frag_record **record_set;
+} oph_iostore_frag_record_set;
 
 /**
  * \brief			          Structure containing information about a DB record set
  * \param db_name		    Name of DB
  */
-typedef struct{
-  char *db_name;
-}oph_iostore_db_record_set;
+typedef struct {
+	char *db_name;
+} oph_iostore_db_record_set;
 
 /**
  * \brief			        Structure to contain a DB or Fragment resource ID
  * \param id		      ID of resource (can be NULL)
  * \param id_length   Length of ID
  */
-typedef struct{
-  void            *id;
-  unsigned short  id_length;
-}oph_iostore_resource_id;
+typedef struct {
+	void *id;
+	unsigned short id_length;
+} oph_iostore_resource_id;
 
 //Internal functions
 /**
@@ -88,7 +88,7 @@ int oph_iostore_compare_id(oph_iostore_resource_id id1, oph_iostore_resource_id 
  * \param input_record  Record copied
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_copy_frag_record(oph_iostore_frag_record *input_record, unsigned short input_field_num, oph_iostore_frag_record **output_record);
+int oph_iostore_copy_frag_record(oph_iostore_frag_record * input_record, unsigned short input_field_num, oph_iostore_frag_record ** output_record);
 
 /**
  * \brief			              Copy a fragment record_set (it does not copy the frag_name)
@@ -96,7 +96,7 @@ int oph_iostore_copy_frag_record(oph_iostore_frag_record *input_record, unsigned
  * \param output_record_set  Record copied
  * \return                  0 if successfull, non-0 otherwise
  */
-int oph_iostore_copy_frag_record_set(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set);
+int oph_iostore_copy_frag_record_set(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set);
 
 /**
  * \brief			              Copy a fragment record_set by specifying a limit (it does not copy the frag_name)
@@ -106,7 +106,7 @@ int oph_iostore_copy_frag_record_set(oph_iostore_frag_record_set *input_record_s
  * \param limit Discard the first 'offset' rows
  * \return                  0 if successfull, non-0 otherwise
  */
-int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset);
+int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset);
 
 /**
  * \brief			              Copy a fragment record_set structure only by specifying a limit (it does not copy the frag_name and the internal record set)
@@ -116,7 +116,7 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_re
  * \param limit Discard the first 'offset' rows
  * \return                  0 if successfull, non-0 otherwise
  */
-int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset);
+int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset);
 
 /**
  * \brief			        Destroy a record and release resources
@@ -124,7 +124,7 @@ int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set *input_rec
  * \param field_num   Number of fields in a record
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_destroy_frag_record(oph_iostore_frag_record **record, short int field_num);
+int oph_iostore_destroy_frag_record(oph_iostore_frag_record ** record, short int field_num);
 
 /**
  * \brief			        Create an empty record
@@ -132,21 +132,21 @@ int oph_iostore_destroy_frag_record(oph_iostore_frag_record **record, short int 
  * \param field_num   Number of fields in a record
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_create_frag_record(oph_iostore_frag_record **record, short int field_num);
+int oph_iostore_create_frag_record(oph_iostore_frag_record ** record, short int field_num);
 
 /**
  * \brief			        Destroy a record set and release resources
  * \param record_set  Record set to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_destroy_frag_recordset(oph_iostore_frag_record_set **record_set);
+int oph_iostore_destroy_frag_recordset(oph_iostore_frag_record_set ** record_set);
 
 /**
  * \brief			        Destroy a record set and release resources (it does not destroy internal record set)
  * \param record_set  Record set to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record_set);
+int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set ** record_set);
 
 /**
  * \brief			        Create an empty recordset
@@ -155,7 +155,7 @@ int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record
  * \param field_num   Number of fields in each record
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num);
+int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num);
 
 /**
  * \brief             Create an empty recordset. It does not create internal record structures.
@@ -164,7 +164,7 @@ int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set **record_set, 
  * \param field_num   Number of fields in each record
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set **record_set, long long set_size, short int field_num);
+int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num);
 
 /**
  * \brief			        Create a sample recordset (for test purposes). It does not set the frag_name.
@@ -173,6 +173,6 @@ int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set **record_
  * \param record_set  Record set to be allocated
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_create_sample_frag(const long long row_number, const long long array_length, oph_iostore_frag_record_set **record_set);
+int oph_iostore_create_sample_frag(const long long row_number, const long long array_length, oph_iostore_frag_record_set ** record_set);
 
-#endif /* __OPH_IOSTORAGE_DATA_H */
+#endif				/* __OPH_IOSTORAGE_DATA_H */

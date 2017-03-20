@@ -31,62 +31,69 @@ extern int msglevel;
 
 pthread_rwlock_t syslock = PTHREAD_RWLOCK_INITIALIZER;
 
-void *memdup(const void *src, size_t n) {
-   void *dst = NULL;
+void *memdup(const void *src, size_t n)
+{
+	void *dst = NULL;
 
-   if (NULL == src || n <= 0){
-    pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
-    return dst;		  
-   } 
+	if (NULL == src || n <= 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
+		return dst;
+	}
 
-   dst = malloc(n);
-   if (NULL != dst) memcpy(dst, src, n);
+	dst = malloc(n);
+	if (NULL != dst)
+		memcpy(dst, src, n);
 
-   return dst;
+	return dst;
 }
 
-int trim(char * string) {
-    if(!string){
-		  pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
-		  return OPH_SERVER_UTIL_NULL_PARAM;
-	  }
+int trim(char *string)
+{
+	if (!string) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
+		return OPH_SERVER_UTIL_NULL_PARAM;
+	}
 
-    char * p = string;
-    int l = strlen(p);
+	char *p = string;
+	int l = strlen(p);
 
-    //Trim trailing spaces
-    while(isspace(p[l - 1])) p[--l] = 0;
-    //Trim initial spaces
-    while(* p && isspace(* p)) ++p, --l;
+	//Trim trailing spaces
+	while (isspace(p[l - 1]))
+		p[--l] = 0;
+	//Trim initial spaces
+	while (*p && isspace(*p))
+		++p, --l;
 
-    memmove(string, p, l + 1);
-    return OPH_SERVER_UTIL_SUCCESS;   
+	memmove(string, p, l + 1);
+	return OPH_SERVER_UTIL_SUCCESS;
 }
 
 //This function works on not null-terminated strings. It simply checks it the string contains only allowed chars ([0-9...])
-int is_numeric_string(int array_length, char *array, int *is_string){
-	if (!array_length || !array || !is_string){
-	  pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
-	  return OPH_SERVER_UTIL_NULL_PARAM;
-  }
+int is_numeric_string(int array_length, char *array, int *is_string)
+{
+	if (!array_length || !array || !is_string) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
+		return OPH_SERVER_UTIL_NULL_PARAM;
+	}
 
 	*is_string = 0;
 
 	//Set of allowed charachters
-	char allowed_chars[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', ',', '.', '-', 'e', 'x', ' '};
+	char allowed_chars[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', ',', '.', '-', 'e', 'x', ' ' };
 	int i, j;
 	int len = sizeof(allowed_chars);
 
 	//Check if each charachter is admissible
-	for(i = 0; i < array_length; i++){
+	for (i = 0; i < array_length; i++) {
 		//Check if charachter is in set
-		for(j = 0; j < len; j++) {
-			if(array[i] == allowed_chars[j]) break;
+		for (j = 0; j < len; j++) {
+			if (array[i] == allowed_chars[j])
+				break;
 		}
 		//If charachter is not in set
-		if(j == len){
+		if (j == len) {
 			*is_string = 0;
-			return OPH_SERVER_UTIL_SUCCESS;   
+			return OPH_SERVER_UTIL_SUCCESS;
 		}
 	}
 
@@ -95,28 +102,27 @@ int is_numeric_string(int array_length, char *array, int *is_string){
 	return OPH_SERVER_UTIL_SUCCESS;
 }
 
-int memory_check() // Check for memory swap
+int memory_check()		// Check for memory swap
 {
 	struct sysinfo info;
 
-	if (pthread_rwlock_wrlock(&syslock)) return OPH_SERVER_UTIL_ERROR;
+	if (pthread_rwlock_wrlock(&syslock))
+		return OPH_SERVER_UTIL_ERROR;
 
-	if (sysinfo(&info))
-	{
+	if (sysinfo(&info)) {
 		pthread_rwlock_unlock(&syslock);
 		return OPH_SERVER_UTIL_ERROR;
 	}
 
-	if (pthread_rwlock_unlock(&syslock)) return OPH_SERVER_UTIL_ERROR;
+	if (pthread_rwlock_unlock(&syslock))
+		return OPH_SERVER_UTIL_ERROR;
 
-	unsigned long long min_free_mem = (unsigned long long)(OPH_MIN_MEMORY_PERC *(info.totalram < OPH_MIN_MEMORY ? OPH_MIN_MEMORY : info.totalram));
+	unsigned long long min_free_mem = (unsigned long long) (OPH_MIN_MEMORY_PERC * (info.totalram < OPH_MIN_MEMORY ? OPH_MIN_MEMORY : info.totalram));
 
-	if ((info.freeram + info.bufferram < min_free_mem))
-	{
+	if ((info.freeram + info.bufferram < min_free_mem)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Out of memory\n");
 		return OPH_SERVER_UTIL_ERROR;
 	}
 
 	return OPH_SERVER_UTIL_SUCCESS;
 }
-

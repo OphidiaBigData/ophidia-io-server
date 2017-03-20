@@ -39,15 +39,15 @@ unsigned long long max_packet_length = 0;
 unsigned short omp_threads = 0;
 unsigned short client_ttl = 0;
 
-pthread_rwlock_t       rwlock = PTHREAD_RWLOCK_INITIALIZER;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
 
 oph_metadb_db_row *db_table = NULL;
-HASHTBL *plugin_table = NULL;  
+HASHTBL *plugin_table = NULL;
 oph_query_expr_symtable *oph_function_table = NULL;
 
 //Global only in this files (for garbage collection purpose)
-struct sockaddr	*cliaddr;
+struct sockaddr *cliaddr;
 HASHTBL *conf_db = NULL;
 
 int main(int argc, char *argv[])
@@ -58,30 +58,28 @@ int main(int argc, char *argv[])
 	int msglevel = LOG_INFO_T;
 #endif
 
-	int			listenfd, tmpconnfd, *connfd = NULL;
-	void			release(int);
-	void			*server_child(void *);
-	pthread_t		tid;
-	socklen_t		clilen, addrlen;
+	int listenfd, tmpconnfd, *connfd = NULL;
+	void release(int);
+	void *server_child(void *);
+	pthread_t tid;
+	socklen_t clilen, addrlen;
 	set_debug_level(msglevel);
 
 	int ch;
 	unsigned short int instance = 0;
 
 	static char *USAGE = "\nUSAGE:\noph_io_server [-i <instance_number>]\n";
-	
+
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
 
-	while ((ch = getopt(argc, argv, "i:hxz"))!=-1)
-	{
-		switch (ch)
-		{
+	while ((ch = getopt(argc, argv, "i:hxz")) != -1) {
+		switch (ch) {
 			case 'h':
 				fprintf(stdout, "%s", USAGE);
 				return 0;
 			case 'i':
-				instance = (unsigned short int)strtol(optarg, NULL, 10);
+				instance = (unsigned short int) strtol(optarg, NULL, 10);
 				break;
 			case 'x':
 				fprintf(stdout, "%s", OPH_WARRANTY);
@@ -95,205 +93,196 @@ int main(int argc, char *argv[])
 		}
 	}
 
-  if(instance == 0){
-		pmesg(LOG_INFO,__FILE__,__LINE__,"Using default (first) instance in configuration file\n");
-  }
+	if (instance == 0) {
+		pmesg(LOG_INFO, __FILE__, __LINE__, "Using default (first) instance in configuration file\n");
+	}
+	//mallopt(M_TRIM_THRESHOLD, 1024);
+	//mallopt(M_TOP_PAD, 0);
+	//mallopt(M_MMAP_THRESHOLD, 1);
 
-  //mallopt(M_TRIM_THRESHOLD, 1024);
-  //mallopt(M_TOP_PAD, 0);
-  //mallopt(M_MMAP_THRESHOLD, 1);
+	//Setup section: 1 - load conf files; 2 - load metaDB
 
-  //Setup section: 1 - load conf files; 2 - load metaDB
-
-  //Load params from conf files
-  if(oph_server_conf_load(instance, &conf_db)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
+	//Load params from conf files
+	if (oph_server_conf_load(instance, &conf_db)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading configuration file\n");
 		//logging(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
-    return -1;
-  }
-
-	char* hostname = 0;
-	char* port = 0;
-  char* max_length = 0;
-  char *ttl = 0;
-  char *dir = 0;
-  char *omp = 0;
-
-  if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)){
-		pmesg(LOG_WARNING,__FILE__,__LINE__,"Unable to get server dir param\n");
-		//logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-    //oph_server_conf_unload(&conf_db);
-    //return -1;
-    dir = OPH_IO_SERVER_PREFIX;
-  }
-
-  //Setup debug and MetaDB directories
-  set_log_prefix(dir);
-  oph_metadb_set_data_prefix(dir);
-
-  if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_HOSTNAME, &hostname)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
-
-  if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_PORT, &port)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
-
-  if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_MPL, &max_length)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
-  
-  max_packet_length = strtoll(max_length, NULL, 10);
-
-	if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_TTL, &ttl)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
-  
-  client_ttl = strtol(ttl, NULL, 10);
-
-	if(oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_OMP_THREADS, &omp)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
-  
-  omp_threads = strtol(omp, NULL, 10);
-
-	if(oph_load_plugins(&plugin_table, &oph_function_table)){
-		pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to load plugin table\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Unable to load plugin table\n");
-		oph_unload_plugins(&plugin_table, &oph_function_table);
-    oph_server_conf_unload(&conf_db);
 		return -1;
 	}
 
-  //Setup MetaDB
-  if(oph_metadb_load_schema (&db_table, 1)){
-	pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to load MetaDB\n");
-	logging(LOG_ERROR,__FILE__,__LINE__,"Unable to load MetaDB\n");
-	oph_unload_plugins(&plugin_table, &oph_function_table);
-    oph_metadb_unload_schema (db_table);
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
+	char *hostname = 0;
+	char *port = 0;
+	char *max_length = 0;
+	char *ttl = 0;
+	char *dir = 0;
+	char *omp = 0;
 
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)) {
+		pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to get server dir param\n");
+		//logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
+		//oph_server_conf_unload(&conf_db);
+		//return -1;
+		dir = OPH_IO_SERVER_PREFIX;
+	}
+	//Setup debug and MetaDB directories
+	set_log_prefix(dir);
+	oph_metadb_set_data_prefix(dir);
 
-  //Startup TCP/IP listening
-	if(oph_net_listen(hostname, port, &addrlen, &listenfd) != 0)
-  {
-    pmesg(LOG_ERROR,__FILE__,__LINE__,"Error while listening TCP socket\n");
-    logging(LOG_ERROR,__FILE__,__LINE__,"Error while listening TCP socket\n");
-	oph_unload_plugins(&plugin_table, &oph_function_table);
-    oph_metadb_unload_schema (db_table);
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_HOSTNAME, &hostname)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
 
-  cliaddr = (struct sockaddr	*) malloc(addrlen);
-  if(cliaddr == NULL)
-  {
-    pmesg(LOG_ERROR,__FILE__,__LINE__,"Unable to allocate buffer for client address\n");
-    logging(LOG_ERROR,__FILE__,__LINE__,"Unable to allocate buffer for client address\n");
-	oph_unload_plugins(&plugin_table, &oph_function_table);
-    oph_metadb_unload_schema (db_table);
-    oph_server_conf_unload(&conf_db);
-    return -1;
-  }
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_PORT, &port)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
 
-  //Signal(SIGPIPE, SIG_IGN);
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_MPL, &max_length)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+
+	max_packet_length = strtoll(max_length, NULL, 10);
+
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_TTL, &ttl)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+
+	client_ttl = strtol(ttl, NULL, 10);
+
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_OMP_THREADS, &omp)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+
+	omp_threads = strtol(omp, NULL, 10);
+
+	if (oph_load_plugins(&plugin_table, &oph_function_table)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to load plugin table\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to load plugin table\n");
+		oph_unload_plugins(&plugin_table, &oph_function_table);
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+	//Setup MetaDB
+	if (oph_metadb_load_schema(&db_table, 1)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to load MetaDB\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to load MetaDB\n");
+		oph_unload_plugins(&plugin_table, &oph_function_table);
+		oph_metadb_unload_schema(db_table);
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+	//Startup TCP/IP listening
+	if (oph_net_listen(hostname, port, &addrlen, &listenfd) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while listening TCP socket\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error while listening TCP socket\n");
+		oph_unload_plugins(&plugin_table, &oph_function_table);
+		oph_metadb_unload_schema(db_table);
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+
+	cliaddr = (struct sockaddr *) malloc(addrlen);
+	if (cliaddr == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to allocate buffer for client address\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to allocate buffer for client address\n");
+		oph_unload_plugins(&plugin_table, &oph_function_table);
+		oph_metadb_unload_schema(db_table);
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+	//Signal(SIGPIPE, SIG_IGN);
 	oph_net_signal(SIGINT, release);
 	oph_net_signal(SIGABRT, release);
 	oph_net_signal(SIGQUIT, release);
 
-  //Startup client connections
-	for ( ; ; )
-	{
+	//Startup client connections
+	for (;;) {
 		clilen = addrlen;
 
 
-		pmesg(LOG_DEBUG,__FILE__,__LINE__,"Waiting for a request...\n");
-		logging(LOG_DEBUG,__FILE__,__LINE__,"Waiting for a request...\n");
+		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Waiting for a request...\n");
+		logging(LOG_DEBUG, __FILE__, __LINE__, "Waiting for a request...\n");
 
-		if(oph_net_accept(listenfd, cliaddr, &clilen, &tmpconnfd) != 0){
-			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error on connection\n");
-			logging(LOG_ERROR,__FILE__,__LINE__,"Error on connection\n");
-			continue;	
-		}
-
-		pmesg(LOG_DEBUG,__FILE__,__LINE__,"Connection established on socket %d\n", tmpconnfd);
-		logging(LOG_DEBUG,__FILE__,__LINE__,"Connection established on socket %d\n", tmpconnfd);
-
-    //TODO Manage multiple connections with poll
-
-    connfd = (int *)malloc(sizeof(int));
-    *connfd = tmpconnfd;
-		if ( pthread_create(&tid, NULL, &server_child, (void *) connfd) != 0){
-			pmesg(LOG_ERROR,__FILE__,__LINE__,"Error creating thread\n");
-			logging(LOG_ERROR,__FILE__,__LINE__,"Error creating thread\n");
+		if (oph_net_accept(listenfd, cliaddr, &clilen, &tmpconnfd) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error on connection\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error on connection\n");
 			continue;
 		}
-    connfd = NULL;
+
+		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Connection established on socket %d\n", tmpconnfd);
+		logging(LOG_DEBUG, __FILE__, __LINE__, "Connection established on socket %d\n", tmpconnfd);
+
+		//TODO Manage multiple connections with poll
+
+		connfd = (int *) malloc(sizeof(int));
+		*connfd = tmpconnfd;
+		if (pthread_create(&tid, NULL, &server_child, (void *) connfd) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error creating thread\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error creating thread\n");
+			continue;
+		}
+		connfd = NULL;
 
 	}
 
-  //Cleanup procedures
-  free(cliaddr);
-  oph_metadb_unload_schema (db_table);
-  oph_server_conf_unload(&conf_db);
+	//Cleanup procedures
+	free(cliaddr);
+	oph_metadb_unload_schema(db_table);
+	oph_server_conf_unload(&conf_db);
 	oph_unload_plugins(&plugin_table, &oph_function_table);
 
-  return 0;
+	return 0;
 }
 
 void *server_child(void *arg)
 {
 	void oph_io_server_thread(int, pthread_t);
 
-	if ( pthread_detach(pthread_self()) != 0)
-		return(NULL);
+	if (pthread_detach(pthread_self()) != 0)
+		return (NULL);
 
 	pthread_t tid = pthread_self();
 
-	pmesg(LOG_DEBUG,__FILE__,__LINE__,"LAUNCHING THREAD...\n");
-	oph_io_server_thread(*((int *)arg), tid);
+	pmesg(LOG_DEBUG, __FILE__, __LINE__, "LAUNCHING THREAD...\n");
+	oph_io_server_thread(*((int *) arg), tid);
 
-	pmesg(LOG_DEBUG,__FILE__,__LINE__,"Closing the connection...\n");
-	logging(LOG_DEBUG,__FILE__,__LINE__,"Closing the connection...\n");
+	pmesg(LOG_DEBUG, __FILE__, __LINE__, "Closing the connection...\n");
+	logging(LOG_DEBUG, __FILE__, __LINE__, "Closing the connection...\n");
 
-	if(close(*((int *)arg)) == -1) pmesg(LOG_WARNING,__FILE__,__LINE__,"Error while closing connection!\n");
+	if (close(*((int *) arg)) == -1)
+		pmesg(LOG_WARNING, __FILE__, __LINE__, "Error while closing connection!\n");
 
-  free((int *)arg);
+	free((int *) arg);
 
-	pmesg(LOG_DEBUG,__FILE__,__LINE__,"Connection closed\n");
-	logging(LOG_DEBUG,__FILE__,__LINE__,"Connection closed\n");
+	pmesg(LOG_DEBUG, __FILE__, __LINE__, "Connection closed\n");
+	logging(LOG_DEBUG, __FILE__, __LINE__, "Connection closed\n");
 
-	pmesg(LOG_DEBUG,__FILE__,__LINE__,"CLOSING THREAD...\n");
-	return(NULL);
+	pmesg(LOG_DEBUG, __FILE__, __LINE__, "CLOSING THREAD...\n");
+	return (NULL);
 }
 
 //Garbage collecition function
 void release(int signo)
 {
-  //Cleanup procedures
-	logging(LOG_DEBUG,__FILE__,__LINE__,"Catched signal %d\n", signo);
-  free(cliaddr);
-  oph_metadb_unload_schema (db_table);
+	//Cleanup procedures
+	logging(LOG_DEBUG, __FILE__, __LINE__, "Catched signal %d\n", signo);
+	free(cliaddr);
+	oph_metadb_unload_schema(db_table);
 	oph_unload_plugins(&plugin_table, &oph_function_table);
-  oph_server_conf_unload(&conf_db);
-	
-  exit(0);
-}
+	oph_server_conf_unload(&conf_db);
 
+	exit(0);
+}

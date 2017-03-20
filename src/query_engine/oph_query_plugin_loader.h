@@ -52,7 +52,7 @@ typedef enum {
  * \param plugin_type		Type of plugin function (simple or aggragetion)
  * \param plugin_return	Return type of plugin
  */
-typedef struct{
+typedef struct {
 	char *plugin_name;
 	char *plugin_library;
 	oph_plugin_type plugin_type;
@@ -64,14 +64,14 @@ typedef struct{
  * \param plugin      Pointer to plugin to setup
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_init_plugin(oph_plugin *plugin);
+int oph_init_plugin(oph_plugin * plugin);
 
 /**
  * \brief			        Free resources allocated for plugin
  * \param plugin      Pointer to plugin to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_free_plugin(oph_plugin *plugin);
+int oph_free_plugin(oph_plugin * plugin);
 
 /**
  * \brief			        Load plugin list in plugin table
@@ -79,7 +79,7 @@ int oph_free_plugin(oph_plugin *plugin);
  * \param function_htable      Pointer to symtable used to store plugin list
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_load_plugins (HASHTBL **plugin_htable, oph_query_expr_symtable **function_table);
+int oph_load_plugins(HASHTBL ** plugin_htable, oph_query_expr_symtable ** function_table);
 
 /**
  * \brief			        Clean plugin list in plugin table
@@ -87,6 +87,6 @@ int oph_load_plugins (HASHTBL **plugin_htable, oph_query_expr_symtable **functio
  * \param function_htable      Pointer to symtable to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_unload_plugins(HASHTBL **plugin_htable, oph_query_expr_symtable **function_table);
+int oph_unload_plugins(HASHTBL ** plugin_htable, oph_query_expr_symtable ** function_table);
 
-#endif /* OPH_QUERY_PLUGIN_LOADER_H */
+#endif				/* OPH_QUERY_PLUGIN_LOADER_H */

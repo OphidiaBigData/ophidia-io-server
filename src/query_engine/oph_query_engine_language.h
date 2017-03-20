@@ -85,4 +85,4 @@
 #define OPH_QUERY_ENGINE_LANG_KW_FUNCTION_FIELDS    "@function_fields"
 #define OPH_QUERY_ENGINE_LANG_KW_FUNCTION_TABLE     "@function_table"
 
-#endif //__OPH_QUERY_ENGINE_LANGUAGE_H
+#endif				//__OPH_QUERY_ENGINE_LANGUAGE_H

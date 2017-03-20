@@ -24,18 +24,18 @@
 /**
  * \brief           Enum with admissible argument types
  */
-typedef enum { 
+typedef enum {
 	OPH_QUERY_TYPE_LONG,
 	OPH_QUERY_TYPE_DOUBLE,
 	OPH_QUERY_TYPE_NULL,
 	OPH_QUERY_TYPE_VARCHAR,
 	OPH_QUERY_TYPE_BLOB
-}oph_query_arg_types;
+} oph_query_arg_types;
 
 /**
  * \brief           Enum with admissible field types
  */
-typedef enum { 
+typedef enum {
 	OPH_QUERY_FIELD_TYPE_LONG,
 	OPH_QUERY_FIELD_TYPE_DOUBLE,
 	OPH_QUERY_FIELD_TYPE_STRING,
@@ -43,7 +43,7 @@ typedef enum {
 	OPH_QUERY_FIELD_TYPE_BINARY,
 	OPH_QUERY_FIELD_TYPE_FUNCTION,
 	OPH_QUERY_FIELD_TYPE_UNKNOWN
-}oph_query_field_types;
+} oph_query_field_types;
 
 
 
@@ -54,12 +54,12 @@ typedef enum {
  * \param arg_is_null If argument can be null
  * \param arg         Pointer to argument value
  */
-typedef struct{
-  oph_query_arg_types     arg_type;
-  unsigned long           arg_length;
-  short int               arg_is_null;
-  void                    *arg;
-}oph_query_arg;
+typedef struct {
+	oph_query_arg_types arg_type;
+	unsigned long arg_length;
+	short int arg_is_null;
+	void *arg;
+} oph_query_arg;
 
 //Internal functions
 /**
@@ -75,7 +75,7 @@ int _oph_query_parser_validate_query(const char *query_string);
  * \param hashtbl       Hash table to be loaded
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_query_parser_load_query_params(const char *query_string, HASHTBL *hashtbl);
+int _oph_query_parser_load_query_params(const char *query_string, HASHTBL * hashtbl);
 
 /**
  * \brief               Function used to parse query string and load all arguments into hash table 
@@ -83,7 +83,7 @@ int _oph_query_parser_load_query_params(const char *query_string, HASHTBL *hasht
  * \param query_args    Hash table containing args to be created
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_parser(char *query_string, HASHTBL **query_args);
+int oph_query_parser(char *query_string, HASHTBL ** query_args);
 
 /**
  * \brief               Function to parse and split multiple-value arguments. It modifies the input "values" string 
@@ -92,7 +92,7 @@ int oph_query_parser(char *query_string, HASHTBL **query_args);
  * \param value_num     Number of values splitted
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_parse_multivalue_arg (char *values, char ***value_list, int *value_num);
+int oph_query_parse_multivalue_arg(char *values, char ***value_list, int *value_num);
 
 /**
  * \brief               Internal function used to remove unwanted tokens from the query string. It modifies the input string 
@@ -108,7 +108,7 @@ int _oph_query_parser_remove_query_tokens(char *query_string);
  * \param value_num     Number of values splitted (it can only be 2)
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *value_num);
+int oph_query_parse_hierarchical_args(char *values, char ***value_list, int *value_num);
 
 /**
  * \brief               Function to get the type related to a field value. This can be used for select, insert, where or group by fields 
@@ -116,14 +116,14 @@ int oph_query_parse_hierarchical_args (char *values, char ***value_list, int *va
  * \param field_type    Type of argument evaluated
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_query_field_type(const char* field, oph_query_field_types *field_type);
+int oph_query_field_type(const char *field, oph_query_field_types * field_type);
 
 /**
  *\brief                Saves in result a copy of the query with all the question masks numbered from 1 to n  
  *\param query          The query
  *\param result         A reference to the pointer that will point to the query with numbered question marks
  */
-int oph_query_expr_update_binary_args(char* query, char** result);
+int oph_query_expr_update_binary_args(char *query, char **result);
 
 /**
  * \brief               Function to check if procedure input arguments are strings. It also removes leading/trailing spaces and quotes. (It modifies input string)
@@ -132,4 +132,4 @@ int oph_query_expr_update_binary_args(char* query, char** result);
  */
 int oph_query_check_procedure_string(char **param);
 
-#endif /* OPH_QUERY_PARSER_H */
+#endif				/* OPH_QUERY_PARSER_H */

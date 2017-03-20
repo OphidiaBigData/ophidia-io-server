@@ -31,7 +31,7 @@
  * \param line_length  Length of line that will contain serialized struct
  * \return          0 if successfull, non-0 otherwise
  */
-int _oph_metadb_serialize_db_row(oph_metadb_db_row *row, char **line, unsigned int *line_length);
+int _oph_metadb_serialize_db_row(oph_metadb_db_row * row, char **line, unsigned int *line_length);
 
 /**
  * \brief           Auxiliar function to deserialize binary string into structure.
@@ -39,7 +39,7 @@ int _oph_metadb_serialize_db_row(oph_metadb_db_row *row, char **line, unsigned i
  * \param row       Row that will contain deserialized record
  * \return          0 if successfull, non-0 otherwise
  */
-int _oph_metadb_deserialize_db_row(char *line, oph_metadb_db_row **row);
+int _oph_metadb_deserialize_db_row(char *line, oph_metadb_db_row ** row);
 
 /**
  * \brief           Auxiliar function to serialize structure into binary string.
@@ -48,7 +48,7 @@ int _oph_metadb_deserialize_db_row(char *line, oph_metadb_db_row **row);
  * \param line_length  Length of line that will contain serialized struct
  * \return          0 if successfull, non-0 otherwise
  */
-int _oph_metadb_serialize_frag_row(oph_metadb_frag_row *row, char **line, unsigned int *line_length);
+int _oph_metadb_serialize_frag_row(oph_metadb_frag_row * row, char **line, unsigned int *line_length);
 
 /**
  * \brief           Auxiliar function to deserialize binary string into structure.
@@ -56,7 +56,7 @@ int _oph_metadb_serialize_frag_row(oph_metadb_frag_row *row, char **line, unsign
  * \param row       Row that will contain deserialized record
  * \return          0 if successfull, non-0 otherwise
  */
-int _oph_metadb_deserialize_frag_row(char *line, oph_metadb_frag_row **row);
+int _oph_metadb_deserialize_frag_row(char *line, oph_metadb_frag_row ** row);
 
 /**
  * \brief           Auxiliar function to write a row into the file.
@@ -120,4 +120,4 @@ int _oph_metadb_create_file(char *schema_file);
  */
 int _oph_metadb_delete_procedure(char *schema_file, short int clean_all);
 
-#endif /* OPH_METADB_AUX_H */
+#endif				/* OPH_METADB_AUX_H */

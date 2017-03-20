@@ -21,7 +21,7 @@
 
 #include "oph_query_expression_evaluator.h"
 
-/*These are all the functions that are automatically added to the symtable*/ 
+/*These are all the functions that are automatically added to the symtable*/
 
 /**
  * \brief               One of the functions that can apper in the parsed query
@@ -32,7 +32,7 @@
  * \param destroy       unused param 
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_id(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_id(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
@@ -43,7 +43,7 @@ oph_query_expr_value oph_id(oph_query_expr_value* args, int num_args, char* name
  * \param destroy       unused param 
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_id2(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_id2(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
@@ -54,7 +54,7 @@ oph_query_expr_value oph_id2(oph_query_expr_value* args, int num_args, char* nam
  * \param destroy       unused param 
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_id3(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_id3(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
@@ -65,7 +65,7 @@ oph_query_expr_value oph_id3(oph_query_expr_value* args, int num_args, char* nam
  * \param destroy       unused param 
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_id_to_index (oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_id_to_index(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
@@ -76,7 +76,7 @@ oph_query_expr_value oph_id_to_index (oph_query_expr_value* args, int num_args, 
  * \param destroy       unused param 
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_id_to_index2(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_id_to_index2(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               One of the functions that can apper in the parsed query
@@ -87,7 +87,7 @@ oph_query_expr_value oph_id_to_index2(oph_query_expr_value* args, int num_args, 
  * \param destroy       unused param 
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_is_in_subset(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               A function that handles the invocation of primitives that return double
@@ -99,7 +99,7 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value* args, int num_args, 
                         if is 1 will execute the deinit function.
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_query_generic_double(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               A function that handles the invocation of primitives that return long
@@ -111,7 +111,7 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value* args, int nu
                         if is 1 will execute the deinit function.
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_query_generic_long(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               A function that handles the invocation of primitives that return string
@@ -123,7 +123,7 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value* args, int num_
                         if is 1 will execute the deinit function.
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_query_generic_string(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 /**
  * \brief               A function that handles the invocation of primitives that return binary
@@ -135,7 +135,7 @@ oph_query_expr_value oph_query_generic_string(oph_query_expr_value* args, int nu
                         if is 1 will execute the deinit function.
  * \param er            A flag to be changed in case of error
  */
-oph_query_expr_value oph_query_generic_binary(oph_query_expr_value* args, int num_args, char* name, oph_query_expr_udf_descriptor* descriptor, int destroy, int *er);
+oph_query_expr_value oph_query_generic_binary(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er);
 
 
-#endif // __OPH_QUERY_EXPRESSION_FUNCTIONS_H__
+#endif				// __OPH_QUERY_EXPRESSION_FUNCTIONS_H__

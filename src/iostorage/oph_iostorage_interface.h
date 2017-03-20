@@ -48,39 +48,39 @@
  * \param dlh             Libtool handler to dynamic library
  * \param connection      Variable to hold generic storage device connection status info
  */
-typedef struct{
-	char 	*device;
-  short unsigned int is_persistent;
-	char	*lib;
-	void	*dlh;
-  void  *connection;
+typedef struct {
+	char *device;
+	short unsigned int is_persistent;
+	char *lib;
+	void *dlh;
+	void *connection;
 } oph_iostore_handler;
 
 //****************Plugin Interface******************//
 
 //Function to initialize storage library.
-int (*_DEVICE_setup) (oph_iostore_handler *handle);
+int (*_DEVICE_setup) (oph_iostore_handler * handle);
 
 //Function to finalize the storage library and release all dynamic loading resources.
-int (*_DEVICE_cleanup) (oph_iostore_handler* handle);
+int (*_DEVICE_cleanup) (oph_iostore_handler * handle);
 
 //Function to retrieve a DB record from storage device
-int (*_DEVICE_get_db) (oph_iostore_handler* handle, oph_iostore_resource_id *res_id, oph_iostore_db_record_set **db_record); 
+int (*_DEVICE_get_db) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
 
 //Function to insert a DB record into storage device
-int (*_DEVICE_put_db) (oph_iostore_handler* handle, oph_iostore_db_record_set *db_record, oph_iostore_resource_id **res_id); 
+int (*_DEVICE_put_db) (oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
 
 //Function to delete a DB from a storage device
-int (*_DEVICE_delete_db) (oph_iostore_handler* handle, oph_iostore_resource_id *res_id); 
+int (*_DEVICE_delete_db) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
 //Function to retrieve a fragment record from storage device
-int (*_DEVICE_get_frag) (oph_iostore_handler* handle, oph_iostore_resource_id *res_id, oph_iostore_frag_record_set **frag_record); 
+int (*_DEVICE_get_frag) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
 
 //Function to insert a fragment record into storage device
-int (*_DEVICE_put_frag) (oph_iostore_handler* handle, oph_iostore_frag_record_set *frag_record, oph_iostore_resource_id **res_id); 
+int (*_DEVICE_put_frag) (oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
 
 //Function to delete a fragment from a storage device
-int (*_DEVICE_delete_frag) (oph_iostore_handler* handle, oph_iostore_resource_id *res_id); 
+int (*_DEVICE_delete_frag) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
 //*****************Internal Functions (used by query engine library)***************//
 
@@ -90,14 +90,14 @@ int (*_DEVICE_delete_frag) (oph_iostore_handler* handle, oph_iostore_resource_id
  * \param handle        Address to pointer for dynamic device plugin handle
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_setup(const char *device, oph_iostore_handler **handle);
+int oph_iostore_setup(const char *device, oph_iostore_handler ** handle);
 
 /**
  * \brief               Function to finalize library of data storage and release all dynamic loading resources.
  * \param handle        Dynamic I/O storage plugin handle
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_cleanup(oph_iostore_handler* handle);
+int oph_iostore_cleanup(oph_iostore_handler * handle);
 
 /**
  * \brief               Function to retrieve a DB record from storage device
@@ -106,7 +106,7 @@ int oph_iostore_cleanup(oph_iostore_handler* handle);
  * \param db_record     Record contains a copy of a DB if device is persisten (it should be deleted outside), or a pointer to the record if device is transient
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_get_db(oph_iostore_handler* handle, oph_iostore_resource_id *res_id, oph_iostore_db_record_set **db_record); 
+int oph_iostore_get_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
 
 /**
  * \brief               Function to insert a DB record into storage device
@@ -115,7 +115,7 @@ int oph_iostore_get_db(oph_iostore_handler* handle, oph_iostore_resource_id *res
  * \param res_id        ID of resource created
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_put_db(oph_iostore_handler* handle, oph_iostore_db_record_set *db_record, oph_iostore_resource_id **res_id); 
+int oph_iostore_put_db(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
 
 /**
  * \brief               Function to delete a DB from a storage device
@@ -123,7 +123,7 @@ int oph_iostore_put_db(oph_iostore_handler* handle, oph_iostore_db_record_set *d
  * \param res_id        ID of resource to delete
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_delete_db(oph_iostore_handler* handle, oph_iostore_resource_id *res_id); 
+int oph_iostore_delete_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
 /**
  * \brief               Function to retrieve a fragment record from storage device
@@ -132,7 +132,7 @@ int oph_iostore_delete_db(oph_iostore_handler* handle, oph_iostore_resource_id *
  * \param frag_record   Record contains a copy of a frag if device is persisten (it should be deleted outside), or a pointer to the record if device is transient
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_get_frag(oph_iostore_handler* handle, oph_iostore_resource_id *res_id, oph_iostore_frag_record_set **frag_record); 
+int oph_iostore_get_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
 
 /**
  * \brief               Function to insert a fragment record into storage device
@@ -141,7 +141,7 @@ int oph_iostore_get_frag(oph_iostore_handler* handle, oph_iostore_resource_id *r
  * \param res_id        ID of resource created
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_put_frag(oph_iostore_handler* handle, oph_iostore_frag_record_set *frag_record, oph_iostore_resource_id **res_id); 
+int oph_iostore_put_frag(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
 
 /**
  * \brief               Function to delete a fragment from a storage device
@@ -149,6 +149,6 @@ int oph_iostore_put_frag(oph_iostore_handler* handle, oph_iostore_frag_record_se
  * \param res_id        ID of resource to delete
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_iostore_delete_frag(oph_iostore_handler* handle, oph_iostore_resource_id *res_id); 
+int oph_iostore_delete_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
-#endif //__OPH_IOSTORAGE_INTERFACE_H
+#endif				//__OPH_IOSTORAGE_INTERFACE_H

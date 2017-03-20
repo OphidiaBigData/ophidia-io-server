@@ -47,9 +47,8 @@ void pmesg(int level, const char *source, long int line_number, const char *form
 #endif
 
 void logging(int level, const char *source, long int line_number, const char *format, ...);
-void set_log_prefix(char* p);
+void set_log_prefix(char *p);
 
 void set_debug_level(int level);
 
-#endif /* DEBUG_H */
-
+#endif				/* DEBUG_H */

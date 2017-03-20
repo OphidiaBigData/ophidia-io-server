@@ -72,22 +72,22 @@
  * \param db   	DB to be used on the server
  * \param socket Id of file descriptor of socket associated to connection
  */
-typedef struct{
+typedef struct {
 	char host[OPH_IO_CLIENT_HOST_LEN];
 	char port[OPH_IO_CLIENT_PORT_LEN];
 	char db_name[OPH_IO_CLIENT_DB_LEN];
-  int socket;
-}oph_io_client_connection;
+	int socket;
+} oph_io_client_connection;
 
 /**
  * \brief			          Structure for storing information about the current record
  * \param field_length 	Array containing the length for each cell in the record
  * \param field			    NULL terminated array containing the cell values
  */
-typedef struct{
-  unsigned long *field_length;
-  char **field;
-}oph_io_client_record;
+typedef struct {
+	unsigned long *field_length;
+	char **field;
+} oph_io_client_record;
 
 /**
  * \brief			Structure for the result set to be retrieved
@@ -97,24 +97,24 @@ typedef struct{
  * \param current_row		Index of current row
  * \param result_set		Pointer to NULL terminated result set
  */
-typedef struct{
-  unsigned long long num_rows;
-  unsigned int num_fields;
-  unsigned long long *max_field_length;
-  unsigned long long current_row;
-  oph_io_client_record **result_set;
-}oph_io_client_result;
+typedef struct {
+	unsigned long long num_rows;
+	unsigned int num_fields;
+	unsigned long long *max_field_length;
+	unsigned long long current_row;
+	oph_io_client_record **result_set;
+} oph_io_client_result;
 
 /**
  * \brief           Enum with admissible argument types
  */
-typedef enum { 
-      OPH_IO_CLIENT_TYPE_DECIMAL = 0,  OPH_IO_CLIENT_TYPE_LONG,
-			OPH_IO_CLIENT_TYPE_FLOAT,  OPH_IO_CLIENT_TYPE_DOUBLE,
-			OPH_IO_CLIENT_TYPE_NULL, OPH_IO_CLIENT_TYPE_LONGLONG,
-      OPH_IO_CLIENT_TYPE_VARCHAR, OPH_IO_CLIENT_TYPE_BIT,
-			OPH_IO_CLIENT_TYPE_LONG_BLOB, OPH_IO_CLIENT_TYPE_BLOB
-}oph_io_client_arg_types;
+typedef enum {
+	OPH_IO_CLIENT_TYPE_DECIMAL = 0, OPH_IO_CLIENT_TYPE_LONG,
+	OPH_IO_CLIENT_TYPE_FLOAT, OPH_IO_CLIENT_TYPE_DOUBLE,
+	OPH_IO_CLIENT_TYPE_NULL, OPH_IO_CLIENT_TYPE_LONGLONG,
+	OPH_IO_CLIENT_TYPE_VARCHAR, OPH_IO_CLIENT_TYPE_BIT,
+	OPH_IO_CLIENT_TYPE_LONG_BLOB, OPH_IO_CLIENT_TYPE_BLOB
+} oph_io_client_arg_types;
 
 
 /**
@@ -124,12 +124,12 @@ typedef enum {
  * \param arg_is_null If argument can be null
  * \param arg         Pointer to argument value
  */
-typedef struct{
-  oph_io_client_arg_types     arg_type;
-  unsigned long           arg_length;
-  short int               arg_is_null;
-  void                    *arg;
-}oph_io_client_query_arg;
+typedef struct {
+	oph_io_client_arg_types arg_type;
+	unsigned long arg_length;
+	short int arg_is_null;
+	void *arg;
+} oph_io_client_query_arg;
 
 /**
  * \brief               Structure to contain a query statement
@@ -141,21 +141,21 @@ typedef struct{
  * \param tot_run       Total number of times the query should be executed
  * \param curr_run      Current value of execution counter
  */
-typedef struct{
-  void                        *query;
-  unsigned long long          args_count;
-  oph_io_client_query_arg         **args;
-  unsigned int                fixed_length;
-  unsigned int                args_length;
-  unsigned long long          tot_run;
-  unsigned long long          curr_run;
-}oph_io_client_query;
+typedef struct {
+	void *query;
+	unsigned long long args_count;
+	oph_io_client_query_arg **args;
+	unsigned int fixed_length;
+	unsigned int args_length;
+	unsigned long long tot_run;
+	unsigned long long curr_run;
+} oph_io_client_query;
 
 /**
  * \brief               Function to initialize IO server library.
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_setup ();
+int oph_io_client_setup();
 
 /**
  * \brief               Function to connect or reconnect to IO server.
@@ -166,7 +166,7 @@ int oph_io_client_setup ();
  * \param connection    Pointer to IO server connection structure
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_connect (const char *hostname, const char *port, const char *db_name, const char *device, oph_io_client_connection **connection);
+int oph_io_client_connect(const char *hostname, const char *port, const char *db_name, const char *device, oph_io_client_connection ** connection);
 
 /**
  * \brief               Function to set default database for specified server.
@@ -175,7 +175,7 @@ int oph_io_client_connect (const char *hostname, const char *port, const char *d
  * \param connection    Pointer to IO server connection structure
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_use_db (const char *db_name, const char *device, oph_io_client_connection *connection);
+int oph_io_client_use_db(const char *db_name, const char *device, oph_io_client_connection * connection);
 
 /**
  * \brief               Function to execute an operation on data stored into server.
@@ -183,7 +183,7 @@ int oph_io_client_use_db (const char *db_name, const char *device, oph_io_client
  * \param query         Pointer to query to be executed
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_execute_query (oph_io_client_connection *connection, oph_io_client_query *query); 
+int oph_io_client_execute_query(oph_io_client_connection * connection, oph_io_client_query * query);
 
 /**
  * \brief               Function to setup the query structure with given operation and array argument
@@ -195,27 +195,28 @@ int oph_io_client_execute_query (oph_io_client_connection *connection, oph_io_cl
  * \param query         Pointer to query to be built
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_setup_query (oph_io_client_connection *connection, const char *operation, const char *device, unsigned long long tot_run, oph_io_client_query_arg **args, oph_io_client_query **query); 
+int oph_io_client_setup_query(oph_io_client_connection * connection, const char *operation, const char *device, unsigned long long tot_run, oph_io_client_query_arg ** args,
+			      oph_io_client_query ** query);
 
 /**
  * \brief               Function to release resources allocated for query
  * \param query         Pointer to query to be executed
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_free_query (oph_io_client_query *query); 
+int oph_io_client_free_query(oph_io_client_query * query);
 
 /**
  * \brief               Function to close connection established towards an IO server.
  * \param connection    Pointer to server-specific connection structure
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_close (oph_io_client_connection *connection);
+int oph_io_client_close(oph_io_client_connection * connection);
 
 /**
  * \brief               Function to finalize library of IO server and release all dynamic loading resources.
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_cleanup ();
+int oph_io_client_cleanup();
 
 /**
  * \brief               Function to get result set after executing a query.
@@ -223,7 +224,7 @@ int oph_io_client_cleanup ();
  * \param result_set    Pointer to the result set array to be created
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_client_result **result_set);
+int oph_io_client_get_result(oph_io_client_connection * connection, oph_io_client_result ** result_set);
 
 /**
  * \brief               Function to fetch the next row in a result set.
@@ -231,13 +232,13 @@ int oph_io_client_get_result(oph_io_client_connection *connection,  oph_io_clien
  * \param current_row	  Pointer to the next row structure in the result set
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_fetch_row(oph_io_client_result *result_set,  oph_io_client_record **current_row);
+int oph_io_client_fetch_row(oph_io_client_result * result_set, oph_io_client_record ** current_row);
 
 /**
  * \brief               Function to free the allocated result set.
  * \param result        Pointer to the result set structure to free
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_client_free_result(oph_io_client_result *result);
+int oph_io_client_free_result(oph_io_client_result * result);
 
-#endif  //__OPH_IO_CLIENT_INTERFACE_H
+#endif				//__OPH_IO_CLIENT_INTERFACE_H

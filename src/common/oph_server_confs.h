@@ -67,7 +67,8 @@
 #define OPH_SERVER_CONF_TTL               "CLIENT_TTL"
 #define OPH_SERVER_CONF_OMP_THREADS       "OPENMP_THREADS"
 
-static const char * const oph_server_conf_params[] = {OPH_SERVER_CONF_HOSTNAME, OPH_SERVER_CONF_PORT, OPH_SERVER_CONF_DIR, OPH_SERVER_CONF_MPL, OPH_SERVER_CONF_TTL, OPH_SERVER_CONF_OMP_THREADS, NULL};
+static const char *const oph_server_conf_params[] =
+    { OPH_SERVER_CONF_HOSTNAME, OPH_SERVER_CONF_PORT, OPH_SERVER_CONF_DIR, OPH_SERVER_CONF_MPL, OPH_SERVER_CONF_TTL, OPH_SERVER_CONF_OMP_THREADS, NULL };
 
 /**
  * \brief			        Function to load parameters from configuration file
@@ -75,7 +76,7 @@ static const char * const oph_server_conf_params[] = {OPH_SERVER_CONF_HOSTNAME, 
  * \param hashtbl     Pointer to hash table containing param list
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_server_conf_load(short unsigned int instance, HASHTBL **hashtbl);
+int oph_server_conf_load(short unsigned int instance, HASHTBL ** hashtbl);
 
 /**
  * \brief			        Function to get a param from configuration hash table
@@ -84,13 +85,13 @@ int oph_server_conf_load(short unsigned int instance, HASHTBL **hashtbl);
  * \param value       Value found
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_server_conf_get_param(HASHTBL *hashtbl, const char *param, char **value);
+int oph_server_conf_get_param(HASHTBL * hashtbl, const char *param, char **value);
 
 /**
  * \brief			        Function to unload parameters from configuration file
  * \param hashtbl     Pointer to hash table containing param list
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_server_conf_unload(HASHTBL **hashtbl);
+int oph_server_conf_unload(HASHTBL ** hashtbl);
 
-#endif  //__OPH_SERVER_CONFS_H
+#endif				//__OPH_SERVER_CONFS_H

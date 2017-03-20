@@ -50,7 +50,7 @@ void *memdup(const void *src, size_t n);
  * \param string      String to trim
  * \return            0 if successfull, non-0 otherwise
  */
-int trim(char * string);
+int trim(char *string);
 
 /**
  * \brief			        This function checks if the binary array contains numeric string chars ([0-9...]).
@@ -67,4 +67,4 @@ int is_numeric_string(int array_length, char *array, int *is_string);
  */
 int memory_check();
 
-#endif /* OPH_SERVER_UTILITY_H */
+#endif				/* OPH_SERVER_UTILITY_H */

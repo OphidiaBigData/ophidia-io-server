@@ -57,15 +57,15 @@
  * \param frag       	    Frag name related to result set
  * \param mi_prev_rows     If multi-insert remainder rows are expected, it will contain the rows already inserted otherwise it will be zero
  */
-typedef struct{
-  unsigned long long          tot_run;
-  unsigned long long          curr_run;
-  oph_iostore_frag_record_set *partial_result_set;
-  char                        *device;
-  char                        *frag;
-  unsigned long long          size;
-  unsigned long long          mi_prev_rows;
-}oph_io_server_running_stmt;
+typedef struct {
+	unsigned long long tot_run;
+	unsigned long long curr_run;
+	oph_iostore_frag_record_set *partial_result_set;
+	char *device;
+	char *frag;
+	unsigned long long size;
+	unsigned long long mi_prev_rows;
+} oph_io_server_running_stmt;
 
 /**
  * \brief			            Structure to store thread status info
@@ -75,21 +75,21 @@ typedef struct{
  * \param device        	Device selected for operations
  * \param curr_stmt       Current statement being executed, if any
  */
-typedef struct{
-  //oph_metadb_db_row *current_db; 
-  char *current_db;
-  oph_iostore_frag_record_set *last_result_set;
-  char delete_only_rs;
-  char *device;
-  oph_io_server_running_stmt *curr_stmt;
-}oph_io_server_thread_status;
+typedef struct {
+	//oph_metadb_db_row *current_db; 
+	char *current_db;
+	oph_iostore_frag_record_set *last_result_set;
+	char delete_only_rs;
+	char *device;
+	oph_io_server_running_stmt *curr_stmt;
+} oph_io_server_thread_status;
 
 /**
  * \brief               Function used to release thread status resources
  * \param status        Thread status
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_free_status(oph_io_server_thread_status *status);
+int oph_io_server_free_status(oph_io_server_thread_status * status);
 
 /**
  * \brief               Thread function used by IO server
@@ -99,4 +99,4 @@ int oph_io_server_free_status(oph_io_server_thread_status *status);
  */
 void oph_io_server_thread(int sockfd, pthread_t tid);
 
-#endif /* OPH_IO_SERVER_THREAD_H */
+#endif				/* OPH_IO_SERVER_THREAD_H */

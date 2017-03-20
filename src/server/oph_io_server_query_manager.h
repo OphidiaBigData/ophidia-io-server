@@ -118,7 +118,8 @@
  * \param plugin_table  Hash table with plugin
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, HASHTBL *plugin_table);
+int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args,
+			     HASHTBL * plugin_table);
 
 //Internal functions used to execute query main blocks
 
@@ -138,7 +139,8 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler* d
  * \param where_start_id 	Array used for where starting point (can be null)
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, oph_query_expr_symtable *table, unsigned int *field_indexes, int *frag_indexes, char *field_binary, oph_query_arg *binary_var, char *field, long long row, long long *where_start_id);
+int _oph_ioserver_query_set_parser_variables(oph_query_arg ** args, char **var_list, unsigned int var_count, oph_iostore_frag_record_set ** inputs, oph_query_expr_symtable * table,
+					     unsigned int *field_indexes, int *frag_indexes, char *field_binary, oph_query_arg * binary_var, char *field, long long row, long long *where_start_id);
 
 /**
  * \brief               	Support function used to set index of variables used in expression parser
@@ -154,7 +156,8 @@ int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_li
  * \param id_indexes 		Array of the ID columns to be used in case of id flag is set
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, unsigned int table_num, unsigned int *field_indexes, int *frag_indexes, char *field_binary, char only_id, short int *id_indexes);
+int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_list, unsigned int var_count, oph_iostore_frag_record_set ** inputs, unsigned int table_num,
+					     unsigned int *field_indexes, int *frag_indexes, char *field_binary, char only_id, short int *id_indexes);
 
 /**
  * \brief               Internal function used to compute offset and limit of a query (LIMIT block)
@@ -163,7 +166,7 @@ int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_
  * \param limit 		Arg to be filled with limit value
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, long long *limit);
+int _oph_io_server_query_compute_limits(HASHTBL * query_args, long long *offset, long long *limit);
 
 /**
  * \brief               Internal function used to order output recordset (ORDER block)
@@ -171,7 +174,7 @@ int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, 
  * \param rs 			Recordset to be sorted (it will be modified)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_io_server_query_order_output(HASHTBL *query_args, oph_iostore_frag_record_set *rs);
+int _oph_io_server_query_order_output(HASHTBL * query_args, oph_iostore_frag_record_set * rs);
 
 /**
  * \brief               Internal function used to release memory for input record sets of a query (FROM and WHERE blocks). Used in case of select and create as select. 
@@ -180,7 +183,7 @@ int _oph_io_server_query_order_output(HASHTBL *query_args, oph_iostore_frag_reco
  * \param input_rs 		Pointer to be freed with list of filtered recordsets (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle, oph_iostore_frag_record_set **stored_rs, oph_iostore_frag_record_set **input_rs);
+int _oph_ioserver_query_release_input_record_set(oph_iostore_handler * dev_handle, oph_iostore_frag_record_set ** stored_rs, oph_iostore_frag_record_set ** input_rs);
 
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of create as select. 
@@ -196,7 +199,9 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler* dev_handle
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_query_arg **args, oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *out_db_name, char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *out_db_name,
+						      char *out_frag_name, char *current_db, oph_iostore_frag_record_set *** stored_rs, long long *input_row_num,
+						      oph_iostore_frag_record_set *** input_rs);
 
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of select. 
@@ -210,7 +215,8 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_q
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_query_arg **args,oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs);
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
+						      oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs);
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 
@@ -224,7 +230,8 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_q
  * \param output 			Output recordset to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output);
+int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg ** args,
+					     oph_iostore_frag_record_set ** inputs, oph_iostore_frag_record_set * output);
 
 /**
  * \brief               	Internal function used to set column name/alias and default types. Used in case of select or create as select. 
@@ -234,7 +241,7 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
  * \param rs 				Recordset to be filled (must be already allocated)
  * \return              	0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set *rs);
+int _oph_ioserver_query_set_column_info(HASHTBL * query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set * rs);
 
 /**
  * \brief               Internal function used to store the final record set. Used in case of insert and multi-insert. 
@@ -245,7 +252,7 @@ int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, 
  * \param final_result_set 	Pointer with final recordset to be stored in the IO server
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set);
+int _oph_ioserver_query_store_fragment(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set ** final_result_set);
 
 /**
  * \brief               Internal function used to create a row from query. Used in case of insert and multi-insert. 
@@ -258,7 +265,8 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
  * \param new_record 	Record to be created
  * \return              0 if successfull, non-0 otherwise
  */
-int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args, oph_iostore_frag_record **new_record);
+int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *row_size, oph_iostore_frag_record_set * partial_result_set, char **field_list, char **value_list, oph_query_arg ** args,
+				  oph_iostore_frag_record ** new_record);
 
 //Functions used to run main query blocks
 
@@ -271,7 +279,7 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
  * \param args 			Additional args used in prepared statements (can be NULL)
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_query_arg **args, HASHTBL *query_args);
+int oph_io_server_run_create_as_select(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to execute select operation 
@@ -283,7 +291,7 @@ int oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore_
  * \param output_rs 	Output record set to be filled
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, oph_query_arg **args, HASHTBL *query_args, oph_iostore_frag_record_set **output_rs);
+int oph_io_server_run_select(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args, oph_iostore_frag_record_set ** output_rs);
 
 /**
  * \brief               Internal function used to execute insert operation 
@@ -296,7 +304,8 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler* d
  * \param size 			Record size
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_insert(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_iostore_frag_record_set *rs, unsigned long long rs_index, oph_query_arg **args, HASHTBL *query_args, unsigned long long *size);
+int oph_io_server_run_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_iostore_frag_record_set * rs, unsigned long long rs_index, oph_query_arg ** args, HASHTBL * query_args,
+			     unsigned long long *size);
 
 /**
  * \brief               Internal function used to execute multi-insert operation 
@@ -309,7 +318,8 @@ int oph_io_server_run_insert(oph_metadb_db_row **meta_db, oph_iostore_handler* d
  * \param size 			Record size
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_multi_insert(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, unsigned int *num_insert, unsigned long long *size);
+int oph_io_server_run_multi_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args,
+				   unsigned int *num_insert, unsigned long long *size);
 
 /**
  * \brief               Internal function used to execute create fragment operation 
@@ -320,7 +330,7 @@ int oph_io_server_run_multi_insert(oph_metadb_db_row **meta_db, oph_iostore_hand
  * \param output_rs 	Output record set to be filled
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, HASHTBL *query_args, oph_iostore_frag_record_set **output_rs);
+int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** output_rs);
 
 /**
  * \brief               Internal function used to execute drop fragment operation 
@@ -330,7 +340,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore
  * \param query_args    Hash table containing args to be selected
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, char *current_db, HASHTBL *query_args);
+int oph_io_server_run_drop_frag(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to execute create database operation 
@@ -339,7 +349,7 @@ int oph_io_server_run_drop_frag(oph_metadb_db_row **meta_db, oph_iostore_handler
  * \param query_args    Hash table containing args to be selected
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_create_db(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, HASHTBL *query_args);
+int oph_io_server_run_create_db(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to execute drop database operation 
@@ -349,7 +359,7 @@ int oph_io_server_run_create_db(oph_metadb_db_row **meta_db, oph_iostore_handler
  * \param deleted_db 	Name of DB just deleted
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, HASHTBL *query_args, char **deleted_db);
+int oph_io_server_run_drop_db(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, HASHTBL * query_args, char **deleted_db);
 
 //Internal server procedures
 /**
@@ -361,7 +371,7 @@ int oph_io_server_run_drop_db(oph_metadb_db_row **meta_db, oph_iostore_handler* 
  * \param query_args    Hash table containing args to be selected
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
+int oph_io_server_run_subset_procedure(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to perform export function 
@@ -372,7 +382,7 @@ int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_
  * \param query_args    Hash table containing args to be selected
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
+int oph_io_server_run_export_procedure(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to perform size function 
@@ -383,6 +393,6 @@ int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_
  * \param query_args    Hash table containing args to be selected
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler* dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args);
+int oph_io_server_run_size_procedure(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args);
 
-#endif /* OPH_IO_SERVER_QUERY_MANAGER_H */
+#endif				/* OPH_IO_SERVER_QUERY_MANAGER_H */
