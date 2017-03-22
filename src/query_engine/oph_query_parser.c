@@ -333,7 +333,6 @@ int oph_query_parser(char *query_string, HASHTBL ** query_args)
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_QUERY_PARSING_ERROR, query_string);
 		return OPH_QUERY_ENGINE_ERROR;
 	}
-
 	//Create hash table for arguments
 	*query_args = NULL;
 

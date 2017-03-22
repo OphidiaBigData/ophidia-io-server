@@ -1720,8 +1720,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 								}
 								output->record_set[j]->field[i] =
 								    inputs[frag_index]->record_set[id]->field_length[field_index] ? memdup(inputs[frag_index]->record_set[id]->field[field_index],
-																	   inputs[frag_index]->
-																	   record_set[id]->field_length[field_index]) : NULL;
+																	   inputs[frag_index]->record_set[id]->
+																	   field_length[field_index]) : NULL;
 								output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
 							}
 						} else {
@@ -1739,9 +1739,16 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 									return OPH_IO_SERVER_MEMORY_ERROR;
 								}
 								output->record_set[j]->field[i] =
-								    inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->
-								    field_length[field_index] ? memdup(inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field[field_index],
-												       inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index]) :
+								    inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index] ? memdup(inputs[frag_index]->
+																					  record_set[group_lists[j]->
+																						     first->
+																						     elem_index]->
+																					  field[field_index],
+																					  inputs[frag_index]->
+																					  record_set[group_lists[j]->
+																						     first->
+																						     elem_index]->
+																					  field_length[field_index]) :
 								    NULL;
 								output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index];
 							}

@@ -35,14 +35,14 @@
  * \param handle        Address to pointer for dynamic device plugin handle
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_setup(oph_iostore_handler *handle);
+int _memory_setup(oph_iostore_handler * handle);
 
 /**
  * \brief               Function to finalize library of memory device and release all dynamic loading resources.
  * \param handle        Dynamic I/O storage plugin handle
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_cleanup(oph_iostore_handler* handle);
+int _memory_cleanup(oph_iostore_handler * handle);
 
 /**
  * \brief               Function to retrieve a DB record from memory device
@@ -51,7 +51,7 @@ int _memory_cleanup(oph_iostore_handler* handle);
  * \param db_record     Record containing a copy of a DB (it should be deleted)
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_get_db(oph_iostore_handler* handle, oph_iostore_resource_id *res_id, oph_iostore_db_record_set **db_record); 
+int _memory_get_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
 
 /**
  * \brief               Function to insert a DB record into memory device
@@ -60,7 +60,7 @@ int _memory_get_db(oph_iostore_handler* handle, oph_iostore_resource_id *res_id,
  * \param res_id        ID of resource created
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_put_db(oph_iostore_handler* handle, oph_iostore_db_record_set *db_record, oph_iostore_resource_id **res_id); 
+int _memory_put_db(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
 
 /**
  * \brief               Function to delete a DB from a memory device
@@ -68,7 +68,7 @@ int _memory_put_db(oph_iostore_handler* handle, oph_iostore_db_record_set *db_re
  * \param res_id        ID of resource to delete
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_delete_db(oph_iostore_handler* handle, oph_iostore_resource_id *res_id); 
+int _memory_delete_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
 /**
  * \brief               Function to retrieve a fragment record from memory device
@@ -77,7 +77,7 @@ int _memory_delete_db(oph_iostore_handler* handle, oph_iostore_resource_id *res_
  * \param db_record     Record containing a copy of a fragment (it should be deleted)
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_get_frag(oph_iostore_handler* handle, oph_iostore_resource_id *res_id, oph_iostore_frag_record_set **frag_record); 
+int _memory_get_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
 
 /**
  * \brief               Function to insert a fragment record into memory device
@@ -86,7 +86,7 @@ int _memory_get_frag(oph_iostore_handler* handle, oph_iostore_resource_id *res_i
  * \param res_id        ID of resource created
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_put_frag(oph_iostore_handler* handle, oph_iostore_frag_record_set *frag_record, oph_iostore_resource_id **res_id); 
+int _memory_put_frag(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
 
 /**
  * \brief               Function to delete a fragment from a memory device
@@ -94,6 +94,6 @@ int _memory_put_frag(oph_iostore_handler* handle, oph_iostore_frag_record_set *f
  * \param res_id        ID of resource to delete
  * \return              0 if successfull, non-0 otherwise
  */
-int _memory_delete_frag(oph_iostore_handler* handle, oph_iostore_resource_id *res_id); 
+int _memory_delete_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
-#endif  //__MEMORY_DEVICE_H
+#endif				//__MEMORY_DEVICE_H
