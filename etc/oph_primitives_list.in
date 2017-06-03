@@ -22,6 +22,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_aggregate_stats_partial.so
 FUN AGGREGATE
 RET STRING
+[oph_append]
+LIB     @PLUGIN_PATH@/liboph_append.so
+FUN SIMPLE
+RET STRING
 [oph_arg_array]
 LIB	@PLUGIN_PATH@/liboph_arg_array.so
 FUN SIMPLE
