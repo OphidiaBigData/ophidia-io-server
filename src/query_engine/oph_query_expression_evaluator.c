@@ -478,7 +478,7 @@ int oph_query_expr_add_binary(const char *name, oph_query_arg * value, oph_query
 
 int eeparse(int mode, oph_query_expr_node ** expression, yyscan_t scanner);
 
-oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fun_type, int *numArgs, int *er, oph_query_expr_symtable * table, char *jump_flag);
+oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fun_type, int num_args_required, int *num_args_used, int *er, oph_query_expr_symtable * table, char *jump_flag);
 
 int oph_query_expr_get_ast(const char *expr, oph_query_expr_node ** e)
 {
@@ -723,14 +723,14 @@ oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_s
 				if (r == NULL)
 					r = oph_query_expr_lookup(e->name, table);
 				if (r != NULL && r->type == 2) {
-					double record_args_num = r->numArgs;
+					int used_arg_num = 0;
 					char jump_flag = 0;
-					oph_query_expr_value *args = get_array_args(e->name, e->left, r->fun_type, &(r->numArgs), er, table, &jump_flag);
+					oph_query_expr_value *args = get_array_args(e->name, e->left, r->fun_type, r->numArgs, &used_arg_num, er, table, &jump_flag);
 					if (jump_flag) {
 						if (args) {
 							//Remove intermediate computed values
 							int i;
-							for (i = 0; i < r->numArgs; i++) {
+							for (i = 0; i < used_arg_num; i++) {
 								if (args[i].free_flag) {
 									switch (args[i].type) {
 										case OPH_QUERY_EXPR_TYPE_STRING:
@@ -757,10 +757,10 @@ oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_s
 						return res;
 					}
 					if (args != NULL) {
-						oph_query_expr_value res = r->function(args, r->numArgs, e->name, &(e->descriptor), 0, er);
+						oph_query_expr_value res = r->function(args, used_arg_num, e->name, &(e->descriptor), 0, er);
 						//Remove intermediate computed values
 						int i;
-						for (i = 0; i < r->numArgs; i++) {
+						for (i = 0; i < used_arg_num; i++) {
 							if (args[i].free_flag) {
 								switch (args[i].type) {
 									case OPH_QUERY_EXPR_TYPE_STRING:
@@ -779,7 +779,6 @@ oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_s
 
 						}
 						free(args);
-						r->numArgs = record_args_num;
 						return res;
 					} else {
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -819,7 +818,7 @@ oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_s
 }
 
 //helper of evaluate
-oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fun_type, int *num_args_required, int *er, oph_query_expr_symtable * table, char *jump_flag)
+oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fun_type, int num_args_required, int *num_args_used, int *er, oph_query_expr_symtable * table, char *jump_flag)
 {
 	int num_args_provided = 0;
 	oph_query_expr_node *cur = e;
@@ -830,14 +829,14 @@ oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fu
 		cur = cur->right;
 	}
 	//if the function has fized num of param (type 0), error if required is different then provided
-	if (!fun_type && num_args_provided != (*num_args_required)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
+	if (!fun_type && num_args_provided != (num_args_required)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, num_args_required);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, num_args_required);
 		return NULL;
 		//if the function has variable num of param (type 1), error if required is less then provided
-	} else if (fun_type && num_args_provided < *num_args_required) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, *num_args_required);
+	} else if (fun_type && num_args_provided < num_args_required) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, num_args_required);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, num_args_required);
 		return NULL;
 	}
 
@@ -860,7 +859,7 @@ oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fu
 			*jump_flag = 1;
 		}
 	}
-	*num_args_required = num_args_provided;
+	*num_args_used = num_args_provided;
 	return arr;
 }
 
