@@ -50,6 +50,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_concat.so
 FUN SIMPLE
 RET STRING
+[oph_concat2]
+LIB	@PLUGIN_PATH@/liboph_concat2.so
+FUN SIMPLE
+RET STRING
 [oph_convert_d]
 LIB	@PLUGIN_PATH@/liboph_convert_d.so
 FUN SIMPLE
