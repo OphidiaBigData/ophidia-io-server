@@ -7,6 +7,7 @@
 
 ### Added:
 
+- Test mode for debugging without memory check constraints
 - Support for oph_append and oph_concat2 primitives
 
 ## v1.0.0 - 2017-03-23
