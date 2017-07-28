@@ -102,8 +102,9 @@ int is_numeric_string(int array_length, char *array, int *is_string)
 	return OPH_SERVER_UTIL_SUCCESS;
 }
 
-int memory_check()		// Check for memory swap
+int memory_check() 		// Check for memory swap
 {
+#ifndef DISABLE_MEM_CHECK
 	struct sysinfo info;
 
 	if (pthread_rwlock_wrlock(&syslock))
@@ -123,6 +124,6 @@ int memory_check()		// Check for memory swap
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Out of memory\n");
 		return OPH_SERVER_UTIL_ERROR;
 	}
-
+#endif
 	return OPH_SERVER_UTIL_SUCCESS;
 }

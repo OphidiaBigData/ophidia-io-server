@@ -211,6 +211,15 @@ AC_ARG_ENABLE(debug,
 		)
 AM_CONDITIONAL(DEBUG, test "x$debug" = "xyes")
 
+#Disable memory check for debug purposes
+AC_ARG_ENABLE(mem_check, 
+		[  --disable-mem-check 				Disable memory check. (Enabled by default)], 
+		[mem_check="no"        
+    AC_MSG_WARN("Memory check disabled")],
+    [mem_check="yes"]
+		)
+AM_CONDITIONAL([NO_MEM_CHECK], [test "x$mem_check" = "xno"])
+
 #Set executables path 
 AC_ARG_WITH(exec_path,
 	   [  --with-exec-path=PATH  Set the executable directory (default :$prefix/bin)],
@@ -275,10 +284,10 @@ case "${host}" in
                         ;;
         *-*-linux*)     PLATFORM=LINUX
                         if test "x$debug" = "xyes"; then
-							            OPT+="-g3 -O0 -Wall -Wextra"
+							            OPT+="-g3 -O0 -Wall -Wextra -rdynamic"
 						            else
 			                    if test "x$optimization" = "xyes" ; then
-			                         OPT+="-O3 -g0 -finline-functions -funswitch-loops -fgcse-after-reload -ftree-loop-linear -ftree-loop-im -ftree-loop-ivcanon -fivopts -ftree-vectorize -ftracer -fgcse-sm -fgcse-las -fgcse-after-reload -funroll-loops -freorder-blocks-and-partition -fweb"
+			                         OPT+="-Wall -Wextra -O3 -g0 -finline-functions -funswitch-loops -fgcse-after-reload -ftree-loop-linear -ftree-loop-im -ftree-loop-ivcanon -fivopts -ftree-vectorize -ftracer -fgcse-sm -fgcse-las -fgcse-after-reload -funroll-loops -freorder-blocks-and-partition -fweb"
 			                    else
                             OPT+="-O2"
                           fi						            
