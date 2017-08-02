@@ -26,6 +26,7 @@
 #include <pthread.h>
 
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
+unsigned short disable_mem_check = 0;
 
 int main()
 {

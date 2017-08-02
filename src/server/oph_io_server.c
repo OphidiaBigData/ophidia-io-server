@@ -38,6 +38,7 @@
 unsigned long long max_packet_length = 0;
 unsigned short omp_threads = 0;
 unsigned short client_ttl = 0;
+unsigned short disable_mem_check = 0;
 
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -73,13 +74,16 @@ int main(int argc, char *argv[])
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
 
-	while ((ch = getopt(argc, argv, "i:hxz")) != -1) {
+	while ((ch = getopt(argc, argv, "i:dhxz")) != -1) {
 		switch (ch) {
 			case 'h':
 				fprintf(stdout, "%s", USAGE);
 				return 0;
 			case 'i':
 				instance = (unsigned short int) strtol(optarg, NULL, 10);
+				break;
+			case 'd':
+				disable_mem_check = 1;
 				break;
 			case 'x':
 				fprintf(stdout, "%s", OPH_WARRANTY);
@@ -93,6 +97,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
+
+	if (disable_mem_check == 1) {
+		pmesg(LOG_INFO, __FILE__, __LINE__, "Disable Memory check\n");
+	}
 	if (instance == 0) {
 		pmesg(LOG_INFO, __FILE__, __LINE__, "Using default (first) instance in configuration file\n");
 	}

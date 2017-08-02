@@ -38,10 +38,6 @@ liboph_server_conf_la_LIBADD= -L. -ldebug -lhashtbl
 liboph_server_conf_la_LDFLAGS = -module -static
 
 liboph_server_util_la_SOURCES = oph_server_utility.c
-if NO_MEM_CHECK
-liboph_server_util_la_CFLAGS = $(OPT) -I. -I.. -I../.. -fPIC -DDISABLE_MEM_CHECK
-else
 liboph_server_util_la_CFLAGS = $(OPT) -I. -I.. -I../.. -fPIC
-endif
 liboph_server_util_la_LIBADD= -L. -ldebug
 liboph_server_util_la_LDFLAGS = -module -static

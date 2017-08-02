@@ -31,6 +31,8 @@
 //Global mutex variable 
 pthread_mutex_t metadb_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+unsigned short disable_mem_check = 0;
+
 void *test_metadb(void *arg);
 
 int main(int argc, char *argv[])

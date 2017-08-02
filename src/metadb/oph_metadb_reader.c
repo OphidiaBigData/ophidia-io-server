@@ -28,6 +28,8 @@
 
 #include "oph_license.h"
 
+unsigned short disable_mem_check = 0;
+
 int main(int argc, char *argv[])
 {
 	oph_metadb_db_row *db_table = NULL;

@@ -28,6 +28,7 @@
 #include <debug.h>
 
 extern int msglevel;
+extern unsigned short disable_mem_check;
 
 pthread_rwlock_t syslock = PTHREAD_RWLOCK_INITIALIZER;
 
@@ -104,26 +105,26 @@ int is_numeric_string(int array_length, char *array, int *is_string)
 
 int memory_check()		// Check for memory swap
 {
-#ifndef DISABLE_MEM_CHECK
-	struct sysinfo info;
+	if (!disable_mem_check) {
+		struct sysinfo info;
 
-	if (pthread_rwlock_wrlock(&syslock))
-		return OPH_SERVER_UTIL_ERROR;
+		if (pthread_rwlock_wrlock(&syslock))
+			return OPH_SERVER_UTIL_ERROR;
 
-	if (sysinfo(&info)) {
-		pthread_rwlock_unlock(&syslock);
-		return OPH_SERVER_UTIL_ERROR;
+		if (sysinfo(&info)) {
+			pthread_rwlock_unlock(&syslock);
+			return OPH_SERVER_UTIL_ERROR;
+		}
+
+		if (pthread_rwlock_unlock(&syslock))
+			return OPH_SERVER_UTIL_ERROR;
+
+		unsigned long long min_free_mem = (unsigned long long) (OPH_MIN_MEMORY_PERC * (info.totalram < OPH_MIN_MEMORY ? OPH_MIN_MEMORY : info.totalram));
+
+		if ((info.freeram + info.bufferram < min_free_mem)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Out of memory\n");
+			return OPH_SERVER_UTIL_ERROR;
+		}
 	}
-
-	if (pthread_rwlock_unlock(&syslock))
-		return OPH_SERVER_UTIL_ERROR;
-
-	unsigned long long min_free_mem = (unsigned long long) (OPH_MIN_MEMORY_PERC * (info.totalram < OPH_MIN_MEMORY ? OPH_MIN_MEMORY : info.totalram));
-
-	if ((info.freeram + info.bufferram < min_free_mem)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Out of memory\n");
-		return OPH_SERVER_UTIL_ERROR;
-	}
-#endif
 	return OPH_SERVER_UTIL_SUCCESS;
 }

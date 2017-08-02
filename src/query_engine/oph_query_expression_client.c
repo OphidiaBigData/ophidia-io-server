@@ -35,6 +35,7 @@
 HASHTBL *plugin_table = NULL;
 oph_query_expr_symtable *oph_function_table = NULL;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
+unsigned short disable_mem_check = 0;
 
 int main(void)
 {

@@ -211,15 +211,6 @@ AC_ARG_ENABLE(debug,
 		)
 AM_CONDITIONAL(DEBUG, test "x$debug" = "xyes")
 
-#Disable memory check for debug purposes
-AC_ARG_ENABLE(mem_check, 
-		[  --disable-mem-check 				Disable memory check. (Enabled by default)], 
-		[mem_check="no"        
-    AC_MSG_WARN("Memory check disabled")],
-    [mem_check="yes"]
-		)
-AM_CONDITIONAL([NO_MEM_CHECK], [test "x$mem_check" = "xno"])
-
 #Set executables path 
 AC_ARG_WITH(exec_path,
 	   [  --with-exec-path=PATH  Set the executable directory (default :$prefix/bin)],

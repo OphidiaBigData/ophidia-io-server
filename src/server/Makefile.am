@@ -32,5 +32,5 @@ bindir=${prefix}/bin
 
 oph_io_server_SOURCES = oph_io_server_thread.c oph_io_server.c
 oph_io_server_CFLAGS = ${OPENMP_CFLAGS} $(OPT) -I../common -I../iostorage -I../query_engine -fPIC -I. -I../metadb -I../network @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
-oph_io_server_LDADD = -L. -L../common -ldebug -lpthread -loph_server_conf -L../metadb  -loph_metadb -L../query_engine -loph_query_engine -loph_query_parser -L../iostorage -loph_iostorage_data  -loph_iostorage_interface -L../network -loph_network -loph_io_server_query_manager
+oph_io_server_LDADD = -L. -L../common -ldebug -lpthread -loph_server_conf -loph_server_util -L../metadb  -loph_metadb -L../query_engine -loph_query_engine -loph_query_parser -L../iostorage -loph_iostorage_data  -loph_iostorage_interface -L../network -loph_network -loph_io_server_query_manager
 oph_io_server_LDFLAGS= -Wl,-R -Wl,. 

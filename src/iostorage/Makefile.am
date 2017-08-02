@@ -42,6 +42,6 @@ bin_PROGRAMS= oph_iostorage_client
 
 oph_iostorage_client_SOURCES = oph_iostorage_client.c
 oph_iostorage_client_CFLAGS = $(OPT)  -I../common  -I. -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
-oph_iostorage_client_LDADD = -L../common -ldebug -L. -loph_iostorage_interface -loph_iostorage_data
+oph_iostorage_client_LDADD = -L../common -ldebug -loph_server_util -L. -loph_iostorage_interface -loph_iostorage_data
 oph_iostorage_client_LDFLAGS= 
 endif
