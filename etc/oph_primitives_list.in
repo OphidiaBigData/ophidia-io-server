@@ -23,7 +23,7 @@ LIB	@PLUGIN_PATH@/liboph_aggregate_stats_partial.so
 FUN AGGREGATE
 RET STRING
 [oph_append]
-LIB     @PLUGIN_PATH@/liboph_append.so
+LIB @PLUGIN_PATH@/liboph_append.so
 FUN SIMPLE
 RET STRING
 [oph_arg_array]
@@ -244,6 +244,10 @@ FUN SIMPLE
 RET STRING
 [oph_operator]
 LIB	@PLUGIN_PATH@/liboph_operator.so
+FUN SIMPLE
+RET STRING
+[oph_padding]
+LIB	@PLUGIN_PATH@/liboph_padding.so
 FUN SIMPLE
 RET STRING
 [oph_permute]
