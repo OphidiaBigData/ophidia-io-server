@@ -94,8 +94,8 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_find.so
 FUN SIMPLE
 RET INTEGER
-[oph_get_index]
-LIB	@PLUGIN_PATH@/liboph_get_index.so
+[oph_get_index_array]
+LIB	@PLUGIN_PATH@/liboph_get_index_array.so
 FUN SIMPLE
 RET STRING
 [oph_get_subarray]
@@ -150,12 +150,12 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_gsl_fft.so
 FUN SIMPLE
 RET STRING
-[oph_gsl_fit_linear_coeff]
-LIB	@PLUGIN_PATH@/liboph_gsl_fit_linear_coeff.so
-FUN SIMPLE
-RET STRING
 [oph_gsl_fit_linear]
 LIB	@PLUGIN_PATH@/liboph_gsl_fit_linear.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_fit_linear_coeff]
+LIB	@PLUGIN_PATH@/liboph_gsl_fit_linear_coeff.so
 FUN SIMPLE
 RET STRING
 [oph_gsl_histogram]
@@ -174,32 +174,32 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_gsl_quantile.so
 FUN SIMPLE
 RET STRING
-[oph_gsl_sort]
-LIB	@PLUGIN_PATH@/liboph_gsl_sort.so
-FUN SIMPLE
-RET STRING
-[oph_gsl_stats]
-LIB	@PLUGIN_PATH@/liboph_gsl_stats.so
-FUN SIMPLE
-RET STRING
 [oph_gsl_sd]
 LIB	@PLUGIN_PATH@/liboph_gsl_sd.so
+FUN SIMPLE
+RET STRING
+[oph_gsl_sort]
+LIB	@PLUGIN_PATH@/liboph_gsl_sort.so
 FUN SIMPLE
 RET STRING
 [oph_gsl_spline]
 LIB	@PLUGIN_PATH@/liboph_gsl_spline.so
 FUN SIMPLE
 RET STRING
-[oph_id_to_index]
-LIB	@PLUGIN_PATH@/liboph_id_to_index.so
+[oph_gsl_stats]
+LIB	@PLUGIN_PATH@/liboph_gsl_stats.so
 FUN SIMPLE
-RET INTEGER
+RET STRING
 [oph_id3]
 LIB	@PLUGIN_PATH@/liboph_id3.so
 FUN SIMPLE
 RET INTEGER
 [oph_id_of_subset]
 LIB	@PLUGIN_PATH@/liboph_id_of_subset.so
+FUN SIMPLE
+RET INTEGER
+[oph_id_to_index]
+LIB	@PLUGIN_PATH@/liboph_id_to_index.so
 FUN SIMPLE
 RET INTEGER
 [oph_interlace]
@@ -238,12 +238,12 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_mul_scalar2.so
 FUN SIMPLE
 RET STRING
-[oph_operator_array]
-LIB	@PLUGIN_PATH@/liboph_operator_array.so
-FUN SIMPLE
-RET STRING
 [oph_operator]
 LIB	@PLUGIN_PATH@/liboph_operator.so
+FUN SIMPLE
+RET STRING
+[oph_operator_array]
+LIB	@PLUGIN_PATH@/liboph_operator_array.so
 FUN SIMPLE
 RET STRING
 [oph_padding]
@@ -302,12 +302,12 @@ RET INTEGER
 LIB	@PLUGIN_PATH@/liboph_sub_array.so
 FUN SIMPLE
 RET STRING
-[oph_sum_scalar]
-LIB	@PLUGIN_PATH@/liboph_sum_scalar.so
-FUN SIMPLE
-RET STRING
 [oph_sum_array]
 LIB	@PLUGIN_PATH@/liboph_sum_array.so
+FUN SIMPLE
+RET STRING
+[oph_sum_scalar]
+LIB	@PLUGIN_PATH@/liboph_sum_scalar.so
 FUN SIMPLE
 RET STRING
 [oph_sum_scalar2]
