@@ -278,9 +278,9 @@ case "${host}" in
 							            OPT+="-g3 -O0 -Wall -Wextra -rdynamic"
 						            else
 			                    if test "x$optimization" = "xyes" ; then
-			                         OPT+="-Wall -Wextra -O3 -g0 -finline-functions -funswitch-loops -fgcse-after-reload -ftree-loop-linear -ftree-loop-im -ftree-loop-ivcanon -fivopts -ftree-vectorize -ftracer -fgcse-sm -fgcse-las -fgcse-after-reload -funroll-loops -freorder-blocks-and-partition -fweb"
+			                         OPT+="-Wall -Wextra -O3 -g0 -rdynamic -finline-functions -funswitch-loops -fgcse-after-reload -ftree-loop-linear -ftree-loop-im -ftree-loop-ivcanon -fivopts -ftree-vectorize -ftracer -fgcse-sm -fgcse-las -fgcse-after-reload -funroll-loops -freorder-blocks-and-partition -fweb"
 			                    else
-                            OPT+="-O2"
+                            OPT+="-O2 -rdynamic"
                           fi						            
                         fi
 			            ;;
