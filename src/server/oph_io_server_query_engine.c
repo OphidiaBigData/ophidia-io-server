@@ -612,6 +612,25 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
+	char **frag_components = NULL;
+	int frag_components_num = 0;
+	if (oph_query_parse_hierarchical_args(frag_name, &frag_components, &frag_components_num)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+		return OPH_IO_SERVER_PARSE_ERROR;
+	}
+	//If DB is setted in frag name
+	if (frag_components_num > 1) {
+		//Check if db is the one used by the query
+		if (STRCMP(current_db, frag_components[0]) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+			free(frag_components);
+			return OPH_IO_SERVER_METADB_ERROR;
+		}
+		frag_name = frag_components[1];
+	}
+
 	oph_metadb_frag_row *frag = NULL;
 	oph_metadb_db_row *db_row = NULL;
 
@@ -619,6 +638,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (pthread_rwlock_rdlock(&rwlock) != 0) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_LOCK_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_LOCK_ERROR);
+		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Retrieve current db
@@ -626,6 +646,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 		pthread_rwlock_unlock(&rwlock);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "DB find");
+		free(frag_components);
 		return OPH_IO_SERVER_METADB_ERROR;
 	}
 	//Check if Frag already exists
@@ -633,24 +654,28 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 		pthread_rwlock_unlock(&rwlock);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_METADB_ERROR, "Frag find");
+		free(frag_components);
 		return OPH_IO_SERVER_METADB_ERROR;
 	}
 	//UNLOCK FROM HERE
 	if (pthread_rwlock_unlock(&rwlock) != 0) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_UNLOCK_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_UNLOCK_ERROR);
+		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
 	if (frag != NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_EXIST_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_EXIST_ERROR);
+		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
 	if (memory_check()) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		free(frag_components);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Extract frag column name from query args
@@ -658,6 +683,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (frag_column_names == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_NAME);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_NAME);
+		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	char **column_name_list = NULL;
@@ -665,6 +691,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (oph_query_parse_multivalue_arg(frag_column_names, &column_name_list, &column_name_num)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_NAME);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_NAME);
+		free(frag_components);
 		if (column_name_list)
 			free(column_name_list);
 		return OPH_IO_SERVER_EXEC_ERROR;
@@ -673,6 +700,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (column_name_num != 2) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
+		free(frag_components);
 		if (column_name_list)
 			free(column_name_list);
 		return OPH_IO_SERVER_EXEC_ERROR;
@@ -684,11 +712,13 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (frag_column_types == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_TYPE);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_TYPE);
+		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	if (oph_query_parse_multivalue_arg(frag_column_types, &column_type_list, &column_type_num)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_TYPE);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_COLUMN_TYPE);
+		free(frag_components);
 		if (column_name_list)
 			free(column_name_list);
 		if (column_type_list)
@@ -699,6 +729,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (column_type_num != column_name_num) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG);
+		free(frag_components);
 		if (column_name_list)
 			free(column_name_list);
 		if (column_type_list)
@@ -710,6 +741,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	if (oph_iostore_create_frag_recordset(&new_record_set, 0, column_name_num)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		free(frag_components);
 		if (column_name_list)
 			free(column_name_list);
 		if (column_type_list)
@@ -724,6 +756,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 		if (new_record_set->field_name[i] == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			free(frag_components);
 			if (column_name_list)
 				free(column_name_list);
 			if (column_type_list)
@@ -742,6 +775,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 		} else {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_TYPE_ERROR, column_type_list[i]);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_TYPE_ERROR, column_type_list[i]);
+			free(frag_components);
 			if (column_name_list)
 				free(column_name_list);
 			if (column_type_list)
@@ -752,6 +786,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostor
 	}
 	new_record_set->frag_name = strndup(frag_name, strlen(frag_name));
 
+	free(frag_components);
 	if (column_name_list)
 		free(column_name_list);
 	if (column_type_list)

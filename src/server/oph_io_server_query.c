@@ -123,13 +123,34 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+
+		char **frag_components = NULL;
+		int frag_components_num = 0;
+		if (oph_query_parse_hierarchical_args(frag_name, &frag_components, &frag_components_num)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
+		//If DB is setted in frag name
+		if (frag_components_num > 1) {
+			//Check if db is the one used by the query
+			if (STRCMP(thread_status->current_db, frag_components[0]) != 0) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				free(frag_components);
+				return OPH_IO_SERVER_METADB_ERROR;
+			}
+			frag_name = frag_components[1];
+		}
 		//Check if fragment corresponds to the one created previously
 		if (STRCMP(frag_name, thread_status->curr_stmt->frag) == 1 || STRCMP(thread_status->curr_stmt->device, thread_status->device) == 1) {
 			//Exit 
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+		free(frag_components);
 
 		if (thread_status->curr_stmt->curr_run == 1 || (thread_status->curr_stmt->curr_run == 0 && thread_status->curr_stmt->tot_run == 0)) {
 			//0- For first time: create record_set array - Also executed when it is a single run
@@ -153,7 +174,6 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 		}
 
 		thread_status->curr_stmt->size += row_size;
-
 
 		if (thread_status->curr_stmt->curr_run == thread_status->curr_stmt->tot_run) {
 			//THIS BLOCK IS PERFORMED AT THE VERY LAST INSERT
@@ -201,13 +221,34 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+
+		char **frag_components = NULL;
+		int frag_components_num = 0;
+		if (oph_query_parse_hierarchical_args(frag_name, &frag_components, &frag_components_num)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
+		//If DB is setted in frag name
+		if (frag_components_num > 1) {
+			//Check if db is the one used by the query
+			if (STRCMP(thread_status->current_db, frag_components[0]) != 0) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				free(frag_components);
+				return OPH_IO_SERVER_METADB_ERROR;
+			}
+			frag_name = frag_components[1];
+		}
 		//Check if fragment corresponds to the one created previously
 		if (STRCMP(frag_name, thread_status->curr_stmt->frag) == 1 || STRCMP(thread_status->curr_stmt->device, thread_status->device) == 1) {
 			//Exit 
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
+			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+		free(frag_components);
 
 		unsigned int insert_num = 0;
 		unsigned long long row_size = 0;
