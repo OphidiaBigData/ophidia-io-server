@@ -468,7 +468,8 @@ int oph_metadb_unload_schema(oph_metadb_db_row * meta_db)
 
 	if (meta_db) {
 		while (meta_db) {
-			oph_metadb_frag_table_destroy(meta_db->table);
+			if (meta_db->table != NULL)
+				oph_metadb_frag_table_destroy(meta_db->table);
 			meta_db->table = NULL;
 			tmp_db_row = (oph_metadb_db_row *) meta_db->next_db;
 			oph_metadb_cleanup_db_struct(meta_db);

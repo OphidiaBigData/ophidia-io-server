@@ -490,7 +490,7 @@ int _oph_metadb_read_row(char *schema_file, unsigned long long file_offset, char
 	char tmp_persistent_f = 0;
 
 
-	if (fread(&tmp_len, sizeof(unsigned int), 1, fp) != sizeof(unsigned int) || fread(&tmp_active_f, sizeof(char), 1, fp) != 1 || fread(&tmp_persistent_f, sizeof(char), 1, fp) != 1) {
+	if (fread(&tmp_len, sizeof(unsigned int), 1, fp) != 1 || fread(&tmp_active_f, sizeof(char), 1, fp) != 1 || fread(&tmp_persistent_f, sizeof(char), 1, fp) != 1) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR, sizeof(unsigned int), schema_file);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FILE_READ_ERROR, sizeof(unsigned int), schema_file);
 		flock(fd, LOCK_UN);
