@@ -5,3 +5,5 @@ Alessandro D'Anca</br>
 Sandro Fiore</br>
 
 <h4>Other Contributors</h4>
+Amedeo Alberio</br>
+
