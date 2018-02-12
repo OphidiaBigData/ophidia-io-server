@@ -238,6 +238,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_mul_scalar2.so
 FUN SIMPLE
 RET STRING
+[oph_normalize]
+LIB	@PLUGIN_PATH@/liboph_normalize.so
+FUN SIMPLE
+RET STRING
 [oph_operator]
 LIB	@PLUGIN_PATH@/liboph_operator.so
 FUN SIMPLE
@@ -276,6 +280,10 @@ FUN SIMPLE
 RET STRING
 [oph_reduce3]
 LIB	@PLUGIN_PATH@/liboph_reduce3.so
+FUN SIMPLE
+RET STRING
+[oph_replace]
+LIB	@PLUGIN_PATH@/liboph_replace.so
 FUN SIMPLE
 RET STRING
 [oph_reverse]
