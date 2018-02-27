@@ -1436,7 +1436,6 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 
 	//Check if sequential ID are used
 	char sequential_id = 0;
-	char use_seq_id = 0;
 	long long start_id = 0;
 	char *sid = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL);
 	if (sid != NULL) {
@@ -1605,6 +1604,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 					//Get var from input table
 					int field_index = 0;
 					int frag_index = 0;
+					char use_seq_id = 0;
+
 					if (table_num > 1) {
 						//Split frag name from field name
 						char **field_components = NULL;
@@ -1760,8 +1761,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 								return OPH_IO_SERVER_MEMORY_ERROR;
 							}
 							val_l = start_id + j;
-							output->record_set[j]->field[i] = memdup(&val_l, sizeof(long long));
-							output->record_set[j]->field_length[i] = sizeof(long long);
+							output->record_set[j]->field[i] = memdup(&val_l, sizeof(unsigned long long));
+							output->record_set[j]->field_length[i] = sizeof(unsigned long long);
 						}
 					}
 					output->field_type[i] = inputs[frag_index]->field_type[field_index];
