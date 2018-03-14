@@ -298,6 +298,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_rotate.so
 FUN SIMPLE
 RET STRING
+[oph_sequence]
+LIB	@PLUGIN_PATH@/liboph_sequence.so
+FUN SIMPLE
+RET STRING
 [oph_shift]
 LIB	@PLUGIN_PATH@/liboph_shift.so
 FUN SIMPLE
