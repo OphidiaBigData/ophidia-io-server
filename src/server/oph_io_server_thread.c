@@ -178,8 +178,6 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 		//Get time from first call
 		gettimeofday(&start_time, NULL);
 #endif
-		memset(line, 0, max_packet_length);
-
 		// wait for events on the sockets, ttl second timeout
 		rv = poll(ufds, 1, client_ttl * 1000);
 
@@ -204,16 +202,14 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 
 			m = 0;
 			payload_len = 0;
-			memset(result, 0, max_packet_length);
 
 			pmesg(LOG_DEBUG, __FILE__, __LINE__, "Received %d bytes\n", res);
 			logging(LOG_DEBUG, __FILE__, __LINE__, "Received %d bytes\n", res);
-			line[strlen(line)] = 0;
+			line[OPH_IO_SERVER_MSG_TYPE_LEN] = 0;
 			pmesg(LOG_DEBUG, __FILE__, __LINE__, "Received query '%s'\n", line);
 			logging(LOG_DEBUG, __FILE__, __LINE__, "Received query '%s'\n", line);
 
 			//Decode message and find payload length
-			memset(header, 0, OPH_IO_SERVER_MSG_TYPE_LEN + 1);
 			snprintf(header, OPH_IO_SERVER_MSG_TYPE_LEN + 1, "%s", line);
 
 			//Select operation
@@ -234,9 +230,10 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Setting default database...\n");
 				//Read payload len
 				res = oph_net_readn(sockfd, line, OPH_IO_SERVER_MSG_LONG_LEN);
-				payload_len = *((unsigned long long *) line);
 				if (res <= 0)
 					break;
+				line[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+				payload_len = *((unsigned long long *) line);
 				pmesg(LOG_DEBUG, __FILE__, __LINE__, "Db name length: %llu\n", payload_len);
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Db name length: %llu\n", payload_len);
 
@@ -250,9 +247,10 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 
 				//Read payload len
 				res = oph_net_readn(sockfd, result, OPH_IO_SERVER_MSG_LONG_LEN);
-				payload_len = *((unsigned long long *) result);
 				if (res <= 0)
 					break;
+				result[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+				payload_len = *((unsigned long long *) result);
 				pmesg(LOG_DEBUG, __FILE__, __LINE__, "Device length: %llu\n", payload_len);
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Device length: %llu\n", payload_len);
 
@@ -470,17 +468,19 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Setup query...\n");
 				//Read payload len
 				res = oph_net_readn(sockfd, line, OPH_IO_SERVER_MSG_SHORT_LEN);
-				arg_count = *((unsigned int *) line) - 1;
 				if (res <= 0)
 					break;
+				line[OPH_IO_SERVER_MSG_SHORT_LEN] = 0;
+				arg_count = *((unsigned int *) line) - 1;
 				pmesg(LOG_DEBUG, __FILE__, __LINE__, "Number of args: %u\n", arg_count);
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Number of args: %u\n", arg_count);
 
 				//Read payload len
 				res = oph_net_readn(sockfd, line, OPH_IO_SERVER_MSG_LONG_LEN);
-				payload_len = *((unsigned long long *) line);
 				if (res <= 0)
 					break;
+				line[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+				payload_len = *((unsigned long long *) line);
 				pmesg(LOG_DEBUG, __FILE__, __LINE__, "Query length: %llu\n", payload_len);
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Query length: %llu\n", payload_len);
 
@@ -494,9 +494,10 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 
 				//Read payload len
 				res = oph_net_readn(sockfd, result, OPH_IO_SERVER_MSG_LONG_LEN);
-				payload_len = *((unsigned long long *) result);
 				if (res <= 0)
 					break;
+				result[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+				payload_len = *((unsigned long long *) result);
 				pmesg(LOG_DEBUG, __FILE__, __LINE__, "Device length: %llu\n", payload_len);
 				logging(LOG_DEBUG, __FILE__, __LINE__, "Device length: %llu\n", payload_len);
 
@@ -536,17 +537,19 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 
 					//Read number of runs
 					res = oph_net_readn(sockfd, result, OPH_IO_SERVER_MSG_LONG_LEN);
-					tot_run = *((unsigned long long *) result);
 					if (res <= 0)
 						break;
+					result[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+					tot_run = *((unsigned long long *) result);
 					pmesg(LOG_DEBUG, __FILE__, __LINE__, "Total runs: %llu\n", tot_run);
 					logging(LOG_DEBUG, __FILE__, __LINE__, "Total runs: %llu\n", tot_run);
 
 					//Read number of runs
 					res = oph_net_readn(sockfd, result, OPH_IO_SERVER_MSG_LONG_LEN);
-					curr_run = *((unsigned long long *) result);
 					if (res <= 0)
 						break;
+					result[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+					curr_run = *((unsigned long long *) result);
 					pmesg(LOG_DEBUG, __FILE__, __LINE__, "Current run: %llu\n", curr_run);
 					logging(LOG_DEBUG, __FILE__, __LINE__, "Current run: %llu\n", curr_run);
 
@@ -582,9 +585,10 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 								}
 								//Read arg length
 								res = oph_net_readn(sockfd, result, OPH_IO_SERVER_MSG_LONG_LEN);
-								payload_len = *((unsigned long long *) result);
 								if (res <= 0)
 									break;
+								result[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+								payload_len = *((unsigned long long *) result);
 								pmesg(LOG_DEBUG, __FILE__, __LINE__, "Arg %d len: %d\n", n, payload_len);
 								logging(LOG_DEBUG, __FILE__, __LINE__, "Arg %d len: %d\n", n, payload_len);
 
@@ -619,6 +623,7 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 								res = oph_net_readn(sockfd, result, payload_len);
 								if (res <= 0)
 									break;
+								result[payload_len] = 0;
 
 								args[n]->arg = (void *) memdup(result, payload_len);
 
@@ -666,9 +671,10 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 								}
 								//Read arg length
 								res = oph_net_readn(sockfd, result, OPH_IO_SERVER_MSG_LONG_LEN);
-								payload_len = *((unsigned long long *) result);
 								if (res <= 0)
 									break;
+								result[OPH_IO_SERVER_MSG_LONG_LEN] = 0;
+								payload_len = *((unsigned long long *) result);
 								pmesg(LOG_DEBUG, __FILE__, __LINE__, "Arg %d len: %d\n", n, payload_len);
 								logging(LOG_DEBUG, __FILE__, __LINE__, "Arg %d len: %d\n", n, payload_len);
 
@@ -703,6 +709,7 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 								res = oph_net_readn(sockfd, result, payload_len);
 								if (res <= 0)
 									break;
+								result[payload_len] = 0;
 								pmesg(LOG_DEBUG, __FILE__, __LINE__, "Arg %d type: %d\n", n, result);
 								logging(LOG_DEBUG, __FILE__, __LINE__, "Arg %d type: %d\n", n, result);
 
