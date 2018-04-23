@@ -629,9 +629,31 @@ int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_
 				}
 				free(field_components);
 			} else {
+				char **field_components = NULL;
+				int field_components_num = 0;
+
+				if (oph_query_parse_hierarchical_args(tmp_var_list[k], &field_components, &field_components_num)) {
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
+					for (k = 0; k < var_count; k++)
+						if (tmp_var_list[k])
+							free(tmp_var_list[k]);
+					return OPH_IO_SERVER_PARSE_ERROR;
+				}
+
+				if (field_components_num > 2 || field_components_num < 1) {
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, tmp_var_list[k]);
+					for (k = 0; k < var_count; k++)
+						if (tmp_var_list[k])
+							free(tmp_var_list[k]);
+					free(field_components);
+					return OPH_IO_SERVER_PARSE_ERROR;
+				}
+
 				if (!only_id) {
 					for (j = 0; j < inputs[0]->field_num; j++) {
-						if (!STRCMP(var_list[k], inputs[0]->field_name[j])) {
+						if (!STRCMP((field_components_num == 1 ? var_list[k] : field_components[1]), inputs[0]->field_name[j])) {
 							field_indexes[k] = j;
 							field_binary[k] = 0;
 							break;
@@ -643,16 +665,18 @@ int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_
 						for (k = 0; k < var_count; k++)
 							if (tmp_var_list[k])
 								free(tmp_var_list[k]);
+						free(field_components);
 						return OPH_IO_SERVER_PARSE_ERROR;
 					}
 				} else {
 					//Check if we only have ids, any other field is not allowed
-					if (STRCMP(tmp_var_list[k], OPH_NAME_ID)) {
+					if (STRCMP((field_components_num == 1 ? tmp_var_list[k] : field_components[1]), OPH_NAME_ID)) {
 						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
 						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ONLY_ID_ERROR);
 						for (k = 0; k < var_count; k++)
 							if (tmp_var_list[k])
 								free(tmp_var_list[k]);
+						free(field_components);
 						return OPH_IO_SERVER_EXEC_ERROR;
 					}
 					//Match field
@@ -660,6 +684,7 @@ int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_
 					field_binary[k] = 0;
 				}
 				frag_indexes[k] = 0;
+				free(field_components);
 			}
 		}
 	}
@@ -1108,36 +1133,36 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 	int l = 0;
 	char **from_components = NULL;
 	int from_components_num = 0;
-	if (table_list_num == 1) {
-		in_frag_names[0] = from_frag_name;
-		in_db_names[0] = current_db;
-	} else {
-		//From multiple table
-		for (l = 0; l < table_list_num; l++) {
+	//From multiple table
+	for (l = 0; l < table_list_num; l++) {
+		if (oph_query_parse_hierarchical_args(table_list[l], &from_components, &from_components_num)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+			free(table_list);
+			free(in_frag_names);
+			free(in_db_names);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
+		//If DB is setted in frag name
+		if ((table_list_num == 1 && (from_components_num > 2 || from_components_num < 1)) || (table_list_num > 1 && from_components_num != 2)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+			free(table_list);
+			free(in_frag_names);
+			free(in_db_names);
+			free(from_components);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
 
-			if (oph_query_parse_hierarchical_args(table_list[l], &from_components, &from_components_num)) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
-				free(table_list);
-				free(in_frag_names);
-				free(in_db_names);
-				return OPH_IO_SERVER_PARSE_ERROR;
-			}
+		if (from_components_num == 1) {
+			in_frag_names[l] = from_frag_name;
+			in_db_names[l] = current_db;
+		} else if (from_components_num == 2) {
 			//If DB is setted in frag name
-			if (from_components_num != 2) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
-				free(table_list);
-				free(in_frag_names);
-				free(in_db_names);
-				free(from_components);
-				return OPH_IO_SERVER_PARSE_ERROR;
-			}
-
 			in_frag_names[l] = from_components[1];
 			in_db_names[l] = from_components[0];
-			free(from_components);
 		}
+		free(from_components);
 	}
 	free(table_list);
 
@@ -1269,73 +1294,59 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
-	if (table_list_num == 1) {
-		while (orig_record_sets[0]->record_set[total_row_number])
-			total_row_number++;
-		if ((oph_iostore_copy_frag_record_set_only(orig_record_sets[0], &(record_sets[0]), 0, 0) != 0)) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
+	char **alias_list = NULL;
+	int alias_num = 0;
+	char *from_aliases = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
+	if (from_aliases == NULL && table_list_num > 1) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
+		_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
 
-		record_sets[0]->frag_name = (char *) strndup(orig_record_sets[0]->frag_name, strlen(orig_record_sets[0]->frag_name));
-		if (record_sets[0]->frag_name == NULL) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-	} else {
-		//From alias must be provided in case of multiple tables        
-		char *from_aliases = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
-		if (from_aliases == NULL) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
-			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
-			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-			return OPH_IO_SERVER_EXEC_ERROR;
-		}
-
-		char **alias_list = NULL;
-		int alias_num = 0;
+	if (from_aliases != NULL) {
 		if (oph_query_parse_multivalue_arg(from_aliases, &alias_list, &alias_num) || !alias_num || alias_num != table_list_num) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FROM_ALIAS);
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
-
-		long long partial_tot_row_number = 0;
-		for (l = 0; l < table_list_num; l++) {
-
-			//Take the biggest row number as reference 
-			partial_tot_row_number = 0;
-			while (orig_record_sets[l]->record_set[partial_tot_row_number])
-				partial_tot_row_number++;
-			if (partial_tot_row_number > total_row_number)
-				total_row_number = partial_tot_row_number;
-
-
-			if ((oph_iostore_copy_frag_record_set_only(orig_record_sets[l], &(record_sets[l]), 0, 0) != 0)) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-				return OPH_IO_SERVER_MEMORY_ERROR;
-			}
-
-			record_sets[l]->frag_name = (char *) strndup(alias_list[l], strlen(alias_list[l]));
-			if (record_sets[l]->frag_name == NULL) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-				if (alias_list)
-					free(alias_list);
-				return OPH_IO_SERVER_MEMORY_ERROR;
-			}
-		}
-		if (alias_list)
-			free(alias_list);
 	}
+
+	long long partial_tot_row_number = 0;
+	for (l = 0; l < table_list_num; l++) {
+
+		//Take the biggest row number as reference 
+		partial_tot_row_number = 0;
+		while (orig_record_sets[l]->record_set[partial_tot_row_number])
+			partial_tot_row_number++;
+		if (partial_tot_row_number > total_row_number)
+			total_row_number = partial_tot_row_number;
+
+		if ((oph_iostore_copy_frag_record_set_only(orig_record_sets[l], &(record_sets[l]), 0, 0) != 0)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+			if (alias_list)
+				free(alias_list);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+
+		if (!alias_list)
+			record_sets[l]->frag_name = (char *) strndup(orig_record_sets[l]->frag_name, strlen(orig_record_sets[l]->frag_name));
+		else
+			record_sets[l]->frag_name = (char *) strndup(alias_list[l], strlen(alias_list[l]));
+		if (record_sets[l]->frag_name == NULL) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+			if (alias_list)
+				free(alias_list);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+	}
+	if (alias_list)
+		free(alias_list);
 
 	// Check where clause
 	char *where = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_WHERE);
@@ -1606,102 +1617,76 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 					int frag_index = 0;
 					char use_seq_id = 0;
 
-					if (table_num > 1) {
-						//Split frag name from field name
-						char **field_components = NULL;
-						int field_components_num = 0;
+					//Split frag name from field name
+					char **field_components = NULL;
+					int field_components_num = 0;
 
-						if (oph_query_parse_hierarchical_args(field_list[i], &field_components, &field_components_num)) {
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
-							if (group_lists) {
-								for (k = 0; k < actual_rows; k++)
-									if (group_lists[k])
-										_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
-								free(group_lists);
-							}
-							return OPH_IO_SERVER_PARSE_ERROR;
+					if (oph_query_parse_hierarchical_args(field_list[i], &field_components, &field_components_num)) {
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
+						if (group_lists) {
+							for (k = 0; k < actual_rows; k++)
+								if (group_lists[k])
+									_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
 						}
-
-						if (field_components_num != 2) {
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
-							free(field_components);
-							if (group_lists) {
-								for (k = 0; k < actual_rows; k++)
-									if (group_lists[k])
-										_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
-								free(group_lists);
-							}
-							return OPH_IO_SERVER_PARSE_ERROR;
-						}
-						//Match table
-						for (l = 0; l < table_num; l++) {
-							if (!STRCMP(field_components[0], inputs[l]->frag_name)) {
-								frag_index = l;
-								for (j = 0; j < inputs[l]->field_num; j++) {
-									if (!STRCMP(field_components[1], inputs[l]->field_name[j])) {
-										field_index = j;
-										if (sequential_id && !STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])) {
-											//If sequential id  flag is set check if field is called id_dim
-											use_seq_id = 1;
-										}
-										break;
-									}
-								}
-								if (j == inputs[l]->field_num) {
-									pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
-									logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
-									free(field_components);
-									if (group_lists) {
-										for (k = 0; k < actual_rows; k++)
-											if (group_lists[k])
-												_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
-										free(group_lists);
-									}
-									return OPH_IO_SERVER_PARSE_ERROR;
-								}
-								break;
-							}
-						}
-						if (l == table_num) {
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
-							free(field_components);
-							if (group_lists) {
-								for (k = 0; k < actual_rows; k++)
-									if (group_lists[k])
-										_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
-								free(group_lists);
-							}
-							return OPH_IO_SERVER_PARSE_ERROR;
-						}
-						free(field_components);
-					} else {
-						for (j = 0; j < inputs[0]->field_num; j++) {
-							if (!STRCMP(field_list[i], inputs[0]->field_name[j])) {
-								field_index = j;
-								if (sequential_id && !STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])) {
-									//If sequential id  flag is set check if field is called id_dim
-									use_seq_id = 1;
-								}
-								break;
-							}
-						}
-						if (j == inputs[0]->field_num) {
-							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
-							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
-							if (group_lists) {
-								for (k = 0; k < actual_rows; k++)
-									if (group_lists[k])
-										_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
-								free(group_lists);
-							}
-							return OPH_IO_SERVER_PARSE_ERROR;
-						}
-						//Take first frag
-						frag_index = 0;
+						return OPH_IO_SERVER_PARSE_ERROR;
 					}
+
+					if (((field_components_num > 2 || field_components_num < 1) && table_num == 1) || (field_components_num != 2 && table_num > 1)) {
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, field_list[i]);
+						free(field_components);
+						if (group_lists) {
+							for (k = 0; k < actual_rows; k++)
+								if (group_lists[k])
+									_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}
+						return OPH_IO_SERVER_PARSE_ERROR;
+					}
+					//Match table
+					for (l = 0; l < table_num; l++) {
+						if (field_components_num == 1 || !STRCMP(field_components[0], inputs[l]->frag_name)) {
+							frag_index = l;
+							for (j = 0; j < inputs[l]->field_num; j++) {
+								if (!STRCMP((field_components_num == 1 ? field_list[i] : field_components[1]), inputs[l]->field_name[j])) {
+									field_index = j;
+									if (sequential_id && !STRCMP(OPH_NAME_ID, inputs[l]->field_name[j])) {
+										//If sequential id  flag is set check if field is called id_dim
+										use_seq_id = 1;
+									}
+									break;
+								}
+							}
+							if (j == inputs[l]->field_num) {
+								pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
+								logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
+								free(field_components);
+								if (group_lists) {
+									for (k = 0; k < actual_rows; k++)
+										if (group_lists[k])
+											_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+									free(group_lists);
+								}
+								return OPH_IO_SERVER_PARSE_ERROR;
+							}
+							break;
+						}
+					}
+					if (l == table_num) {
+						pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
+						logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_FIELD_NAME_UNKNOWN, field_list[i]);
+						free(field_components);
+						if (group_lists) {
+							for (k = 0; k < actual_rows; k++)
+								if (group_lists[k])
+									_oph_ioserver_query_delete_group_elem_list(group_lists[k]);
+							free(group_lists);
+						}
+						return OPH_IO_SERVER_PARSE_ERROR;
+					}
+					free(field_components);
 
 					rows = (actual_rows ? actual_rows : total_row_number);
 					if (!use_seq_id) {
