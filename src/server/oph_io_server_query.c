@@ -302,6 +302,88 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 				}
 			}
 		}
+#ifdef OPH_IO_SERVER_NETCDF
+	} else if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT) == 0) {
+		//Execute insert from file query 
+
+		//Check if current DB is setted
+		//TODO Improve how current DB is found
+		if (thread_status->current_db == NULL || thread_status->device == NULL) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);
+			return OPH_IO_SERVER_METADB_ERROR;
+		}
+
+		thread_status->curr_stmt->size = 0;
+
+		//First check partial result
+		if (thread_status->curr_stmt == NULL || thread_status->curr_stmt->partial_result_set == NULL || thread_status->curr_stmt->frag == NULL || thread_status->curr_stmt->device == NULL) {
+			//Exit 
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		//Read frag_name
+		char *frag_name = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
+		if (frag_name == NULL) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_FRAG);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+
+		char **frag_components = NULL;
+		int frag_components_num = 0;
+		if (oph_query_parse_hierarchical_args(frag_name, &frag_components, &frag_components_num)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, frag_name);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
+		//If DB is setted in frag name
+		if (frag_components_num > 1) {
+			//Check if db is the one used by the query
+			if (STRCMP(thread_status->current_db, frag_components[0]) != 0) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_WRONG_DB_SELECTED);
+				free(frag_components);
+				return OPH_IO_SERVER_METADB_ERROR;
+			}
+			frag_name = frag_components[1];
+		}
+		//Check if fragment corresponds to the one created previously
+		if (STRCMP(frag_name, thread_status->curr_stmt->frag) == 1 || STRCMP(thread_status->curr_stmt->device, thread_status->device) == 1) {
+			//Exit 
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_INSERT_STATUS_ERROR);
+			free(frag_components);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		free(frag_components);
+
+		unsigned long long size = 0;
+
+		if (oph_io_server_run_insert_from_file(meta_db, dev_handle, thread_status, query_args, &size)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "File import");
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "File import");
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+
+		int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, thread_status->current_db, size, &(thread_status->curr_stmt->partial_result_set));
+
+		//Clean global status 
+		thread_status->curr_stmt->mi_prev_rows = 0;
+		if (thread_status->curr_stmt->partial_result_set != NULL)
+			oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
+		free(thread_status->curr_stmt->device);
+		free(thread_status->curr_stmt->frag);
+		free(thread_status->curr_stmt);
+		thread_status->curr_stmt = NULL;
+
+		if (ret) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+#endif
 	} else if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG) == 0) {
 		//Execute create fragment query  
 

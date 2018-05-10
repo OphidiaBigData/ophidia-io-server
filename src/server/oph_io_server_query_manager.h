@@ -21,6 +21,9 @@
 
 // Prototypes
 
+#ifdef OPH_IO_SERVER_NETCDF
+#include "netcdf.h"
+#endif
 #include "hashtbl.h"
 #include "oph_io_server_thread.h"
 #include "oph_iostorage_data.h"
@@ -268,6 +271,29 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row ** meta_db, oph_iostore
 int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *row_size, oph_iostore_frag_record_set * partial_result_set, char **field_list, char **value_list, oph_query_arg ** args,
 				  oph_iostore_frag_record ** new_record);
 
+#ifdef OPH_IO_SERVER_NETCDF
+
+/**
+ * \brief Create fragment from NetCDF file
+ * \param src_path Absoloute path to NetCDF file
+ * \param measure_name Name of measure to be read from file
+ * \param tuplexfrag_number Number of tuple to insert
+ * \param frag_key_start Starting key of fragment
+ * \param field_list List of columns of fragment
+ * \param compressed_flag If the data to insert is compressed (1) or not (0)
+ * \param dim_num Number of dimensions related to measure
+ * \param dims_type Array of dimension types (explicit or implicit)
+ * \param dims_index Array of dimension indexes
+ * \param dims_start Array of dimension start keys
+ * \param dims_end Array of dimension end keys
+ * \param binary_frag Pointer to recordset structure where fragment is being created
+ * \param frag_size Size of fragment being created
+ * \return 0 if successfull
+ */
+int _oph_ioserver_nc_read (char *src_path, char *measure_name, long long tuplexfrag_number, long long frag_key_start, char **field_list, char compressed_flag, int dim_num, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size);
+
+#endif
+
 //Functions used to run main query blocks
 
 /**
@@ -320,6 +346,21 @@ int oph_io_server_run_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler *
  */
 int oph_io_server_run_multi_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args,
 				   unsigned int *num_insert, unsigned long long *size);
+
+#ifdef OPH_IO_SERVER_NETCDF
+/**
+ * \brief               Internal function used for creating data structures from NetCDF file 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param thread_status	Pointer to thread structure
+ * \param query_args    Hash table containing args to be selected
+ * \param size 			Fragment size
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, HASHTBL * query_args, unsigned long long *size);
+
+#endif
+
 
 /**
  * \brief               Internal function used to execute create fragment operation 
