@@ -46,6 +46,7 @@
 extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;
 extern pthread_rwlock_t rwlock;
+extern pthread_mutex_t nc_lock;
 extern HASHTBL *plugin_table;
 
 #ifdef DEBUG
@@ -153,9 +154,20 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	//Open netcdf file
 	int ncid = 0;
 	int retval, j = 0;
+
+	if (pthread_mutex_lock(&nc_lock) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
 	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if (pthread_mutex_unlock(&nc_lock) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Extract measured variable information
@@ -163,7 +175,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if ((retval = nc_inq_varid(ncid, measure_name, &varid))) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Get information from id
@@ -171,7 +185,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Check ndims value
@@ -179,14 +195,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
 	if (ndims != dim_num) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Compute array_length from implicit dims
@@ -235,7 +255,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if (!whole_fragment) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Flag set to 1 if dimension are in the order specified in the file
@@ -281,7 +303,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if (!whole_explicit) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Create binary array
@@ -291,7 +315,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if (memory_check()) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -324,7 +350,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			free(binary_cache);
+			pthread_mutex_lock(&nc_lock);
 			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 	}
@@ -333,7 +361,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	if (memory_check()) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Create array for rows to be insert
@@ -368,7 +398,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		if (binary_cache)
 			free(binary_cache);
 		free(binary_insert);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -379,7 +411,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		if (binary_cache)
 			free(binary_cache);
 		free(binary_insert);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -416,7 +450,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 			if (binary_cache)
 				free(binary_cache);
 			free(binary_insert);
+			pthread_mutex_lock(&nc_lock);
 			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
 			free(idDim);
 			free(start);
 			free(count);
@@ -476,7 +512,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		if (binary_cache)
 			free(binary_cache);
 		free(binary_insert);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		free(idDim);
 		free(start);
 		free(count);
@@ -557,7 +595,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		if (binary_cache)
 			free(binary_cache);
 		free(binary_insert);
+		pthread_mutex_lock(&nc_lock);
 		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
 		free(idDim);
 		free(count);
 		free(start);
@@ -566,7 +606,10 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
+	pthread_mutex_lock(&nc_lock);
 	nc_close(ncid);
+	pthread_mutex_unlock(&nc_lock);
+
 	free(start);
 	free(start_pointer);
 	free(sizemax);

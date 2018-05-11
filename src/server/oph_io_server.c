@@ -42,6 +42,7 @@ unsigned short disable_mem_check = 0;
 
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t nc_lock = PTHREAD_MUTEX_INITIALIZER;
 
 oph_metadb_db_row *db_table = NULL;
 HASHTBL *plugin_table = NULL;
