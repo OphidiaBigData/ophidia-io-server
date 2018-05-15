@@ -30,7 +30,7 @@
 
 //Global mutex variable 
 pthread_mutex_t metadb_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+char *oph_server_conf_file = OPH_SERVER_CONF_FILE_PATH;
 unsigned short disable_mem_check = 0;
 
 void *test_metadb(void *arg);
@@ -46,8 +46,11 @@ int main(int argc, char *argv[])
 	unsigned short int instance = 0;
 	unsigned short int help = 0;
 
-	while ((ch = getopt(argc, argv, "i:h")) != -1) {
+	while ((ch = getopt(argc, argv, "c:hi:")) != -1) {
 		switch (ch) {
+			case 'c':
+				oph_server_conf_file = optarg;
+				break;
 			case 'h':
 				help = 1;
 				break;

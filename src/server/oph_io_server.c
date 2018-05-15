@@ -50,6 +50,7 @@ oph_query_expr_symtable *oph_function_table = NULL;
 //Global only in this files (for garbage collection purpose)
 struct sockaddr *cliaddr;
 HASHTBL *conf_db = NULL;
+char *oph_server_conf_file = OPH_SERVER_CONF_FILE_PATH;
 
 int main(int argc, char *argv[])
 {
@@ -74,8 +75,11 @@ int main(int argc, char *argv[])
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
 
-	while ((ch = getopt(argc, argv, "i:dhxz")) != -1) {
+	while ((ch = getopt(argc, argv, "c:dhi:xz")) != -1) {
 		switch (ch) {
+			case 'c':
+				oph_server_conf_file = optarg;
+				break;
 			case 'h':
 				fprintf(stdout, "%s", USAGE);
 				return 0;

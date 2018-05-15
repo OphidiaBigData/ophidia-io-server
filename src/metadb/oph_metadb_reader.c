@@ -29,6 +29,7 @@
 #include "oph_license.h"
 
 unsigned short disable_mem_check = 0;
+char *oph_server_conf_file = OPH_SERVER_CONF_FILE_PATH;
 
 int main(int argc, char *argv[])
 {
@@ -44,8 +45,11 @@ int main(int argc, char *argv[])
 	fprintf(stdout, OPH_VERSION2, "MetaDB read client");
 	fprintf(stdout, OPH_DISCLAIMER, "oph_metadb_reader", "oph_metadb_reader");
 
-	while ((ch = getopt(argc, argv, "i:hxz")) != -1) {
+	while ((ch = getopt(argc, argv, "c:hi:xz")) != -1) {
 		switch (ch) {
+			case 'c':
+				oph_server_conf_file = optarg;
+				break;
 			case 'i':
 				instance = (unsigned short int) strtol(optarg, NULL, 10);
 				break;
