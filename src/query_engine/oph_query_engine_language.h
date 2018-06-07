@@ -45,6 +45,7 @@
 #define OPH_QUERY_ENGINE_LANG_OP_DROP_DB            "drop_database"
 #define OPH_QUERY_ENGINE_LANG_OP_INSERT             "insert"
 #define OPH_QUERY_ENGINE_LANG_OP_MULTI_INSERT 		"multi_insert"
+#define OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT 		"file_import"
 #define OPH_QUERY_ENGINE_LANG_OP_SELECT             "select"
 #define OPH_QUERY_ENGINE_LANG_OP_FUNCTION           "function"
 
@@ -71,6 +72,15 @@
 #define OPH_QUERY_ENGINE_LANG_ARG_FUNC        "func_name"
 #define OPH_QUERY_ENGINE_LANG_ARG_ARG         "arg"
 #define OPH_QUERY_ENGINE_LANG_ARG_SEQUENTIAL  "sequential_id"
+#define OPH_QUERY_ENGINE_LANG_ARG_PATH  	  "src_path"
+#define OPH_QUERY_ENGINE_LANG_ARG_MEASURE  	  "measure"
+#define OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED  "compressed"
+#define OPH_QUERY_ENGINE_LANG_ARG_NROW  	  "nrows"
+#define OPH_QUERY_ENGINE_LANG_ARG_ROW_START   "row_start"
+#define OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE    "dim_type"
+#define OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX   "dim_index"
+#define OPH_QUERY_ENGINE_LANG_ARG_DIM_START   "dim_start"
+#define OPH_QUERY_ENGINE_LANG_ARG_DIM_END     "dim_end"
 
 //*****************Query values***************//
 

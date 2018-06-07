@@ -193,6 +193,37 @@ else
 	AC_MSG_ERROR([MySQL libraries not found! Aborting configure!])
 fi
 
+have_netcdf=no
+NETCDF_CONFIG=
+AC_ARG_WITH(netcdf_path,
+           [  --with-netcdf-path=PATH  Set the netcdf root dir],
+           [
+                netcdf_path="$withval"
+		have_netcdf=yes
+		NETCDF_CONFIG="${withval}/bin/nc-config"
+           ],
+           [
+			AC_PATH_PROG([NETCDF_CONFIG], nc-config)
+			if test -n "$NETCDF_CONFIG" ; then
+				have_netcdf=yes
+                	fi
+           ]
+           )
+if test "x${have_netcdf}" = "xyes"; then
+	NETCDF_CFLAGS="`$NETCDF_CONFIG --cflags`"
+	NETCDF_LIBS="`$NETCDF_CONFIG --libs`"
+	if test "x${NETCDF_LIBS}" != "x"; then
+		AC_SUBST(NETCDF_CFLAGS)
+		AC_SUBST(NETCDF_LIBS)
+		AC_MSG_NOTICE([Enabled NetCDF support.])
+	else
+		AC_MSG_WARN([NetCDF not found! NetCDF support automatically disabled!])
+		have_netcdf=no
+	fi
+fi
+AM_CONDITIONAL([HAVE_NETCDF], [test "x$have_netcdf" = "xyes"])
+
+
 #Enable optimization
 optimization="no"
 AC_ARG_ENABLE(optimization,
@@ -280,7 +311,7 @@ case "${host}" in
 			                    if test "x$optimization" = "xyes" ; then
 			                         OPT+="-Wall -Wextra -O3 -g0 -rdynamic -finline-functions -funswitch-loops -fgcse-after-reload -ftree-loop-linear -ftree-loop-im -ftree-loop-ivcanon -fivopts -ftree-vectorize -ftracer -fgcse-sm -fgcse-las -fgcse-after-reload -funroll-loops -freorder-blocks-and-partition -fweb"
 			                    else
-                            OPT+="-O2 -rdynamic"
+                            OPT+="-O3 -rdynamic"
                           fi						            
                         fi
 			            ;;

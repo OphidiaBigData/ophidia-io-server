@@ -20,7 +20,7 @@
 lib_LTLIBRARIES=libdebug.la 
 libdir=${prefix}/lib
 
-noinst_LTLIBRARIES=libhashtbl.la liboph_server_util.la liboph_server_conf.la
+noinst_LTLIBRARIES=libhashtbl.la liboph_server_util.la liboph_server_conf.la liboph_binary_io.la
 
 libdebug_la_SOURCES = debug.c
 libdebug_la_CFLAGS = $(OPT) -I. -I.. -I../.. -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
@@ -31,6 +31,11 @@ libhashtbl_la_SOURCES = hashtbl.c
 libhashtbl_la_CFLAGS = $(OPT) -I. -I.. -I../.. -fPIC
 libhashtbl_la_LIBADD=
 libhashtbl_la_LDFLAGS = -module -static
+
+liboph_binary_io_la_SOURCES = oph-lib-binary-io.c
+liboph_binary_io_la_CFLAGS= $(OPT) -I. -I.. -I../.. -fPIC
+liboph_binary_io_la_LIBADD = -L. -ldebug 
+liboph_binary_io_la_LDFLAGS = -module -static 
 
 liboph_server_conf_la_SOURCES = oph_server_confs.c
 liboph_server_conf_la_CFLAGS = $(OPT) -I. -I.. -I../.. -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
