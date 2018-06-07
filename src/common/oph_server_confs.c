@@ -31,6 +31,7 @@
 #include "debug.h"
 
 extern int msglevel;
+extern char *oph_server_conf_file;
 
 int oph_server_conf_load(short unsigned int instance, HASHTBL ** hashtbl)
 {
@@ -44,7 +45,7 @@ int oph_server_conf_load(short unsigned int instance, HASHTBL ** hashtbl)
 		return OPH_SERVER_CONF_ERROR;
 	}
 
-	FILE *file = fopen(OPH_SERVER_CONF_FILE_PATH, "r");
+	FILE *file = fopen(oph_server_conf_file, "r");
 	if (file == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Configuration file not found\n");
 		hashtbl_destroy(*hashtbl);
