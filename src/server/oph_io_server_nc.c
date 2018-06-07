@@ -264,7 +264,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 
 	//TODO - Check that memory for the two arrays is actually available
 	//Flag set to 1 if whole fragment fits in memory
-	long long memory_size = 3072 * 1024 * 512;
+	unsigned long long memory_size = 1073741824;
 	short int whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size ? 0 : 1);
 
 	if (!whole_fragment) {
@@ -535,7 +535,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	}
 
 	//Check
-	int total = 1;
+	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
 		total *= count[i];
 
