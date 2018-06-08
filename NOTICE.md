@@ -2,7 +2,7 @@ Ophidia IO Server General
 -------------------------
 
 Ophidia IO Server
-Copyright (C) 2014-2017 CMCC Foundation
+Copyright (C) 2014-2018 CMCC Foundation
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@ http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 - Hash table</br>
 Creative Commons CC0 1.0</br>
 https://creativecommons.org/publicdomain/zero/1.0/
+
+- Network Common Data Form (NetCDF)</br>
+MIT License</br>
+http://www.unidata.ucar.edu/software/netcdf/copyright.html
 
 Source code generated with GNU Bison (https://www.gnu.org/software/bison/) and flex (http://flex.sourceforge.net) is included.</br>
 
