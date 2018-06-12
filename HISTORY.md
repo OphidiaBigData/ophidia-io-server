@@ -1,4 +1,22 @@
 
+## NEXT RELEASE
+
+### Fixed:
+
+- Bug [#8](https://github.com/OphidiaBigData/ophidia-io-server/issues/8)
+- Bug [#7](https://github.com/OphidiaBigData/ophidia-io-server/issues/7)
+
+### Added:
+
+- New query and functionalities to create a fragment with data imported directly from NetCDF files [#12](https://github.com/OphidiaBigData/ophidia-io-server/pull/12) 
+- Option to specify user-defined path for configuration file [#11](https://github.com/OphidiaBigData/ophidia-io-server/pull/11)
+- Support for oph_sequence primitive [#10](https://github.com/OphidiaBigData/ophidia-io-server/pull/10)
+
+### Changed:
+
+- Configure for new building dependency (NetCDF library)
+- Main IO Server thread to avoid memset on whole network buffer [#9](https://github.com/OphidiaBigData/ophidia-io-server/pull/9)
+
 ## v1.2.0 - 2018-02-16
 
 ### Fixed:
