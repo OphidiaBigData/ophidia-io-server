@@ -22,7 +22,7 @@
 // Prototypes
 
 #ifdef OPH_IO_SERVER_NETCDF
-#include "netcdf.h"
+#include <netcdf.h>
 #endif
 #include "hashtbl.h"
 #include "oph_io_server_thread.h"
