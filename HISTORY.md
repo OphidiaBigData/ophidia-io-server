@@ -8,6 +8,7 @@
 
 ### Added:
 
+- New parameter 'MEMORY_BUFFER' in oph_ioserver.conf 
 - New query and functionalities to create a fragment with data imported directly from NetCDF files [#12](https://github.com/OphidiaBigData/ophidia-io-server/pull/12) 
 - Option to specify user-defined path for configuration file [#11](https://github.com/OphidiaBigData/ophidia-io-server/pull/11)
 - Support for oph_sequence primitive [#10](https://github.com/OphidiaBigData/ophidia-io-server/pull/10)

@@ -39,6 +39,7 @@ unsigned long long max_packet_length = 0;
 unsigned short omp_threads = 0;
 unsigned short client_ttl = 0;
 unsigned short disable_mem_check = 0;
+unsigned long long memory_buffer = 0;
 
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -128,6 +129,7 @@ int main(int argc, char *argv[])
 	char *ttl = 0;
 	char *dir = 0;
 	char *omp = 0;
+	char *mem_buf = 0;
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)) {
 		pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to get server dir param\n");
@@ -180,6 +182,15 @@ int main(int argc, char *argv[])
 	}
 
 	omp_threads = strtol(omp, NULL, 10);
+
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_MEMORY_BUFFER, &mem_buf)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get memory buffer param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get memory buffer param\n");
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+
+	memory_buffer = strtol(mem_buf, NULL, 10);
 
 	if (oph_load_plugins(&plugin_table, &oph_function_table)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to load plugin table\n");

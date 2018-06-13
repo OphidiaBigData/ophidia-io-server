@@ -48,6 +48,7 @@ extern int msglevel;
 extern pthread_rwlock_t rwlock;
 extern pthread_mutex_t nc_lock;
 extern HASHTBL *plugin_table;
+extern unsigned long long memory_buffer;
 
 #ifdef DEBUG
 #include "taketime.h"
@@ -264,8 +265,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 
 	//TODO - Check that memory for the two arrays is actually available
 	//Flag set to 1 if whole fragment fits in memory
-	unsigned long long memory_size = 1073741824;
-	short int whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size ? 0 : 1);
+	unsigned long long memory_size = memory_buffer * (unsigned long long)1048576;
+	short int whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size/2 ? 0 : 1);
 
 	if (!whole_fragment) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
