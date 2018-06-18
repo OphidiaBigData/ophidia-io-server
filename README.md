@@ -38,8 +38,6 @@ to see all available options.
 
 If you want to use the program system-wide, remember to add its installation directory to your PATH.
 
-Additional details on installation and configuration are available in the [documentation](http://ophidia.cmcc.it/documentation/admin/install/components/install_ioserver.html)
-
 ### How to Launch
 
 ```
@@ -54,3 +52,4 @@ $ oph_io_server -h
 
 to see all other available options.
 
+Further information can be found at [http://ophidia.cmcc.it/documentation/admin/](http://ophidia.cmcc.it/documentation/admin/).
