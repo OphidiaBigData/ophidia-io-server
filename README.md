@@ -9,7 +9,8 @@ The Ophidia IO Server is the Ophidia native IO server component.
 In order to compile and run the IO Server, make sure you have the following packages properly installed:
 
 1. mysql-community-devel
-2. optionally bison and flex 
+2. nectdf and netcdf-devel
+3. optionally bison and flex 
 
 ### How to Install
 
@@ -37,6 +38,8 @@ to see all available options.
 
 If you want to use the program system-wide, remember to add its installation directory to your PATH.
 
+Additional details on installation and configuration are available in the [documentation](http://ophidia.cmcc.it/documentation/admin/install/components/install_ioserver.html)
+
 ### How to Launch
 
 ```
@@ -50,3 +53,4 @@ $ oph_io_server -h
 ```
 
 to see all other available options.
+
