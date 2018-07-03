@@ -266,7 +266,7 @@ void *test_metadb(void *arg)
 		oph_metadb_cleanup_frag_struct(test_frag_row);
 		return (NULL);
 	}
-	if (oph_metadb_find_frag(test_row1, test_frag_row->frag_name, &test_frag_row1)) {
+	if (oph_metadb_find_frag(test_row1, test_frag_row->frag_name, &test_frag_row1) || !test_frag_row1) {
 		pthread_mutex_unlock(&metadb_mutex);
 		printf("Unable to find frag in MetaDB\n");
 		oph_metadb_cleanup_frag_struct(test_frag_row);

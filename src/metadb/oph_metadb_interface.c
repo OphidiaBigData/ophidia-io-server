@@ -897,7 +897,7 @@ int oph_metadb_update_frag(oph_metadb_db_row * db, oph_metadb_frag_row * frag)
 	oph_metadb_frag_row *tmp_row = NULL;
 	if (db->table != NULL) {
 		//If frag list is not empty find record
-		if (oph_metadb_find_frag(db, frag->frag_name, &tmp_row)) {
+		if (oph_metadb_find_frag(db, frag->frag_name, &tmp_row) || !tmp_row) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FRAG_RECORD_UPDATE_NOT_FOUND, frag->frag_name);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_FRAG_RECORD_UPDATE_NOT_FOUND, frag->frag_name);
 			return OPH_METADB_IO_ERR;
