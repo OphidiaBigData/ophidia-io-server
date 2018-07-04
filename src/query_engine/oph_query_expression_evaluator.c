@@ -925,45 +925,38 @@ int oph_query_expr_change_group(oph_query_expr_node * b)
 
 int oph_query_expr_get_variables_help(oph_query_expr_node * e, int *max_size, int *current_size, char ***names)
 {
-	char **temp = *names;
-	char **temp2 = NULL;
-	if (e == NULL) {
+	if (!e)
 		return OPH_QUERY_ENGINE_SUCCESS;
+	if (!names) {
+		pmesg(LOG_WARNING, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+		logging(LOG_WARNING, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
+		return OPH_QUERY_ENGINE_NULL_PARAM;
 	}
 
 	if ((*current_size) >= (*max_size)) {
-		temp2 = (char **) realloc(temp, (*current_size) * 2);
-
-		if (temp2 == NULL) {
+		int new_size = (*current_size) << 1;
+		char **temp = (char **) realloc(*names, new_size * sizeof(char *));
+		if (temp == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_MEMORY_ALLOC_ERROR);
 			return OPH_QUERY_ENGINE_MEMORY_ERROR;
 		}
-		temp = temp2;
-		*max_size = (*current_size) * 2;
+		*names = temp;
+		*max_size = new_size;
 	}
 
 	if (e->type == eVAR) {
-
-		int is_duplicate = 0;
-		int i = 0;
-		for (; i < *current_size; i++) {
-			if (!strcmp(temp[i], e->name)) {
-				is_duplicate = 1;
+		int i;
+		for (i = 0; i < *current_size; i++)
+			if (!strcmp((*names)[i], e->name))
 				break;
-			}
-		}
-
-		if (!is_duplicate) {
-			(*current_size)++;
-			temp[*current_size - 1] = e->name;
-		}
-
+		if (i >= *current_size)
+			(*names)[(*current_size)++] = e->name;
 	}
 
-	if (oph_query_expr_get_variables_help(e->right, max_size, current_size, names) != 0)
+	if (oph_query_expr_get_variables_help(e->right, max_size, current_size, names))
 		return OPH_QUERY_ENGINE_MEMORY_ERROR;
-	if (oph_query_expr_get_variables_help(e->left, max_size, current_size, names) != 0)
+	if (oph_query_expr_get_variables_help(e->left, max_size, current_size, names))
 		return OPH_QUERY_ENGINE_MEMORY_ERROR;
 
 	return OPH_QUERY_ENGINE_SUCCESS;

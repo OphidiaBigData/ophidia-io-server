@@ -521,7 +521,7 @@ int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_
 	long long j;
 	char *tmp_var_list[var_count];
 	for (k = 0; k < var_count; k++) {
-		tmp_var_list[k] = (char *) strndup(var_list[k], strlen(var_list[k]) + 1);
+		tmp_var_list[k] = (char *) strdup(var_list[k]);
 		if (tmp_var_list[k] == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
