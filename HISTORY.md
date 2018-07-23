@@ -1,4 +1,10 @@
 
+## Next release
+
+### Fixed:
+
+- Bug causing server to crash when high number of variables is used in queries [#13](https://github.com/OphidiaBigData/ophidia-io-server/issues/13)
+
 ## v1.3.0 - 2018-06-18
 
 ### Fixed:
