@@ -925,6 +925,351 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore
 }
 #endif
 
+
+//TODO Move fragment load from this function into a specific file
+#include "oph-lib-binary-io.h"
+
+extern unsigned long long memory_buffer;
+
+#define OPH_COMMON_RAND_ALGO_TEMP		"temperatures"
+#define OPH_COMMON_RAND_ALGO_DEFAULT	"default"
+#define DIM_VALUE "?1"
+#define UNCOMPRESSED_VALUE "?2"
+#define COMPRESSED_VALUE "oph_compress('','',?2)"
+
+int oph_io_server_run_random_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args)
+{
+	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_iostore_frag_record_set *record_sets = NULL;
+
+	if (oph_io_server_run_create_empty_frag(meta_db, dev_handle, current_db, query_args, &record_sets)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char **dim_type_list = NULL, **dim_index_list = NULL, **dim_start_list = NULL, **dim_end_list = NULL;
+	int dim_list_num = 0, tmpdim_list_num = 0;
+	int i;
+
+	//Get randcube specific arguments
+	char *mes_type = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
+	if (!mes_type) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	char *algorithm = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
+	if (!algorithm) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	long long row_num = 0;
+	char *nrows = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+	if (!nrows) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		row_num = strtoll(nrows, NULL, 10);
+		if (row_num <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	long long frag_start = 0;
+	char *row_start = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+	if (!row_start) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		frag_start = strtoll(row_start, NULL, 10);
+		if (frag_start <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	long long array_length = 0;
+	char *arrlen = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+	if (!arrlen) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		array_length = strtoll(arrlen, NULL, 10);
+		if (array_length <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	char *compression = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+	if (compression == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//If final statement is set, then activate flag
+	char compressed_flag = (STRCMP(compression, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0);
+
+	record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
+	if (record_sets->record_set == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	//Define record struct
+	unsigned long long frag_size = 0;
+
+	char type_flag = oph_util_get_measure_type(mes_type);
+	if (!type_flag) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "measure type", mes_type);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "measure type", mes_type);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char rand_alg = 0;
+	if (strcmp(algorithm, OPH_COMMON_RAND_ALGO_TEMP) == 0) {
+		rand_alg = 1;
+	} else if (strcmp(algorithm, OPH_COMMON_RAND_ALGO_DEFAULT) == 0) {
+		rand_alg = 0;
+	} else {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "algorithm type", algorithm);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "algorithm type", algorithm);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	//Check the order and field list values
+	int measure_pos = -1, id_dim_pos = -1;
+	for (i = 0; i < record_sets->field_num; i++) {
+		if (record_sets->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
+			measure_pos = i;
+		} else if (record_sets->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
+			id_dim_pos = i;
+		}
+	}
+	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	unsigned long long sizeof_var = 0;
+
+	if (type_flag == OPH_MEASURE_BYTE_FLAG)
+		sizeof_var = array_length * sizeof(char);
+	else if (type_flag == OPH_MEASURE_SHORT_FLAG)
+		sizeof_var = array_length * sizeof(short);
+	else if (type_flag == OPH_MEASURE_INT_FLAG)
+		sizeof_var = array_length * sizeof(int);
+	else if (type_flag == OPH_MEASURE_LONG_FLAG)
+		sizeof_var = array_length * sizeof(long long);
+	else if (type_flag == OPH_MEASURE_FLOAT_FLAG)
+		sizeof_var = array_length * sizeof(float);
+	else if (type_flag == OPH_MEASURE_DOUBLE_FLAG)
+		sizeof_var = array_length * sizeof(double);
+	else if (type_flag == OPH_MEASURE_BIT_FLAG) {
+		sizeof_var = array_length * sizeof(char) / 8;
+		if (array_length % 8)
+			sizeof_var++;
+		array_length = sizeof_var;	// a bit array correspond to a char array with 1/8 elements
+	}
+	//TODO - Check that memory for the array is actually available
+	//Flag set to 1 if whole fragment fits in memory
+	unsigned long long memory_size = memory_buffer * (unsigned long long) 1048576;
+	short int whole_fragment = ((row_num * sizeof_var) > memory_size ? 0 : 1);
+
+	if (!whole_fragment) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_NOT_AVAIL_ERROR, row_num * sizeof_var);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_NOT_AVAIL_ERROR, row_num * sizeof_var);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	if (memory_check()) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	//Create array for rows to be insert
+	//Create binary array
+	char *binary = 0;
+	int res = 0;
+
+	if (type_flag == OPH_MEASURE_BYTE_FLAG)
+		res = oph_iob_bin_array_create_b(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_SHORT_FLAG)
+		res = oph_iob_bin_array_create_s(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_INT_FLAG)
+		res = oph_iob_bin_array_create_i(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_LONG_FLAG)
+		res = oph_iob_bin_array_create_l(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_FLOAT_FLAG)
+		res = oph_iob_bin_array_create_f(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_DOUBLE_FLAG)
+		res = oph_iob_bin_array_create_d(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_BIT_FLAG)
+		res = oph_iob_bin_array_create_c(&binary, array_length);
+	else
+		res = oph_iob_bin_array_create_d(&binary, array_length);
+	if (res) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(binary);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	unsigned long long idDim = 0;
+
+	int arg_count = record_sets->field_num;
+	oph_query_arg **args = (oph_query_arg **) calloc(arg_count, sizeof(oph_query_arg *));
+	if (!(args)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(binary);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	char **value_list = (char **) calloc(arg_count, sizeof(char *));
+	if (!(value_list)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		for (i = 0; i < arg_count; i++)
+			if (args[i])
+				free(args[i]);
+		free(args);
+		free(binary);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	value_list[id_dim_pos] = DIM_VALUE;
+	if (compressed_flag == 1) {
+		value_list[measure_pos] = COMPRESSED_VALUE;
+	} else {
+		value_list[measure_pos] = UNCOMPRESSED_VALUE;
+	}
+
+	for (i = 0; i < arg_count; i++) {
+		args[i] = (oph_query_arg *) calloc(1, sizeof(oph_query_arg));
+		if (!args[i]) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			free(binary);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+	}
+
+	args[id_dim_pos]->arg_length = sizeof(unsigned long long);
+	args[id_dim_pos]->arg_type = OPH_QUERY_TYPE_LONG;
+	args[id_dim_pos]->arg_is_null = 0;
+	args[id_dim_pos]->arg = (unsigned long long *) (&idDim);
+	args[measure_pos]->arg_length = sizeof_var;
+	args[measure_pos]->arg_type = OPH_QUERY_TYPE_BLOB;
+	args[measure_pos]->arg_is_null = 0;
+	args[measure_pos]->arg = (char *) (binary);
+
+	unsigned long long row_size = 0;
+	oph_iostore_frag_record *new_record = NULL;
+	unsigned long long cumulative_size = 0;
+
+	for (i = 0; i < row_num; i++) {
+
+		if (oph_util_build_rand_row(binary, array_length, type_flag, rand_alg)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_BINARY_ARRAY_LOAD);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_BINARY_ARRAY_LOAD);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			free(binary);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		idDim = frag_start + i;
+
+
+		if (_oph_ioserver_query_build_row(arg_count, &row_size, record_sets, record_sets->field_name, value_list, args, &new_record)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			free(binary);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+		//Add record to partial record set
+		record_sets->record_set[i] = new_record;
+		//Update current record size
+		cumulative_size += row_size;
+
+		new_record = NULL;
+		row_size = 0;
+	}
+
+	for (i = 0; i < arg_count; i++)
+		if (args[i])
+			free(args[i]);
+	free(args);
+	free(value_list);
+	free(binary);
+
+	frag_size = cumulative_size;
+
+	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, frag_size, &record_sets);
+
+	//Destroy tmp recordset 
+	if (record_sets)
+		oph_iostore_destroy_frag_recordset(&record_sets);
+
+	if (ret) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
 int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** output_rs)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !output_rs) {

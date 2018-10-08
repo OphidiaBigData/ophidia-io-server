@@ -101,6 +101,9 @@
 #define OPH_IO_SERVER_LOG_GROUP_ERROR						"Error interpreting group by clause\n"
 #define OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR				"Error while extracting variables from %s\n"
 #define OPH_IO_SERVER_LOG_TOO_MANY_TABLES					"Only one table can be used in export procedure\n"
+#define OPH_IO_SERVER_LOG_BINARY_ARRAY_LOAD					"Error in binary array filling\n"
+#define OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE				"%s argument in query is not valid: %s\n"
+#define OPH_IO_SERVER_LOG_MEMORY_NOT_AVAIL_ERROR			"Unable to create fragment in memory. Memory required is: %lld\n"
 
 #define OPH_IO_SERVER_BUFFER 1024
 
@@ -360,6 +363,15 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore
 
 #endif
 
+/**
+ * \brief               Internal function used for creating data structures from random data 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_random_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to execute create fragment operation 
