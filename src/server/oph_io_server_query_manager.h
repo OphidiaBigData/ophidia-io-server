@@ -297,6 +297,20 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 
 #endif
 
+/**
+ * \brief Create fragment from random data
+ * \param tuplexfrag_number Number of tuple to insert
+ * \param frag_key_start Starting key of fragment
+ * \param compressed_flag If the data to insert is compressed (1) or not (0)
+ * \param array_length Number of values per fragment row
+ * \param measure_type Type of measure 
+ * \param algorithm Type of algorithm used to generate random values
+ * \param binary_frag Pointer to recordset structure where fragment is being created
+ * \param frag_size Size of fragment being created
+ * \return 0 if successfull
+ */
+int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_start, char compressed_flag, long long array_length, char *measure_type, char *algorithm, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+
 //Functions used to run main query blocks
 
 /**

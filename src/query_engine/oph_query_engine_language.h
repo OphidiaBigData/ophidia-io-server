@@ -92,6 +92,11 @@
 #define OPH_QUERY_ENGINE_LANG_VAL_YES "yes"
 #define OPH_QUERY_ENGINE_LANG_VAL_NO 	"no"
 
+//*****************Query argument values***************//
+
+#define OPH_QUERY_ENGINE_LANG_VAL_RAND_ALGO_TEMP		"temperatures"
+#define OPH_QUERY_ENGINE_LANG_VAL_RAND_ALGO_DEFAULT	"default"
+
 //*****************Keywords***************//
 
 #define OPH_QUERY_ENGINE_LANG_KW_TABLE_SIZE         "@tot_table_size"
