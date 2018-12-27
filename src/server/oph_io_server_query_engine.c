@@ -925,6 +925,135 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore
 }
 #endif
 
+int oph_io_server_run_random_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args)
+{
+	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_iostore_frag_record_set *record_sets = NULL;
+
+	if (oph_io_server_run_create_empty_frag(meta_db, dev_handle, current_db, query_args, &record_sets)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char **dim_type_list = NULL, **dim_index_list = NULL, **dim_start_list = NULL, **dim_end_list = NULL;
+	int dim_list_num = 0, tmpdim_list_num = 0;
+	int i;
+
+	//Get randcube specific arguments
+	char *mes_type = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
+	if (!mes_type) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	char *algorithm = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
+	if (!algorithm) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	long long row_num = 0;
+	char *nrows = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+	if (!nrows) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		row_num = strtoll(nrows, NULL, 10);
+		if (row_num <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	long long frag_start = 0;
+	char *row_start = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+	if (!row_start) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		frag_start = strtoll(row_start, NULL, 10);
+		if (frag_start <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	long long array_length = 0;
+	char *arrlen = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+	if (!arrlen) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		array_length = strtoll(arrlen, NULL, 10);
+		if (array_length <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	char *compression = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+	if (compression == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//If final statement is set, then activate flag
+	char compressed_flag = (STRCMP(compression, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0);
+
+	record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
+	if (record_sets->record_set == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	//Define record struct
+	unsigned long long frag_size = 0;
+
+	if (_oph_ioserver_rand_data(row_num, frag_start, compressed_flag, array_length, mes_type, algorithm, record_sets, &frag_size)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create random data\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create random data\n");
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, frag_size, &record_sets);
+
+	//Destroy tmp recordset 
+	if (record_sets)
+		oph_iostore_destroy_frag_recordset(&record_sets);
+
+	if (ret) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+
 int oph_io_server_run_create_empty_frag(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** output_rs)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !output_rs) {

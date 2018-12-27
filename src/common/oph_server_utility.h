@@ -32,13 +32,50 @@
 #define OPH_NAME_ID "id_dim"
 #define OPH_NAME_MEASURE "measure"
 
+#define OPH_MEASURE_BYTE_TYPE 			"byte"
+#define OPH_MEASURE_SHORT_TYPE 			"short"
+#define OPH_MEASURE_INT_TYPE 			"int"
+#define OPH_MEASURE_LONG_TYPE 			"long"
+#define OPH_MEASURE_FLOAT_TYPE 			"float"
+#define OPH_MEASURE_DOUBLE_TYPE 			"double"
+#define OPH_MEASURE_STRING_TYPE 			"string"
+#define OPH_MEASURE_BIT_TYPE			"bit"
+#define OPH_MEASURE_DEFAULT_TYPE			OPH_MEASURE_DOUBLE_TYPE
+
+#define OPH_MEASURE_BYTE_FLAG			'c'
+#define OPH_MEASURE_SHORT_FLAG			's'
+#define OPH_MEASURE_INT_FLAG			'i'
+#define OPH_MEASURE_LONG_FLAG			'l'
+#define OPH_MEASURE_FLOAT_FLAG			'f'
+#define OPH_MEASURE_DOUBLE_FLAG			'd'
+#define OPH_MEASURE_BIT_FLAG			'b'
+
 /**
  * \brief			        Macro used to compare two strings
  */
 #define STRCMP(a,b) strncasecmp(a, b, (strlen(a) > strlen(b) ? strlen(a) : strlen(b)))
 
+
 /**
- * \brief			        Function to used to duplicate a generic value (similar to strndup)
+ * \brief			  	Function to check and convert string with type to type flag
+ * \param measure_type  String with data type to check
+ * \return            	Type flag or 0 in case of error
+ */
+char oph_util_get_measure_type(char *measure_type);
+
+
+/**
+ * \brief			    Function used to build an array of random values
+ * \param binary        Pointer to start of memory block to be filled with random data
+ * \param array_length  Number of values to generate
+ * \param type_flag     Data type for random data
+ * \param rand_alg      Random generation algorithm
+ * \return            	0 if successfull, non-0 otherwise
+ */
+int oph_util_build_rand_row(char *binary, int array_length, char type_flag, char rand_alg);
+
+/**
+ * \brief			        Function used to duplicate a generic value (similar to strndup)
  * \param src         Pointer to memory block to be duplicated
  * \param n           Size of memory block to be duplicated
  * \return            Pointer to duplicate area or NULL if an error occured

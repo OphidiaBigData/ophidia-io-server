@@ -101,6 +101,9 @@
 #define OPH_IO_SERVER_LOG_GROUP_ERROR						"Error interpreting group by clause\n"
 #define OPH_IO_SERVER_LOG_VARIABLE_MATCH_ERROR				"Error while extracting variables from %s\n"
 #define OPH_IO_SERVER_LOG_TOO_MANY_TABLES					"Only one table can be used in export procedure\n"
+#define OPH_IO_SERVER_LOG_BINARY_ARRAY_LOAD					"Error in binary array filling\n"
+#define OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE				"%s argument in query is not valid: %s\n"
+#define OPH_IO_SERVER_LOG_MEMORY_NOT_AVAIL_ERROR			"Unable to create fragment in memory. Memory required is: %lld\n"
 
 #define OPH_IO_SERVER_BUFFER 1024
 
@@ -294,6 +297,20 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 
 #endif
 
+/**
+ * \brief Create fragment from random data
+ * \param tuplexfrag_number Number of tuple to insert
+ * \param frag_key_start Starting key of fragment
+ * \param compressed_flag If the data to insert is compressed (1) or not (0)
+ * \param array_length Number of values per fragment row
+ * \param measure_type Type of measure 
+ * \param algorithm Type of algorithm used to generate random values
+ * \param binary_frag Pointer to recordset structure where fragment is being created
+ * \param frag_size Size of fragment being created
+ * \return 0 if successfull
+ */
+int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_start, char compressed_flag, long long array_length, char *measure_type, char *algorithm, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+
 //Functions used to run main query blocks
 
 /**
@@ -360,6 +377,15 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore
 
 #endif
 
+/**
+ * \brief               Internal function used for creating data structures from random data 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_random_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to execute create fragment operation 

@@ -813,5 +813,216 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 
 	return OPH_IO_SERVER_SUCCESS;
 }
-
 #endif
+
+int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_start, char compressed_flag, long long array_length, char *measure_type, char *algorithm,
+			    oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
+{
+	if (!tuplexfrag_number || !frag_key_start || !array_length || !measure_type || !algorithm || !binary_frag || !frag_size) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+	//Check the order and field list values
+	int measure_pos = -1, id_dim_pos = -1;
+	int i;
+	for (i = 0; i < binary_frag->field_num; i++) {
+		if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
+			measure_pos = i;
+		} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
+			id_dim_pos = i;
+		}
+	}
+	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char type_flag = oph_util_get_measure_type(measure_type);
+	if (!type_flag) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "measure type", measure_type);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "measure type", measure_type);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char rand_alg = 0;
+	if (strcmp(algorithm, OPH_QUERY_ENGINE_LANG_VAL_RAND_ALGO_TEMP) == 0) {
+		rand_alg = 1;
+	} else if (strcmp(algorithm, OPH_QUERY_ENGINE_LANG_VAL_RAND_ALGO_DEFAULT) == 0) {
+		rand_alg = 0;
+	} else {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "algorithm type", algorithm);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_INVALID_QUERY_VALUE, "algorithm type", algorithm);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	unsigned long long sizeof_var = 0;
+
+	if (type_flag == OPH_MEASURE_BYTE_FLAG)
+		sizeof_var = array_length * sizeof(char);
+	else if (type_flag == OPH_MEASURE_SHORT_FLAG)
+		sizeof_var = array_length * sizeof(short);
+	else if (type_flag == OPH_MEASURE_INT_FLAG)
+		sizeof_var = array_length * sizeof(int);
+	else if (type_flag == OPH_MEASURE_LONG_FLAG)
+		sizeof_var = array_length * sizeof(long long);
+	else if (type_flag == OPH_MEASURE_FLOAT_FLAG)
+		sizeof_var = array_length * sizeof(float);
+	else if (type_flag == OPH_MEASURE_DOUBLE_FLAG)
+		sizeof_var = array_length * sizeof(double);
+	else if (type_flag == OPH_MEASURE_BIT_FLAG) {
+		sizeof_var = array_length * sizeof(char) / 8;
+		if (array_length % 8)
+			sizeof_var++;
+		array_length = sizeof_var;	// a bit array correspond to a char array with 1/8 elements
+	}
+	//TODO - Check that memory for the array is actually available
+	//Flag set to 1 if whole fragment fits in memory
+	unsigned long long memory_size = memory_buffer * (unsigned long long) 1048576;
+	short int whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size ? 0 : 1);
+
+	if (!whole_fragment) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_NOT_AVAIL_ERROR, tuplexfrag_number * sizeof_var);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_NOT_AVAIL_ERROR, tuplexfrag_number * sizeof_var);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	if (memory_check()) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	//Create array for rows to be insert
+	//Create binary array
+	char *binary = 0;
+	int res = 0;
+
+	if (type_flag == OPH_MEASURE_BYTE_FLAG)
+		res = oph_iob_bin_array_create_b(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_SHORT_FLAG)
+		res = oph_iob_bin_array_create_s(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_INT_FLAG)
+		res = oph_iob_bin_array_create_i(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_LONG_FLAG)
+		res = oph_iob_bin_array_create_l(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_FLOAT_FLAG)
+		res = oph_iob_bin_array_create_f(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_DOUBLE_FLAG)
+		res = oph_iob_bin_array_create_d(&binary, array_length);
+	else if (type_flag == OPH_MEASURE_BIT_FLAG)
+		res = oph_iob_bin_array_create_c(&binary, array_length);
+	else
+		res = oph_iob_bin_array_create_d(&binary, array_length);
+	if (res) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		free(binary);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	unsigned long long idDim = 0;
+
+	int arg_count = binary_frag->field_num;
+	oph_query_arg **args = (oph_query_arg **) calloc(arg_count, sizeof(oph_query_arg *));
+	if (!(args)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		free(binary);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	char **value_list = (char **) calloc(arg_count, sizeof(char *));
+	if (!(value_list)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		for (i = 0; i < arg_count; i++)
+			if (args[i])
+				free(args[i]);
+		free(args);
+		free(binary);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+
+	value_list[id_dim_pos] = DIM_VALUE;
+	if (compressed_flag == 1) {
+		value_list[measure_pos] = COMPRESSED_VALUE;
+	} else {
+		value_list[measure_pos] = UNCOMPRESSED_VALUE;
+	}
+
+	for (i = 0; i < arg_count; i++) {
+		args[i] = (oph_query_arg *) calloc(1, sizeof(oph_query_arg));
+		if (!args[i]) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			free(binary);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+	}
+
+	args[id_dim_pos]->arg_length = sizeof(unsigned long long);
+	args[id_dim_pos]->arg_type = OPH_QUERY_TYPE_LONG;
+	args[id_dim_pos]->arg_is_null = 0;
+	args[id_dim_pos]->arg = (unsigned long long *) (&idDim);
+	args[measure_pos]->arg_length = sizeof_var;
+	args[measure_pos]->arg_type = OPH_QUERY_TYPE_BLOB;
+	args[measure_pos]->arg_is_null = 0;
+	args[measure_pos]->arg = (char *) (binary);
+
+	unsigned long long row_size = 0;
+	oph_iostore_frag_record *new_record = NULL;
+	unsigned long long cumulative_size = 0;
+
+	for (i = 0; i < tuplexfrag_number; i++) {
+
+		if (oph_util_build_rand_row(binary, array_length, type_flag, rand_alg)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_BINARY_ARRAY_LOAD);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_BINARY_ARRAY_LOAD);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			free(binary);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		idDim = frag_key_start + i;
+
+
+		if (_oph_ioserver_query_build_row(arg_count, &row_size, binary_frag, binary_frag->field_name, value_list, args, &new_record)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			free(binary);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+		//Add record to partial record set
+		binary_frag->record_set[i] = new_record;
+		//Update current record size
+		cumulative_size += row_size;
+
+		new_record = NULL;
+		row_size = 0;
+	}
+
+	for (i = 0; i < arg_count; i++)
+		if (args[i])
+			free(args[i]);
+	free(args);
+	free(value_list);
+	free(binary);
+
+	*frag_size = cumulative_size;
+
+	return OPH_IO_SERVER_SUCCESS;
+}
