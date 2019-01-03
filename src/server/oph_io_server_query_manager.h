@@ -203,11 +203,12 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler * dev_handl
  * \param stored_rs    	Pointer to be filled with list of original stored recordsets (null terminated list)
  * \param input_row_num Arg to be filled with total number of rows in filtered recordset 
  * \param input_rs 		Pointer to be filled with list of filtered recordset (null terminated list)
+ * \param file_load_flag Flag set to 1 if query contains also data loading from file 
  * \return              0 if successfull, non-0 otherwise
  */
 int _oph_ioserver_query_build_input_record_set_create(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *out_db_name,
 						      char *out_frag_name, char *current_db, oph_iostore_frag_record_set *** stored_rs, long long *input_row_num,
-						      oph_iostore_frag_record_set *** input_rs);
+						      oph_iostore_frag_record_set *** input_rs, char file_load_flag);
 
 /**
  * \brief               Internal function used to select and filter input record set of a query (FROM and WHERE blocks). Used in case of select. 
@@ -223,6 +224,18 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL * query_args, oph_
  */
 int _oph_ioserver_query_build_input_record_set_select(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
 						      oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs);
+
+/**
+ * \brief               Internal function used to load data from a NetCDF file into a fragment. Used in case of create as select or file import. 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 		Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param loaded_record_sets 	Pointer to be filled with list of loaded recordset (null terminated list)
+ * \param loaded_frag_size 		Size of loaded fragment
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set **loaded_record_sets, unsigned long long *loaded_frag_size);
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 
@@ -292,7 +305,7 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
  * \param frag_size Size of fragment being created
  * \return 0 if successfull
  */
-int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type, short int *dims_index,
+int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type, short int *dims_index,
 			  int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
 
 #endif
@@ -322,7 +335,18 @@ int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_star
  * \param args 			Additional args used in prepared statements (can be NULL)
  * \return              0 if successfull, non-0 otherwise
  */
-int oph_io_server_run_create_as_select(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
+int oph_io_server_run_create_as_select_table(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
+
+/**
+ * \brief               Internal function used to execute create as select operation with file load
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_create_as_select_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
 
 /**
  * \brief               Internal function used to execute select operation 

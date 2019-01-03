@@ -39,6 +39,7 @@
 
 #define OPH_QUERY_ENGINE_LANG_OPERATION             "operation"
 #define OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG_SELECT "create_frag_select"
+#define OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG_SELECT_FILE "create_frag_select_file"
 #define OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG        "create_frag"
 #define OPH_QUERY_ENGINE_LANG_OP_DROP_FRAG          "drop_frag"
 #define OPH_QUERY_ENGINE_LANG_OP_CREATE_DB          "create_database"
@@ -104,5 +105,7 @@
 #define OPH_QUERY_ENGINE_LANG_KW_INFO_SYSTEM_TABLE  "@info_system_table"
 #define OPH_QUERY_ENGINE_LANG_KW_FUNCTION_FIELDS    "@function_fields"
 #define OPH_QUERY_ENGINE_LANG_KW_FUNCTION_TABLE     "@function_table"
+
+#define OPH_QUERY_ENGINE_LANG_KW_FILE				"@file"
 
 #endif				//__OPH_QUERY_ENGINE_LANGUAGE_H

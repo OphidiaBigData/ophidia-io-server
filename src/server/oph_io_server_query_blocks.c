@@ -1081,8 +1081,331 @@ int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg ** ar
 	return OPH_IO_SERVER_SUCCESS;
 }
 
+#ifdef OPH_IO_SERVER_NETCDF
+int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set **loaded_record_sets, unsigned long long *loaded_frag_size)
+{
+	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_iostore_frag_record_set *record_sets = NULL;
+
+	if (oph_io_server_run_create_empty_frag(meta_db, dev_handle, current_db, query_args, &record_sets)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char **dim_type_list = NULL, **dim_index_list = NULL, **dim_start_list = NULL, **dim_end_list = NULL;
+	int dim_list_num = 0, tmpdim_list_num = 0;
+	int i;
+
+	//Get import specific arguments
+	char *src_path = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_PATH);
+	if (!src_path) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_PATH);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_PATH);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	char *measure = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_MEASURE);
+	if (!measure) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	unsigned long long row_num = 0;
+	char *nrows = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+	if (!nrows) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		row_num = strtoull(nrows, NULL, 10);
+		if (row_num <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	long long frag_start = 0;
+	char *row_start = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+	if (!row_start) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	} else {
+		frag_start = strtoll(row_start, NULL, 10);
+		if (frag_start <= 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	char *compression = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+	if (compression == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//If final statement is set, then activate flag
+	char compressed_flag = (STRCMP(compression, OPH_QUERY_ENGINE_LANG_VAL_YES) == 0);
+
+
+	char *dim_type = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+	if (!dim_type) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if (oph_query_parse_multivalue_arg(dim_type, &dim_type_list, &dim_list_num)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		if (dim_type_list)
+			free(dim_type_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Convert to correct type
+	short int *dims_type = NULL;
+	if (!(dims_type = (short int *) calloc(dim_list_num, sizeof(short int)))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dim_type_list);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	for (i = 0; i < dim_list_num; i++) {
+		dims_type[i] = (short int) strtol(dim_type_list[i], NULL, 10);
+		if (dims_type[i] < 0 || dims_type[i] > 1) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_TYPE);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			free(dim_type_list);
+			free(dims_type);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+	free(dim_type_list);
+
+	char *dim_index = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+	if (!dim_index) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+		free(dims_type);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if (oph_query_parse_multivalue_arg(dim_index, &dim_index_list, &tmpdim_list_num)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+		free(dims_type);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		if (dim_index_list)
+			free(dim_index_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Check if number of dimension values are compliant
+	if (tmpdim_list_num != dim_list_num) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dim_index_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Convert to correct type
+	short int *dims_index = NULL;
+	if (!(dims_index = (short int *) calloc(dim_list_num, sizeof(short int)))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dim_index_list);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	for (i = 0; i < dim_list_num; i++) {
+		dims_index[i] = (short int) strtol(dim_index_list[i], NULL, 10);
+		if (dims_index[i] < 0 || dims_index[i] > (dim_list_num - 1)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			free(dims_type);
+			free(dim_index_list);
+			free(dims_index);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+	free(dim_index_list);
+
+
+	char *dim_start = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+	if (!dim_start) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if (oph_query_parse_multivalue_arg(dim_start, &dim_start_list, &tmpdim_list_num)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		if (dim_start_list)
+			free(dim_start_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Check if number of dimension values are compliant
+	if (tmpdim_list_num != dim_list_num) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dim_start_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Convert to correct type
+	int *dims_start = NULL;
+	if (!(dims_start = (int *) calloc(dim_list_num, sizeof(int)))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dim_start_list);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	for (i = 0; i < dim_list_num; i++) {
+		dims_start[i] = (int) strtol(dim_start_list[i], NULL, 10);
+		if (dims_start[i] < 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_START);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			free(dims_type);
+			free(dims_index);
+			free(dim_start_list);
+			free(dims_start);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+	free(dim_start_list);
+
+
+	char *dim_end = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+	if (!dim_end) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dims_start);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if (oph_query_parse_multivalue_arg(dim_end, &dim_end_list, &tmpdim_list_num)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_PARSE_ERROR, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dims_start);
+		if (dim_end_list)
+			free(dim_end_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Check if number of dimension values are compliant
+	if (tmpdim_list_num != dim_list_num) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_MULTIVAL_ARGS_DIFFER, OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dims_start);
+		free(dim_end_list);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Convert to correct type
+	int *dims_end = NULL;
+	if (!(dims_end = (int *) calloc(dim_list_num, sizeof(int)))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dims_start);
+		free(dim_end_list);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	for (i = 0; i < dim_list_num; i++) {
+		dims_end[i] = (int) strtol(dim_end_list[i], NULL, 10);
+		if (dims_end[i] < 0 || dims_end[i] < dims_start[i]) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_DIM_END);
+			oph_iostore_destroy_frag_recordset(&record_sets);
+			free(dims_type);
+			free(dims_index);
+			free(dims_start);
+			free(dim_end_list);
+			free(dims_end);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+	free(dim_end_list);
+
+	record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
+	if (record_sets->record_set == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dims_start);
+		free(dims_end);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
+	//Define record struct
+	unsigned long long frag_size = 0;
+
+	if (_oph_ioserver_nc_read(src_path, measure, row_num, frag_start, compressed_flag, dim_list_num, dims_type, dims_index, dims_start, dims_end, record_sets, &frag_size)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		free(dims_type);
+		free(dims_index);
+		free(dims_start);
+		free(dims_end);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	free(dims_type);
+	free(dims_index);
+	free(dims_start);
+	free(dims_end);
+
+	*loaded_frag_size = frag_size;
+	*loaded_record_sets = record_sets;
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+#endif
+
+
 int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
-					       oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs, char *out_db_name, char *out_frag_name)
+					       oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs, char *out_db_name, char *out_frag_name, char file_load_flag)
 {
 	if (!dev_handle || !query_args || !stored_rs || !input_row_num || !input_rs || !meta_db || !current_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -1113,6 +1436,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			free(table_list);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+
 	//Build list of input db and frag names 
 	char **in_frag_names = NULL;
 	char **in_db_names = NULL;
@@ -1133,6 +1457,8 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 	int l = 0;
 	char **from_components = NULL;
 	int from_components_num = 0;
+	char *tmp_file_kw = NULL;
+	short int file_pos = -1;
 	//From multiple table
 	for (l = 0; l < table_list_num; l++) {
 		if (oph_query_parse_hierarchical_args(table_list[l], &from_components, &from_components_num)) {
@@ -1143,6 +1469,30 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			free(in_db_names);
 			return OPH_IO_SERVER_PARSE_ERROR;
 		}
+
+		if(file_load_flag) {
+			//If data can be loaded from file, check for proper keyword
+			tmp_file_kw = ((from_components_num == 1) ? from_frag_name : from_components[1]);
+			if(!STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_FILE)) {
+				//Only a single file can be provided in combination with at least another table
+				if ((table_list_num == 1) || (from_components_num == 2) || (file_pos != -1)) {
+					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+					logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+					free(table_list);
+					free(in_frag_names);
+					free(in_db_names);
+					free(from_components);
+					return OPH_IO_SERVER_PARSE_ERROR;
+				}
+
+				in_frag_names[l] = from_frag_name;
+				in_db_names[l] = current_db;
+				file_pos = l;
+				free(from_components);
+				continue;
+			}
+		}
+
 		//If DB is setted in frag name
 		if ((table_list_num == 1 && (from_components_num > 2 || from_components_num < 1)) || (table_list_num > 1 && from_components_num != 2)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
@@ -1165,6 +1515,17 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		free(from_components);
 	}
 	free(table_list);
+
+	if(file_load_flag) {
+		//If no file key word is provided, then query is not correct
+		if (file_pos == -1) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
+			free(in_frag_names);
+			free(in_db_names);
+			return OPH_IO_SERVER_PARSE_ERROR;
+		}
+	}
 
 	oph_iostore_frag_record_set **record_sets = NULL;
 	oph_iostore_frag_record_set **orig_record_sets = NULL;
@@ -1227,6 +1588,12 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		frag = NULL;
 		db_row = NULL;
 
+		if(file_load_flag) {
+			//If file keyword is found then skip the table load procedure
+			if(file_pos == l)
+				continue;
+		}
+
 		//Retrieve current db
 		if (oph_metadb_find_db(*meta_db, in_db_names[l], dev_handle->device, &db_row) || db_row == NULL) {
 			pthread_rwlock_unlock(&rwlock);
@@ -1258,6 +1625,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+
 		//Call API to read Frag
 		if (oph_iostore_get_frag(dev_handle, &(frag->frag_id), &(orig_record_sets[l])) != 0) {
 			pthread_rwlock_unlock(&rwlock);
@@ -1279,8 +1647,19 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-	//Build portion of fragments used in selection
 
+	if(file_load_flag) {
+		unsigned long long frag_size = 0;
+		//If file keyword is provided, load data from file
+		if (_oph_io_server_query_load_from_file(meta_db, dev_handle, current_db, query_args, &(orig_record_sets[file_pos]), &frag_size)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
+
+	//Build portion of fragments used in selection
 
 	//Count number of rows to compute
 	long long j = 0, total_row_number = 0;
@@ -1393,15 +1772,15 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 
 int _oph_ioserver_query_build_input_record_set_create(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *out_db_name,
 						      char *out_frag_name, char *current_db, oph_iostore_frag_record_set *** stored_rs, long long *input_row_num,
-						      oph_iostore_frag_record_set *** input_rs)
+						      oph_iostore_frag_record_set *** input_rs, char file_load_flag)
 {
-	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name);
+	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name, file_load_flag);
 }
 
 int _oph_ioserver_query_build_input_record_set_select(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
 						      oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs)
 {
-	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL);
+	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL, 0);
 }
 
 int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg ** args,

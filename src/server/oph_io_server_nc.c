@@ -126,7 +126,7 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 	return 0;
 }
 
-int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
+int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
 			  short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
@@ -237,7 +237,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		}
 	}
 
-	long long sizeof_var = 0;
+	unsigned long long sizeof_var = 0;
 	switch (vartype) {
 		case NC_BYTE:
 		case NC_CHAR:
@@ -452,8 +452,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
-	for (i = 0; i < tuplexfrag_number; i++) {
-		idDim[i] = frag_key_start + i;
+	unsigned long long ii;
+	for (ii = 0; ii < tuplexfrag_number; ii++) {
+		idDim[ii] = frag_key_start + ii;
 	}
 
 
@@ -775,10 +776,10 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 	oph_iostore_frag_record *new_record = NULL;
 	unsigned long long cumulative_size = 0;
 
-	for (i = 0; i < tuplexfrag_number; i++) {
+	for (ii = 0; ii < tuplexfrag_number; ii++) {
 
-		args[id_dim_pos]->arg = (unsigned long long *) (&(idDim[i]));
-		args[measure_pos]->arg = (char *) (binary_insert + i * sizeof_var);
+		args[id_dim_pos]->arg = (unsigned long long *) (&(idDim[ii]));
+		args[measure_pos]->arg = (char *) (binary_insert + ii * sizeof_var);
 
 		if (_oph_ioserver_query_build_row(arg_count, &row_size, binary_frag, binary_frag->field_name, value_list, args, &new_record)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
@@ -793,7 +794,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 		//Add record to partial record set
-		binary_frag->record_set[i] = new_record;
+		binary_frag->record_set[ii] = new_record;
 		//Update current record size
 		cumulative_size += row_size;
 

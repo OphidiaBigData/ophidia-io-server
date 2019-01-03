@@ -206,7 +206,7 @@ int oph_io_server_run_subset_procedure(oph_metadb_db_row ** meta_db, oph_iostore
 		logging(LOG_WARNING, __FILE__, __LINE__, "Unable to run query\n");
 	}
 	//Run create as select block
-	if (oph_io_server_run_create_as_select(meta_db, dev_handle, thread_status->current_db, args, procedure_query_args)) {
+	if (oph_io_server_run_create_as_select_table(meta_db, dev_handle, thread_status->current_db, args, procedure_query_args)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create as Select");
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create as Select");
 		hashtbl_destroy(procedure_query_args);
