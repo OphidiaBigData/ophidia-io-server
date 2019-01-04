@@ -828,7 +828,7 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler * dev_handl
 	int l = 0;
 	if (stored_rs) {
 		for (l = 0; stored_rs[l]; l++) {
-			if (dev_handle->is_persistent)
+			if (dev_handle->is_persistent || stored_rs[l]->tmp_flag != 0)
 				oph_iostore_destroy_frag_recordset(&(stored_rs[l]));
 		}
 		free(stored_rs);
@@ -1472,7 +1472,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 
 		if(file_load_flag) {
 			//If data can be loaded from file, check for proper keyword
-			tmp_file_kw = ((from_components_num == 1) ? from_frag_name : from_components[1]);
+			tmp_file_kw = ((from_components_num == 1) ? from_components[0] : from_components[1]);
 			if(!STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_FILE)) {
 				//Only a single file can be provided in combination with at least another table
 				if ((table_list_num == 1) || (from_components_num == 2) || (file_pos != -1)) {
@@ -1505,7 +1505,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		}
 
 		if (from_components_num == 1) {
-			in_frag_names[l] = from_frag_name;
+			in_frag_names[l] = from_components[0];
 			in_db_names[l] = current_db;
 		} else if (from_components_num == 2) {
 			//If DB is setted in frag name
@@ -1657,6 +1657,9 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+		//TODO create specific functions to better manage temporary tables
+		//Make the table temporary
+		orig_record_sets[file_pos]->tmp_flag = 1;
 	}
 
 	//Build portion of fragments used in selection
@@ -1729,7 +1732,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 
 	// Check where clause
 	char *where = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_WHERE);
-	if (table_list_num == 1) {
+	if (table_list_num == 1 || file_load_flag != 0) {
 		if (where) {
 			//Apply where condition
 			if (_oph_ioserver_query_run_where_clause(where, args, table_list_num, orig_record_sets, &total_row_number, record_sets)) {

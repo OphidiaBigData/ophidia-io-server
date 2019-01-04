@@ -271,7 +271,9 @@ int oph_iostore_destroy_frag_record(oph_iostore_frag_record ** record, short int
 			free((*record)->field[j]);
 	}
 	free((*record)->field);
+	(*record)->field = NULL;
 	free((*record)->field_length);
+	(*record)->field_length = NULL;
 	free((*record));
 	*record = NULL;
 
@@ -383,6 +385,8 @@ int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set ** record
 	(*record_set)->field_num = field_num;
 	(*record_set)->field_type = NULL;
 	(*record_set)->record_set = NULL;
+	(*record_set)->tmp_flag = 0;
+
 	(*record_set)->field_name = (char **) calloc(field_num, sizeof(char *));
 	if (!(*record_set)->field_name) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
