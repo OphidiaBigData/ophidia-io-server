@@ -424,8 +424,10 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 		//If DB to delete is default DB, then reset default
-		if (thread_status->current_db != NULL && STRCMP(db_name, thread_status->current_db) == 0)
+		if (thread_status->current_db != NULL && STRCMP(db_name, thread_status->current_db) == 0) {
+			free(thread_status->current_db);
 			thread_status->current_db = NULL;
+		}
 	} else if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_FUNCTION) == 0) {
 		//Compose query by selecting fields in the right order 
 

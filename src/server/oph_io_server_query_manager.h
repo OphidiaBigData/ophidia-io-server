@@ -309,7 +309,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, long long tuplexfr
  * \param frag_size Size of fragment being created
  * \return 0 if successfull
  */
-int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_start, char compressed_flag, long long array_length, char *measure_type, char *algorithm, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_start, char compressed_flag, long long array_length, char *measure_type, char *algorithm,
+			    oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
 
 //Functions used to run main query blocks
 

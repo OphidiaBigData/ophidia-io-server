@@ -299,6 +299,8 @@ void oph_io_server_thread(int sockfd, pthread_t tid)
 							break;
 						}
 						//Set current db name
+						if (global_status.current_db)
+							free(global_status.current_db);
 						global_status.current_db = (char *) strndup(line, strlen(line));
 						if (global_status.current_db == NULL) {
 							pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to set default device: %s\n", result);
