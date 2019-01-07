@@ -1,4 +1,15 @@
 
+## Next release
+
+### Added:
+
+- New query and functionalities to concatenate data from NetCDF files to fragments [#15](https://github.com/OphidiaBigData/ophidia-io-server/pull/15) 
+- New query and functionalities to create a fragment from random data [#14](https://github.com/OphidiaBigData/ophidia-io-server/pull/14) 
+
+### Fixed:
+
+- Minor memory leaks
+
 ## v1.4.0 - 2018-07-27
 
 ### Fixed:
