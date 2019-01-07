@@ -79,7 +79,8 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row ** meta_db, oph_iostor
 
 	}
 
-	if (_oph_ioserver_query_build_input_record_set_create(query_args, args, meta_db, dev_handle, out_db_name, out_frag_name, current_db, &orig_record_sets, &row_number, &record_sets, file_load_flag)) {
+	if (_oph_ioserver_query_build_input_record_set_create
+	    (query_args, args, meta_db, dev_handle, out_db_name, out_frag_name, current_db, &orig_record_sets, &row_number, &record_sets, file_load_flag)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_SELECTION_ERROR);
 		free(frag_components);
@@ -655,7 +656,6 @@ int oph_io_server_run_random_insert(oph_metadb_db_row ** meta_db, oph_iostore_ha
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "Create Empty Frag");
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-
 	//Get randcube specific arguments
 	char *mes_type = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
 	if (!mes_type) {

@@ -69,7 +69,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 #ifdef OPH_IO_SERVER_NETCDF
-	} else 	if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG_SELECT_FILE) == 0) {
+	} else if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_CREATE_FRAG_SELECT_FILE) == 0) {
 		//Execute create + select fragment query + load from file 
 
 		//Check if current DB is setted

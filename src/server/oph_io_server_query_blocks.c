@@ -1082,7 +1082,8 @@ int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg ** ar
 }
 
 #ifdef OPH_IO_SERVER_NETCDF
-int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set **loaded_record_sets, unsigned long long *loaded_frag_size)
+int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** loaded_record_sets,
+					unsigned long long *loaded_frag_size)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -1405,7 +1406,8 @@ int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostor
 
 
 int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
-					       oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs, char *out_db_name, char *out_frag_name, char file_load_flag)
+					       oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs, char *out_db_name, char *out_frag_name,
+					       char file_load_flag)
 {
 	if (!dev_handle || !query_args || !stored_rs || !input_row_num || !input_rs || !meta_db || !current_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -1436,7 +1438,6 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			free(table_list);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-
 	//Build list of input db and frag names 
 	char **in_frag_names = NULL;
 	char **in_db_names = NULL;
@@ -1470,10 +1471,10 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			return OPH_IO_SERVER_PARSE_ERROR;
 		}
 
-		if(file_load_flag) {
+		if (file_load_flag) {
 			//If data can be loaded from file, check for proper keyword
 			tmp_file_kw = ((from_components_num == 1) ? from_components[0] : from_components[1]);
-			if(!STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_FILE)) {
+			if (!STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_FILE)) {
 				//Only a single file can be provided in combination with at least another table
 				if ((table_list_num == 1) || (from_components_num == 2) || (file_pos != -1)) {
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
@@ -1492,7 +1493,6 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 				continue;
 			}
 		}
-
 		//If DB is setted in frag name
 		if ((table_list_num == 1 && (from_components_num > 2 || from_components_num < 1)) || (table_list_num > 1 && from_components_num != 2)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
@@ -1516,7 +1516,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 	}
 	free(table_list);
 
-	if(file_load_flag) {
+	if (file_load_flag) {
 		//If no file key word is provided, then query is not correct
 		if (file_pos == -1) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
@@ -1588,12 +1588,11 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		frag = NULL;
 		db_row = NULL;
 
-		if(file_load_flag) {
+		if (file_load_flag) {
 			//If file keyword is found then skip the table load procedure
-			if(file_pos == l)
+			if (file_pos == l)
 				continue;
 		}
-
 		//Retrieve current db
 		if (oph_metadb_find_db(*meta_db, in_db_names[l], dev_handle->device, &db_row) || db_row == NULL) {
 			pthread_rwlock_unlock(&rwlock);
@@ -1625,7 +1624,6 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
-
 		//Call API to read Frag
 		if (oph_iostore_get_frag(dev_handle, &(frag->frag_id), &(orig_record_sets[l])) != 0) {
 			pthread_rwlock_unlock(&rwlock);
@@ -1648,7 +1646,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
-	if(file_load_flag) {
+	if (file_load_flag) {
 		unsigned long long frag_size = 0;
 		//If file keyword is provided, load data from file
 		if (_oph_io_server_query_load_from_file(meta_db, dev_handle, current_db, query_args, &(orig_record_sets[file_pos]), &frag_size)) {
@@ -1661,7 +1659,6 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		//Make the table temporary
 		orig_record_sets[file_pos]->tmp_flag = 1;
 	}
-
 	//Build portion of fragments used in selection
 
 	//Count number of rows to compute
