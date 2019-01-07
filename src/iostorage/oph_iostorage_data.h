@@ -45,6 +45,7 @@ typedef struct {
  * \param field_name		Array with field (columns) names
  * \param field_type		Array containing type of each cell
  * \param record_set		NULL terminated array with pointers to actual records
+ * \param tmp_flag			Flag set to 1 if the table is considered as a temporary one (deleted at the end of the operation)
  */
 typedef struct {
 	char *frag_name;
@@ -52,6 +53,7 @@ typedef struct {
 	char **field_name;
 	oph_iostore_field_type *field_type;
 	oph_iostore_frag_record **record_set;
+	char tmp_flag;
 } oph_iostore_frag_record_set;
 
 /**
