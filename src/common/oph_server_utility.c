@@ -31,6 +31,7 @@
 #include "oph-lib-binary-io.h"
 
 #include <debug.h>
+#include <sys/time.h>
 
 extern int msglevel;
 extern unsigned short disable_mem_check;
