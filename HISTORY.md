@@ -1,5 +1,5 @@
 
-## Next release
+## v1.5.0 - 2019-01-24
 
 ### Added:
 
