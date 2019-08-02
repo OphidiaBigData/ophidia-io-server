@@ -1,4 +1,11 @@
 
+## Next release
+
+### Fixed:
+
+- Bug [#16](https://github.com/OphidiaBigData/ophidia-io-server/issues/16)
+
+
 ## v1.5.0 - 2019-01-24
 
 ### Fixed:

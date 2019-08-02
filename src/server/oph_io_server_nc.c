@@ -177,6 +177,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
+		pthread_mutex_unlock(&nc_lock);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
 		return OPH_IO_SERVER_EXEC_ERROR;
