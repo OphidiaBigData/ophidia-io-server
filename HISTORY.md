@@ -1,6 +1,10 @@
 
 ## Next release
 
+### Changed:
+
+- Improved nc file import core functions [#17](https://github.com/OphidiaBigData/ophidia-io-server/pull/17)
+
 ### Fixed:
 
 - Bug [#16](https://github.com/OphidiaBigData/ophidia-io-server/issues/16)
