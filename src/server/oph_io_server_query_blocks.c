@@ -2273,10 +2273,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 											{
 												if (!function_row_number)
 													output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-												output->record_set[function_row_number]->field[i] =
-												    (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
+												output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
 												output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
-												free(res->data.string_value);
 												free(res);
 												break;
 											}
@@ -2284,10 +2282,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 											{
 												if (!function_row_number)
 													output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-												output->record_set[function_row_number]->field[i] =
-												    (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
+												output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
 												output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
-												free(res->data.binary_value->arg);
 												free(res->data.binary_value);
 												free(res);
 												break;
@@ -2403,10 +2399,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 												{
 													if (!function_row_number)
 														output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-													output->record_set[function_row_number]->field[i] =
-													    (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
+													output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
 													output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
-													free(res->data.string_value);
 													free(res);
 													break;
 												}
@@ -2414,11 +2408,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 												{
 													if (!function_row_number)
 														output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-													output->record_set[function_row_number]->field[i] =
-													    (void *) memdup((const void *) res->data.binary_value->arg,
-															    res->data.binary_value->arg_length);
+													output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
 													output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
-													free(res->data.binary_value->arg);
 													free(res->data.binary_value);
 													free(res);
 													break;
@@ -2831,16 +2822,14 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 							case OPH_QUERY_EXPR_TYPE_STRING:
 								{
 									(*new_record)->field_length[i] = strlen(res->data.string_value) + 1;
-									(*new_record)->field[i] = (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
-									free(res->data.string_value);
+									(*new_record)->field[i] = (void *) res->data.string_value;
 									free(res);
 									break;
 								}
 							case OPH_QUERY_EXPR_TYPE_BINARY:
 								{
 									(*new_record)->field_length[i] = res->data.binary_value->arg_length;
-									(*new_record)->field[i] = (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
-									free(res->data.binary_value->arg);
+									(*new_record)->field[i] = (void *) res->data.binary_value->arg;
 									free(res->data.binary_value);
 									free(res);
 									break;
