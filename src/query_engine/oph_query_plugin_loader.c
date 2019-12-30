@@ -72,11 +72,11 @@ int oph_free_plugin(oph_plugin * plugin)
 int oph_load_plugins(HASHTBL ** plugin_htable, oph_query_expr_symtable ** function_table)
 {
 	FILE *fp = NULL;
-	char line[OPH_PLUGIN_FILE_LINE] = { '\0' };
-	char line_front[OPH_PLUGIN_FILE_LINE] = { '\0' };
-	char line_end[OPH_PLUGIN_FILE_LINE] = { '\0' };
-	char value[OPH_PLUGIN_FILE_LINE] = { '\0' };
-	char dyn_lib_str[OPH_PLUGIN_FILE_LINE] = { '\0' };
+	char line[OPH_PLUGIN_FILE_LINE] = { 0 };
+	char line_front[OPH_PLUGIN_FILE_LINE] = { 0 };
+	char line_end[OPH_PLUGIN_FILE_LINE] = { 0 };
+	char value[OPH_PLUGIN_FILE_LINE] = { 0 };
+	char dyn_lib_str[OPH_PLUGIN_FILE_LINE] = { 0 };
 	char *res_string = NULL;
 	int i;
 
