@@ -122,6 +122,7 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 					return -1;
 				}
 
+#ifdef PLUGIN_RES_COPY
 				if (!is_null && len) {
 					temp->arg = (char *) malloc(sizeof(char) * (len));
 					if(temp->arg == NULL){
@@ -132,6 +133,9 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 					memcpy(temp->arg, (void *) tmp_res, len);
 				} else
 					temp->arg = NULL;
+#else
+				temp->arg = (void *) tmp_res;
+#endif
 
 				res->data.binary_value = temp;
 				//TODO Set right type
