@@ -2276,7 +2276,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 #ifdef PLUGIN_RES_COPY
 												output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
 #else
-												output->record_set[function_row_number]->field[i] = (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
+												output->record_set[function_row_number]->field[i] =
+												    (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
 #endif
 												output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
 												free(res);
@@ -2289,7 +2290,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 #ifdef PLUGIN_RES_COPY
 												output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
 #else
-												output->record_set[function_row_number]->field[i] = (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
+												output->record_set[function_row_number]->field[i] =
+												    (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
 #endif
 												output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
 												free(res->data.binary_value);
@@ -2410,7 +2412,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 #ifdef PLUGIN_RES_COPY
 													output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
 #else
-													output->record_set[function_row_number]->field[i] = (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
 #endif
 													output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
 													free(res);
@@ -2423,7 +2426,9 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 #ifdef PLUGIN_RES_COPY
 													output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
 #else
-													output->record_set[function_row_number]->field[i] = (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memdup((const void *) res->data.binary_value->arg,
+															    res->data.binary_value->arg_length);
 #endif
 													output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
 													free(res->data.binary_value);

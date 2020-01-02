@@ -53,6 +53,7 @@ int free_udf_arg(UDF_ARGS * args)
 
 	unsigned int i = 0;
 	for (i = 0; i < args->arg_count; i++) {
+		//If PLUGIN_ARGS_COPY is defined, then copy the primitive arguments into a new memory block
 #ifdef PLUGIN_ARGS_COPY
 		if (args->args[i])
 			free(args->args[i]);
@@ -121,11 +122,11 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 				if (temp == NULL) {
 					return -1;
 				}
-
+				//If PLUGIN_RES_COPY is defined, then copy the primitive result into a new memory block
 #ifdef PLUGIN_RES_COPY
 				if (!is_null && len) {
 					temp->arg = (char *) malloc(sizeof(char) * (len));
-					if(temp->arg == NULL){
+					if (temp->arg == NULL) {
 						free(temp);
 						return -1;
 					}

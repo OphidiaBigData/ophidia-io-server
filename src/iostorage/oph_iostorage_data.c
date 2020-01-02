@@ -519,7 +519,7 @@ int oph_iostore_create_sample_frag(const long long row_number, const long long a
 			return OPH_IOSTORAGE_MEMORY_ERR;
 		}
 		//Fill array  
-		measure = (double *)rs[r]->field[1];                          
+		measure = (double *) rs[r]->field[1];
 		for (a = 0; a < array_length; a++)
 			measure[a] = ((double) rand() / RAND_MAX) * 1000.0;
 	}
