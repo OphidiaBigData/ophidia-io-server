@@ -66,12 +66,13 @@ int free_udf_arg(UDF_ARGS * args)
 	return 0;
 }
 
-int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result, oph_plugin_api * functions)
+int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, oph_query_expr_value * res, oph_plugin_api * functions)
 {
-	if (!plugin || !args || !res || !res_length || !functions)
+	if (!plugin || !args || !initid || !res || !functions)
 		return -1;
 
 	unsigned long len = 0;
+	char is_null = 0, error = 0, result = 0;
 
 	if (memory_check())
 		return -1;
@@ -88,14 +89,11 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 				if (!(_oph_plugin1 = (long long (*)(UDF_INIT *, UDF_ARGS *, char *, char *)) functions->exec_api)) {
 					return -1;
 				}
-				long long tmp_res = (long long) _oph_plugin1(initid, args, is_null, error);
-				if (*error == 1) {
+				long long tmp_res = (long long) _oph_plugin1(initid, args, &is_null, &error);
+				if (error == 1) {
 					return -1;
 				}
-				if (!*res && !*res_length)
-					*res = (void *) malloc(1 * sizeof(long long));
-				memcpy(*res, (void *) &tmp_res, sizeof(long long));
-				*res_length = sizeof(tmp_res);
+				res->data.long_value = tmp_res;
 				break;
 			}
 		case OPH_IOSTORE_REAL_TYPE:
@@ -103,14 +101,11 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 				if (!(_oph_plugin2 = (double (*)(UDF_INIT *, UDF_ARGS *, char *, char *)) functions->exec_api)) {
 					return -1;
 				}
-				double tmp_res = (double) _oph_plugin2(initid, args, is_null, error);
-				if (*error == 1) {
+				double tmp_res = (double) _oph_plugin2(initid, args, &is_null, &error);
+				if (error == 1) {
 					return -1;
 				}
-				if (!*res && !*res_length)
-					*res = (double *) malloc(1 * sizeof(double));
-				memcpy(*res, (void *) &tmp_res, sizeof(double));
-				*res_length = sizeof(tmp_res);
+				res->data.double_value = tmp_res;
 				break;
 			}
 		case OPH_IOSTORE_STRING_TYPE:
@@ -118,15 +113,31 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 				if (!(_oph_plugin3 = (char *(*)(UDF_INIT *, UDF_ARGS *, char *, unsigned long *, char *, char *)) functions->exec_api)) {
 					return -1;
 				}
-
-				char *tmp_res = _oph_plugin3(initid, args, result, &len, is_null, error);
-				if (*error == 1) {
+				char *tmp_res = _oph_plugin3(initid, args, &result, &len, &is_null, &error);
+				if (error == 1) {
 					return -1;
 				}
-				if (!*res && !*res_length)
-					*res = (char *) malloc(sizeof(char) * (len));
-				memcpy(*res, (void *) tmp_res, len);
-				*res_length = len;
+				oph_query_arg *temp = (oph_query_arg *) malloc(sizeof(oph_query_arg));
+				if (temp == NULL) {
+					return -1;
+				}
+
+				if (!is_null && len) {
+					temp->arg = (char *) malloc(sizeof(char) * (len));
+					if(temp->arg == NULL){
+						free(temp);
+						return -1;
+					}
+
+					memcpy(temp->arg, (void *) tmp_res, len);
+				} else
+					temp->arg = NULL;
+
+				res->data.binary_value = temp;
+				//TODO Set right type
+				res->data.binary_value->arg_type = OPH_QUERY_TYPE_BLOB;
+				res->data.binary_value->arg_length = len;
+				res->data.binary_value->arg_is_null = is_null;
 				break;
 			}
 		default:
@@ -552,8 +563,6 @@ int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * init
 	if (!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
 		return -1;
 
-	char is_null = 0, error = 0, result = 0;
-
 	//Load plugin shared library
 	oph_plugin *plugin = (oph_plugin *) hashtbl_get(plugin_table, plugin_name);
 	if (!plugin) {
@@ -630,48 +639,9 @@ int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * init
 		}
 	}
 
-	void *rs = NULL;
-	unsigned long long rs_length = 0;
-
-	if (_oph_execute_plugin(plugin, internal_args, initid, &rs, &rs_length, &is_null, &error, &result, function)) {
+	if (_oph_execute_plugin(plugin, internal_args, initid, res, function)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin execution function\n");
 		return -1;
-	}
-
-	switch (plugin->plugin_return) {
-		case OPH_IOSTORE_STRING_TYPE:
-			{
-
-				oph_query_arg *temp = (oph_query_arg *) malloc(sizeof(oph_query_arg));
-				if (temp == NULL) {
-					free(rs);
-					pmesg(LOG_ERROR, __FILE__, __LINE__, "Memory error after calling plugin EXEC function\n");
-					return -1;
-				}
-				res->data.binary_value = temp;
-
-				res->data.binary_value->arg = rs;
-				//TODO Set right type
-				res->data.binary_value->arg_type = OPH_QUERY_TYPE_BLOB;
-				res->data.binary_value->arg_length = rs_length;
-				res->data.binary_value->arg_is_null = is_null;
-				break;
-			}
-		case OPH_IOSTORE_LONG_TYPE:
-			{
-				res->data.long_value = *(long long *) rs;
-				free(rs);
-				break;
-			}
-
-		case OPH_IOSTORE_REAL_TYPE:
-			{
-				res->data.double_value = *(double *) rs;
-				free(rs);
-				break;
-			}
-		default:
-			return -1;
 	}
 
 	return 0;
