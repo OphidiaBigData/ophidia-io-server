@@ -365,6 +365,7 @@ int oph_query_plugin_init(oph_plugin_api * function, void **dlh, UDF_INIT ** ini
 				memcpy((char *) tmp_args->args[l], &(args[l].data.double_value), tmp_args->lengths[l] * sizeof(char));
 #else
 				tmp_args->args[l] = (char *) &(args[l].data.double_value);
+
 #endif
 				break;
 			case OPH_QUERY_EXPR_TYPE_LONG:
@@ -529,7 +530,12 @@ int oph_query_plugin_add(oph_plugin_api * function, void **dlh, UDF_INIT * initi
 					memcpy((char *) internal_args->args[l], &(args[l].data.double_value), internal_args->lengths[l] * sizeof(char));
 				}
 #else
-				internal_args->args[l] = (char *) &(args[l].data.double_value);
+				if ((internal_args->arg_type[l] != DECIMAL_RESULT) && (internal_args->arg_type[l] != REAL_RESULT)) {
+					long long val_l = (long long) args[l].data.double_value;
+					internal_args->args[l] = (char *) &(val_l);
+				} else {
+					internal_args->args[l] = (char *) &(args[l].data.double_value);
+				}
 #endif
 				break;
 			case OPH_QUERY_EXPR_TYPE_LONG:
@@ -542,7 +548,12 @@ int oph_query_plugin_add(oph_plugin_api * function, void **dlh, UDF_INIT * initi
 					memcpy((char *) internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l] * sizeof(char));
 				}
 #else
-				internal_args->args[l] = (char *) &(args[l].data.long_value);
+				if (internal_args->arg_type[l] != INT_RESULT) {
+					double val_d = (double) args[l].data.long_value;
+					internal_args->args[l] = (char *) &(val_d);
+				} else {
+					internal_args->args[l] = (char *) &(args[l].data.long_value);
+				}
 #endif
 				break;
 			case OPH_QUERY_EXPR_TYPE_NULL:
@@ -621,7 +632,12 @@ int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * init
 					memcpy((char *) internal_args->args[l], &(args[l].data.double_value), internal_args->lengths[l] * sizeof(char));
 				}
 #else
-				internal_args->args[l] = (char *) &(args[l].data.double_value);
+				if ((internal_args->arg_type[l] != DECIMAL_RESULT) && (internal_args->arg_type[l] != REAL_RESULT)) {
+					long long val_l = (long long) args[l].data.double_value;
+					internal_args->args[l] = (char *) &(val_l);
+				} else {
+					internal_args->args[l] = (char *) &(args[l].data.double_value);
+				}
 #endif
 				break;
 			case OPH_QUERY_EXPR_TYPE_LONG:
@@ -634,7 +650,12 @@ int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * init
 					memcpy((char *) internal_args->args[l], &(args[l].data.long_value), internal_args->lengths[l] * sizeof(char));
 				}
 #else
-				internal_args->args[l] = (char *) &(args[l].data.long_value);
+				if (internal_args->arg_type[l] != INT_RESULT) {
+					double val_d = (double) args[l].data.long_value;
+					internal_args->args[l] = (char *) &(val_d);
+				} else {
+					internal_args->args[l] = (char *) &(args[l].data.long_value);
+				}
 #endif
 				break;
 			case OPH_QUERY_EXPR_TYPE_NULL:
