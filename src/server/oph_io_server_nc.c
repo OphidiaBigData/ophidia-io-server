@@ -53,6 +53,8 @@ extern unsigned short cache_size;
 
 #define MB_SIZE 1048576
 
+#define OPH_IO_SERVER_NETCDF_BLOCK
+
 #ifdef OPH_IO_SERVER_NETCDF
 
 #ifdef DEBUG

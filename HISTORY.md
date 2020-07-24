@@ -1,5 +1,9 @@
 
-## Next release
+## v1.6.0 - 2020-07-27
+
+### Added:
+
+- Optimizations to query engine and nested plugin execution [#18](https://github.com/OphidiaBigData/ophidia-io-server/pull/18)
 
 ### Changed:
 
