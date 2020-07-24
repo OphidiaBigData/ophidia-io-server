@@ -48,14 +48,10 @@ int free_udf_arg(UDF_ARGS * arguments);
  * \param args        UDF Args used as plugin input
  * \param initid      UDF Init used by plugin
  * \param res         Pointer used to store plugin result value
- * \param res_length  Length of plugin result
- * \param is_null     Flag defining if plugin result is null
- * \param error       Possible plugin error message
  * \param functions   Structure containing pointer to plugin library symbols
  * \return            0 if successfull, non-0 otherwise
  */
-int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, void **res, unsigned long long *res_length, char *is_null, char *error, char *result,
-			oph_plugin_api * functions);
+int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, oph_query_expr_value * res, oph_plugin_api * functions);
 
 /**
  * \brief               Function to run plugin CLEAR function 

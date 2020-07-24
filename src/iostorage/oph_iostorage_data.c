@@ -475,13 +475,7 @@ int oph_iostore_create_sample_frag(const long long row_number, const long long a
 	gettimeofday(&time, NULL);
 	srand(time.tv_sec * 1000000 + time.tv_usec);
 	long long r, a;
-	double *measure = (double *) malloc(array_length * sizeof(double));
-	if (!measure) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
-		oph_iostore_destroy_frag_recordset(record_set);
-		return OPH_IOSTORAGE_MEMORY_ERR;
-	}
+	double *measure = NULL;
 	for (r = 0; r < row_number; r++) {
 		rs[r] = (oph_iostore_frag_record *) malloc(1 * sizeof(oph_iostore_frag_record));
 		if (!rs[r]) {
@@ -524,13 +518,12 @@ int oph_iostore_create_sample_frag(const long long row_number, const long long a
 			oph_iostore_destroy_frag_recordset(record_set);
 			return OPH_IOSTORAGE_MEMORY_ERR;
 		}
-		//Fill array                            
+		//Fill array  
+		measure = (double *) rs[r]->field[1];
 		for (a = 0; a < array_length; a++)
 			measure[a] = ((double) rand() / RAND_MAX) * 1000.0;
-		memcpy((char *) rs[r]->field[1], measure, array_length * sizeof(double) * sizeof(char));
 	}
 	rs[row_number] = NULL;
-	free(measure);
 
 	return OPH_IOSTORAGE_SUCCESS;
 }

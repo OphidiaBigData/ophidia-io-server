@@ -115,9 +115,9 @@ int oph_io_client_connect(const char *hostname, const char *port, const char *db
 
 	strncpy((*connection)->port, port, OPH_IO_CLIENT_PORT_LEN);
 	strncpy((*connection)->host, hostname, OPH_IO_CLIENT_HOST_LEN);
-	memset((*connection)->db_name, 0, OPH_IO_CLIENT_DB_LEN);
 	(*connection)->port[OPH_IO_CLIENT_PORT_LEN - 1] = 0;
 	(*connection)->host[OPH_IO_CLIENT_HOST_LEN - 1] = 0;
+	(*connection)->db_name[0] = 0;
 	(*connection)->socket = fd;
 
 	//Set default db
@@ -127,6 +127,7 @@ int oph_io_client_connect(const char *hostname, const char *port, const char *db
 			return OPH_IO_CLIENT_INTERFACE_IO_ERR;
 		}
 		strncpy((*connection)->db_name, db_name, OPH_IO_CLIENT_DB_LEN);
+		(*connection)->db_name[OPH_IO_CLIENT_DB_LEN - 1] = 0;
 	}
 
 	return OPH_IO_CLIENT_INTERFACE_OK;
@@ -495,9 +496,8 @@ int oph_io_client_get_result(oph_io_client_connection * connection, oph_io_clien
 	pmesg(LOG_DEBUG, __FILE__, __LINE__, "Transfer executed\n");
 
 	//Read payload len
-	char reply_info[sizeof(unsigned long long)];
+	char reply_info[sizeof(unsigned long long)] = { 0 };
 	unsigned long long payload_len = 0;
-	memset(reply_info, 0, sizeof(unsigned long long));
 	res = oph_net_readn(connection->socket, reply_info, OPH_IO_CLIENT_MSG_LONG_LEN);
 	if (!res) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "No reply\n");

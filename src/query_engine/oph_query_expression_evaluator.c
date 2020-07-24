@@ -734,10 +734,14 @@ oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_s
 								if (args[i].free_flag) {
 									switch (args[i].type) {
 										case OPH_QUERY_EXPR_TYPE_STRING:
+#ifdef PLUGIN_RES_COPY
 											free(args[i].data.string_value);
+#endif
 											break;
 										case OPH_QUERY_EXPR_TYPE_BINARY:
+#ifdef PLUGIN_RES_COPY
 											free(args[i].data.binary_value->arg);
+#endif
 											free(args[i].data.binary_value);
 											break;
 										case OPH_QUERY_EXPR_TYPE_DOUBLE:
@@ -764,10 +768,14 @@ oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_s
 							if (args[i].free_flag) {
 								switch (args[i].type) {
 									case OPH_QUERY_EXPR_TYPE_STRING:
+#ifdef PLUGIN_RES_COPY
 										free(args[i].data.string_value);
+#endif
 										break;
 									case OPH_QUERY_EXPR_TYPE_BINARY:
+#ifdef PLUGIN_RES_COPY
 										free(args[i].data.binary_value->arg);
+#endif
 										free(args[i].data.binary_value);
 										break;
 									case OPH_QUERY_EXPR_TYPE_DOUBLE:
@@ -828,7 +836,7 @@ oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fu
 		num_args_provided++;
 		cur = cur->right;
 	}
-	//if the function has fized num of param (type 0), error if required is different then provided
+	//if the function has fixed num of param (type 0), error if required is different then provided
 	if (!fun_type && num_args_provided != (num_args_required)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, num_args_required);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_ARG_NUM_ERROR, name, num_args_required);

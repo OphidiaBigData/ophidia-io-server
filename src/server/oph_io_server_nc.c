@@ -995,7 +995,6 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
 	}
-
 #ifdef DEBUG
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v1.0\n");
 #endif
@@ -2445,7 +2444,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 {
 #ifdef OPH_IO_SERVER_NETCDF_ARRAY
 	return _oph_ioserver_nc_read_v0(src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, dim_num, dims_type, dims_index, dims_start, dims_end, binary_frag, frag_size);
-#else 
+#else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 	return _oph_ioserver_nc_read_v1(src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, dim_num, dims_type, dims_index, dims_start, dims_end, binary_frag, frag_size);
 #else
