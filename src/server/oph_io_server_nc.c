@@ -291,7 +291,7 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
+	if (!strstr(src_path, "http://") && !strstr(src_path, "https://") && !strstr(src_path, "esdm://")) {
 		char *pointer = src_path;
 		while (pointer && (*pointer == ' '))
 			pointer++;
@@ -1006,7 +1006,7 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
+	if (!strstr(src_path, "http://") && !strstr(src_path, "https://") && !strstr(src_path, "esdm://")) {
 		char *pointer = src_path;
 		while (pointer && (*pointer == ' '))
 			pointer++;
@@ -1701,7 +1701,7 @@ int _oph_ioserver_nc_read_v0(char *src_path, char *measure_name, unsigned long l
 		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
+	if (!strstr(src_path, "http://") && !strstr(src_path, "https://") && !strstr(src_path, "esdm://")) {
 		char *pointer = src_path;
 		while (pointer && (*pointer == ' '))
 			pointer++;
