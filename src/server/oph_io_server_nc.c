@@ -49,7 +49,7 @@ extern pthread_mutex_t nc_lock;
 extern HASHTBL *plugin_table;
 extern unsigned long long memory_buffer;
 extern unsigned short cache_line_size;
-extern unsigned short cache_size;
+extern unsigned long long cache_size;
 
 #define MB_SIZE 1048576
 
@@ -774,7 +774,7 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
 	timeval_subtract(&total_read_time, &end_read_time, &start_read_time);
-	printf("Fragment %s:  Total read :\t Time %d,%06d sec\n", measure_name, (int) total_read_time.tv_sec, (int) total_read_time.tv_usec);
+	pmesg(LOG_INFO, __FILE__, __LINE__, "Fragment %s:  Total read :\t Time %d,%06d sec\n", measure_name, (int) total_read_time.tv_sec, (int) total_read_time.tv_usec);
 #endif
 
 	if (res != 0) {
@@ -828,7 +828,8 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 		//Make sure most internal dimension (for write-oriented array) is at least multiple of cache line
 		unsigned int *blocks = (unsigned int *) malloc(ndims * sizeof(unsigned));
 		unsigned int line_size = floor(cache_line_size / sizeof_type);
-		unsigned int block_size = floor(pow(floor((cache_size / 2) / (sizeof_type)), (float) 1 / ndims));
+		unsigned long long max_blocks = floor((cache_size / 2) / (sizeof_type));
+		unsigned int block_size = floor(pow(max_blocks, (float) 1 / ndims));
 		block_size = (block_size <= line_size ? block_size : block_size - block_size % line_size);
 		for (i = ndims - 1; i >= 0; i--) {
 			blocks[i] = (limits[i] < block_size ? limits[i] : block_size);
@@ -880,7 +881,7 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 		gettimeofday(&end_transpose_time, NULL);
 		timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
 		timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
-		printf("Fragment %s:  Total transpose :\t Time %d,%06d sec\n", measure_name, (int) total_transpose_time.tv_sec, (int) total_transpose_time.tv_usec);
+		pmesg(LOG_INFO, __FILE__, __LINE__, "Fragment %s:  Total transpose :\t Time %d,%06d sec\n", measure_name, (int) total_transpose_time.tv_sec, (int) total_transpose_time.tv_usec);
 #endif
 		free(counters);
 		free(src_products);
@@ -1489,7 +1490,7 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
 	timeval_subtract(&total_read_time, &end_read_time, &start_read_time);
-	printf("Fragment %s:  Total read :\t Time %d,%06d sec\n", measure_name, (int) total_read_time.tv_sec, (int) total_read_time.tv_usec);
+	pmesg(LOG_INFO, __FILE__, __LINE__, "Fragment %s:  Total read :\t Time %d,%06d sec\n", measure_name, (int) total_read_time.tv_sec, (int) total_read_time.tv_usec);
 #endif
 
 	if (res != 0) {
@@ -1577,7 +1578,7 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 		gettimeofday(&end_transpose_time, NULL);
 		timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
 		timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
-		printf("Fragment %s:  Total transpose :\t Time %d,%06d sec\n", measure_name, (int) total_transpose_time.tv_sec, (int) total_transpose_time.tv_usec);
+		pmesg(LOG_INFO, __FILE__, __LINE__, "Fragment %s:  Total transpose :\t Time %d,%06d sec\n", measure_name, (int) total_transpose_time.tv_sec, (int) total_transpose_time.tv_usec);
 #endif
 		free(counters);
 		free(src_products);

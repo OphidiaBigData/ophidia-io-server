@@ -41,7 +41,7 @@ unsigned short client_ttl = 0;
 unsigned short disable_mem_check = 0;
 unsigned long long memory_buffer = 0;
 unsigned short cache_line_size = 0;
-unsigned short cache_size = 0;
+unsigned long long cache_size = 0;
 
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	cache_size = strtol(mem_buf, NULL, 10);
+	cache_size = strtoll(cache, NULL, 10);
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_CACHE_LINE_SIZE, &cache_line)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache line size  buffer param\n");
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	cache_line_size = strtol(mem_buf, NULL, 10);
+	cache_line_size = strtol(cache_line, NULL, 10);
 
 	if (oph_load_plugins(&plugin_table, &oph_function_table)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to load plugin table\n");
