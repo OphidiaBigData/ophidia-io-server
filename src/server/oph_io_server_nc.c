@@ -198,6 +198,8 @@ int _oph_ioserver_nc_cache_to_buffer2(short int tot_dim_number, unsigned int *co
 		total_iter *= (limits[i] - counters[i]);
 		tmp_start[i] = 0;
 		tmp_end[i] = blocks[i];
+		src_products[i] *= sizeof_var;
+		dst_products[i] *= sizeof_var;
 	}
 
 	for (index = 0; index < total_iter; index++) {
@@ -207,7 +209,7 @@ int _oph_ioserver_nc_cache_to_buffer2(short int tot_dim_number, unsigned int *co
 			src_addr += (long long) counters[i] * src_products[i];
 			dst_addr += (long long) counters[i] * dst_products[i];
 		}
-		memcpy(dst_binary + dst_addr * sizeof_var, src_binary + src_addr * sizeof_var, sizeof_var);
+		memcpy(dst_binary + dst_addr, src_binary + src_addr, sizeof_var);
 
 		//Increase block counters starting from most rapidly varying dimension
 		for (i = tot_dim_number - 1; i >= 0; i--) {
@@ -251,6 +253,7 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 		if (i != 0)
 			counters[i] = 0;
 		total_iter *= (limits[i] - counters[i]);
+		products[i] *= sizeof_var;
 	}
 
 	for (index = 0; index < total_iter; index++) {
@@ -258,7 +261,7 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 		for (i = 0; i < tot_dim_number; i++) {
 			addr += (long long) counters[i] * products[i];
 		}
-		memcpy(binary_insert + index * sizeof_var, binary_cache + addr * sizeof_var, sizeof_var);
+		memcpy(binary_insert + index * sizeof_var, binary_cache + addr, sizeof_var);
 
 		//Increase counters starting from most rapidly varying dimension
 		for (i = tot_dim_number - 1; i >= 0; i--) {
