@@ -1,5 +1,5 @@
 
-## v1.6.0 - 2020-07-27
+## v1.6.0 - 2021-03-05
 
 ### Added:
 
@@ -7,7 +7,7 @@
 
 ### Changed:
 
-- Improved nc file import core functions [#17](https://github.com/OphidiaBigData/ophidia-io-server/pull/17)
+- Improved nc file import core functions and execution flow [#17](https://github.com/OphidiaBigData/ophidia-io-server/pull/17)
 
 ### Fixed:
 

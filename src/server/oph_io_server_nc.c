@@ -53,7 +53,7 @@ extern unsigned long long cache_size;
 
 #define MB_SIZE 1048576
 
-#define OPH_IO_SERVER_NETCDF_BLOCK
+//#define OPH_IO_SERVER_NETCDF_BLOCK
 
 #ifdef OPH_IO_SERVER_NETCDF
 
@@ -277,10 +277,12 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 	return 0;
 }
 
-int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			     short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
+int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp,
+			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, short int dimension_ordered)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	    || !sizeof_var || !varid || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -289,133 +291,7 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v2.0\n");
 #endif
 
-	if (strstr(src_path, "..")) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
-		return OPH_IO_SERVER_PARSE_ERROR;
-	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
-		char *pointer = src_path;
-		while (pointer && (*pointer == ' '))
-			pointer++;
-		if (pointer) {
-			if (*pointer != '/') {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				logging(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				return OPH_IO_SERVER_PARSE_ERROR;
-			}
-		}
-	}
-	//Check the order and field list values
-	int measure_pos = -1, id_dim_pos = -1;
-	int i = 0;
-	for (i = 0; i < binary_frag->field_num; i++) {
-		if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
-			measure_pos = i;
-		} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
-			id_dim_pos = i;
-		}
-	}
-	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Open netcdf file
-	int ncid = 0;
-	int retval, j = 0;
-
-	if (pthread_mutex_lock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
-		pthread_mutex_unlock(&nc_lock);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if (pthread_mutex_unlock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Extract measured variable information
-	int varid = 0;
-	if ((retval = nc_inq_varid(ncid, measure_name, &varid))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Get information from id
-	nc_type vartype;
-	if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Check ndims value
-	int ndims;
-	if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-
-	if (ndims != dim_num) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Compute array_length from implicit dims
-	int array_length = 1;
-	short int nimp = 0, nexp = 0;
-	for (i = 0; i < ndims; i++) {
-		if (!dims_type[i]) {
-			array_length *= dims_end[i] - dims_start[i] + 1;
-			nimp++;
-		} else {
-			nexp++;
-		}
-	}
-
-	unsigned long long sizeof_var = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			sizeof_var = (array_length) * sizeof(char);
-			break;
-		case NC_SHORT:
-			sizeof_var = (array_length) * sizeof(short);
-			break;
-		case NC_INT:
-			sizeof_var = (array_length) * sizeof(int);
-			break;
-		case NC_INT64:
-			sizeof_var = (array_length) * sizeof(long long);
-			break;
-		case NC_FLOAT:
-			sizeof_var = (array_length) * sizeof(float);
-			break;
-		case NC_DOUBLE:
-			sizeof_var = (array_length) * sizeof(double);
-			break;
-		default:
-			sizeof_var = (array_length) * sizeof(double);
-	}
+	int i = 0, j = 0;
 
 	//TODO - Check that memory for the two arrays is actually available
 	//Flag set to 1 if whole fragment fits in memory
@@ -430,15 +306,6 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
-	//Flag set to 1 if dimension are in the order specified in the file
-	short int dimension_ordered = 1;
-	for (i = 0; i < ndims; i++) {
-		if (dims_index[i] != i) {
-			dimension_ordered = 0;
-			break;
-		}
-	}
-
 	//If flag is set fragment reordering is required
 	short int transpose = 1;
 	if (dimension_ordered) {
@@ -993,10 +860,12 @@ int _oph_ioserver_nc_read_v2(char *src_path, char *measure_name, unsigned long l
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			     short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
+int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp,
+			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, short int dimension_ordered)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	    || !sizeof_var || !varid || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1005,133 +874,7 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v1.0\n");
 #endif
 
-	if (strstr(src_path, "..")) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
-		return OPH_IO_SERVER_PARSE_ERROR;
-	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
-		char *pointer = src_path;
-		while (pointer && (*pointer == ' '))
-			pointer++;
-		if (pointer) {
-			if (*pointer != '/') {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				logging(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				return OPH_IO_SERVER_PARSE_ERROR;
-			}
-		}
-	}
-	//Check the order and field list values
-	int measure_pos = -1, id_dim_pos = -1;
-	int i = 0;
-	for (i = 0; i < binary_frag->field_num; i++) {
-		if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
-			measure_pos = i;
-		} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
-			id_dim_pos = i;
-		}
-	}
-	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Open netcdf file
-	int ncid = 0;
-	int retval, j = 0;
-
-	if (pthread_mutex_lock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
-		pthread_mutex_unlock(&nc_lock);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if (pthread_mutex_unlock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Extract measured variable information
-	int varid = 0;
-	if ((retval = nc_inq_varid(ncid, measure_name, &varid))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Get information from id
-	nc_type vartype;
-	if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Check ndims value
-	int ndims;
-	if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-
-	if (ndims != dim_num) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Compute array_length from implicit dims
-	int array_length = 1;
-	short int nimp = 0, nexp = 0;
-	for (i = 0; i < ndims; i++) {
-		if (!dims_type[i]) {
-			array_length *= dims_end[i] - dims_start[i] + 1;
-			nimp++;
-		} else {
-			nexp++;
-		}
-	}
-
-	unsigned long long sizeof_var = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			sizeof_var = (array_length) * sizeof(char);
-			break;
-		case NC_SHORT:
-			sizeof_var = (array_length) * sizeof(short);
-			break;
-		case NC_INT:
-			sizeof_var = (array_length) * sizeof(int);
-			break;
-		case NC_INT64:
-			sizeof_var = (array_length) * sizeof(long long);
-			break;
-		case NC_FLOAT:
-			sizeof_var = (array_length) * sizeof(float);
-			break;
-		case NC_DOUBLE:
-			sizeof_var = (array_length) * sizeof(double);
-			break;
-		default:
-			sizeof_var = (array_length) * sizeof(double);
-	}
+	int i = 0, j = 0;
 
 	//TODO - Check that memory for the two arrays is actually available
 	//Flag set to 1 if whole fragment fits in memory
@@ -1146,15 +889,6 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
-	//Flag set to 1 if dimension are in the order specified in the file
-	short int dimension_ordered = 1;
-	for (i = 0; i < ndims; i++) {
-		if (dims_index[i] != i) {
-			dimension_ordered = 0;
-			break;
-		}
-	}
-
 	//If flag is set fragment reordering is required
 	short int transpose = 1;
 	if (dimension_ordered) {
@@ -1688,10 +1422,12 @@ int _oph_ioserver_nc_read_v1(char *src_path, char *measure_name, unsigned long l
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_v0(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			     short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
+int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp,
+			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	    || !sizeof_var || !varid || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1700,134 +1436,7 @@ int _oph_ioserver_nc_read_v0(char *src_path, char *measure_name, unsigned long l
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v0.0\n");
 #endif
 
-	if (strstr(src_path, "..")) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
-		return OPH_IO_SERVER_PARSE_ERROR;
-	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
-		char *pointer = src_path;
-		while (pointer && (*pointer == ' '))
-			pointer++;
-		if (pointer) {
-			if (*pointer != '/') {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				logging(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				return OPH_IO_SERVER_PARSE_ERROR;
-			}
-		}
-	}
-	//Check the order and field list values
-	int measure_pos = -1, id_dim_pos = -1;
-	int i = 0;
-	for (i = 0; i < binary_frag->field_num; i++) {
-		if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
-			measure_pos = i;
-		} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
-			id_dim_pos = i;
-		}
-	}
-	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Open netcdf file
-	int ncid = 0;
-	int retval, j = 0;
-
-	if (pthread_mutex_lock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
-		pthread_mutex_unlock(&nc_lock);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if (pthread_mutex_unlock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Extract measured variable information
-	int varid = 0;
-	if ((retval = nc_inq_varid(ncid, measure_name, &varid))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Get information from id
-	nc_type vartype;
-	if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Check ndims value
-	int ndims;
-	if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-
-	if (ndims != dim_num) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Compute array_length from implicit dims
-	int array_length = 1;
-	short int nimp = 0, nexp = 0;
-	for (i = 0; i < ndims; i++) {
-		if (!dims_type[i]) {
-			array_length *= dims_end[i] - dims_start[i] + 1;
-			nimp++;
-		} else {
-			nexp++;
-		}
-	}
-
-	unsigned long long sizeof_var = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			sizeof_var = (array_length) * sizeof(char);
-			break;
-		case NC_SHORT:
-			sizeof_var = (array_length) * sizeof(short);
-			break;
-		case NC_INT:
-			sizeof_var = (array_length) * sizeof(int);
-			break;
-		case NC_INT64:
-			sizeof_var = (array_length) * sizeof(long long);
-			break;
-		case NC_FLOAT:
-			sizeof_var = (array_length) * sizeof(float);
-			break;
-		case NC_DOUBLE:
-			sizeof_var = (array_length) * sizeof(double);
-			break;
-		default:
-			sizeof_var = (array_length) * sizeof(double);
-	}
-
+	int i = 0, j = 0;
 
 	//Flag set to 1 if implicit dimension are in the order specified in the file
 	short int dimension_ordered = 1;
@@ -2448,14 +2057,159 @@ int _oph_ioserver_nc_read_v0(char *src_path, char *measure_name, unsigned long l
 int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
 			  short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
 {
-#ifdef OPH_IO_SERVER_NETCDF_ARRAY
-	return _oph_ioserver_nc_read_v0(src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, dim_num, dims_type, dims_index, dims_start, dims_end, binary_frag, frag_size);
-#else
+	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+	//Common part of code
+	if (strstr(src_path, "..")) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
+		return OPH_IO_SERVER_PARSE_ERROR;
+	}
+	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
+		char *pointer = src_path;
+		while (pointer && (*pointer == ' '))
+			pointer++;
+		if (pointer) {
+			if (*pointer != '/') {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
+				logging(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
+				return OPH_IO_SERVER_PARSE_ERROR;
+			}
+		}
+	}
+	//Check the order and field list values
+	int measure_pos = -1, id_dim_pos = -1;
+	int i = 0;
+	for (i = 0; i < binary_frag->field_num; i++) {
+		if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
+			measure_pos = i;
+		} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
+			id_dim_pos = i;
+		}
+	}
+	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Open netcdf file
+	int ncid = 0;
+	int retval, j = 0;
+
+	if (pthread_mutex_lock(&nc_lock) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
+		pthread_mutex_unlock(&nc_lock);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	if (pthread_mutex_unlock(&nc_lock) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Extract measured variable information
+	int varid = 0;
+	if ((retval = nc_inq_varid(ncid, measure_name, &varid))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Get information from id
+	nc_type vartype;
+	if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Check ndims value
+	int ndims;
+	if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	if (ndims != dim_num) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Compute array_length from implicit dims
+	unsigned long long array_length = 1;
+	short int nimp = 0, nexp = 0;
+	for (i = 0; i < ndims; i++) {
+		if (!dims_type[i]) {
+			array_length *= dims_end[i] - dims_start[i] + 1;
+			nimp++;
+		} else {
+			nexp++;
+		}
+	}
+
+	unsigned long long sizeof_var = 0;
+	switch (vartype) {
+		case NC_BYTE:
+		case NC_CHAR:
+			sizeof_var = (array_length) * sizeof(char);
+			break;
+		case NC_SHORT:
+			sizeof_var = (array_length) * sizeof(short);
+			break;
+		case NC_INT:
+			sizeof_var = (array_length) * sizeof(int);
+			break;
+		case NC_INT64:
+			sizeof_var = (array_length) * sizeof(long long);
+			break;
+		case NC_FLOAT:
+			sizeof_var = (array_length) * sizeof(float);
+			break;
+		case NC_DOUBLE:
+			sizeof_var = (array_length) * sizeof(double);
+			break;
+		default:
+			sizeof_var = (array_length) * sizeof(double);
+	}
+
+	//Flag set to 1 if dimension are in the order specified in the file
+	short int dimension_ordered = 1;
+	for (i = 0; i < ndims; i++) {
+		if (dims_index[i] != i) {
+			dimension_ordered = 0;
+			break;
+		}
+	}
+
+	if (dimension_ordered)
+		return _oph_ioserver_nc_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
+						frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length);
+	else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
-	return _oph_ioserver_nc_read_v1(src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, dim_num, dims_type, dims_index, dims_start, dims_end, binary_frag, frag_size);
+		return _oph_ioserver_nc_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
+						frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #else
-	return _oph_ioserver_nc_read_v2(src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, dim_num, dims_type, dims_index, dims_start, dims_end, binary_frag, frag_size);
-#endif
+		return _oph_ioserver_nc_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
+						frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #endif
 
 }
