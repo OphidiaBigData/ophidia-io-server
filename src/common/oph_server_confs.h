@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2020 CMCC Foundation
+    Copyright (C) 2014-2021 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -73,7 +73,8 @@
 
 static const char *const oph_server_conf_params[] =
     { OPH_SERVER_CONF_HOSTNAME, OPH_SERVER_CONF_PORT, OPH_SERVER_CONF_DIR, OPH_SERVER_CONF_MPL, OPH_SERVER_CONF_TTL, OPH_SERVER_CONF_OMP_THREADS, OPH_SERVER_CONF_MEMORY_BUFFER,
-OPH_SERVER_CONF_CACHE_LINE_SIZE, OPH_SERVER_CONF_CACHE_SIZE, NULL };
+	OPH_SERVER_CONF_CACHE_LINE_SIZE, OPH_SERVER_CONF_CACHE_SIZE, NULL
+};
 
 /**
  * \brief			        Function to load parameters from configuration file
