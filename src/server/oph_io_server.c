@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
 	char *mem_buf = 0;
 	char *cache_line = 0;
 	char *cache = 0;
+	char *working_dir = 0;
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)) {
 		pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to get server dir param\n");
@@ -198,7 +199,7 @@ int main(int argc, char *argv[])
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_CACHE_SIZE, &cache)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache size buffer param\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache size  buffer param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache size buffer param\n");
 		oph_server_conf_unload(&conf_db);
 		return -1;
 	}
@@ -206,13 +207,20 @@ int main(int argc, char *argv[])
 	cache_size = strtoll(cache, NULL, 10);
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_CACHE_LINE_SIZE, &cache_line)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache line size  buffer param\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache line size  buffer param\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache line size buffer param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get cache line size buffer param\n");
 		oph_server_conf_unload(&conf_db);
 		return -1;
 	}
 
 	cache_line_size = strtol(cache_line, NULL, 10);
+
+	if (!oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_WORKING_DIR, &working_dir) && working_dir) {
+		if (chdir(working_dir)) {
+			pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to set working directory '%s'\n", working_dir);
+			logging(LOG_WARNING, __FILE__, __LINE__, "Unable to set working directory '%s'\n", working_dir);
+		}
+	}
 
 	if (oph_load_plugins(&plugin_table, &oph_function_table)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to load plugin table\n");

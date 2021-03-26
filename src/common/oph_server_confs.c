@@ -184,10 +184,8 @@ int oph_server_conf_get_param(HASHTBL * hashtbl, const char *param, char **value
 	}
 
 	*value = hashtbl_get(hashtbl, param);
-	if (!*value) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get parameter '%s'\n", param);
+	if (!*value)
 		return OPH_SERVER_CONF_ERROR;
-	}
 
 	return OPH_SERVER_CONF_SUCCESS;
 }
