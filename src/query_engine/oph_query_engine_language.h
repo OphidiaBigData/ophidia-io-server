@@ -47,6 +47,7 @@
 #define OPH_QUERY_ENGINE_LANG_OP_INSERT             "insert"
 #define OPH_QUERY_ENGINE_LANG_OP_MULTI_INSERT 		"multi_insert"
 #define OPH_QUERY_ENGINE_LANG_OP_FILE_IMPORT 		"file_import"
+#define OPH_QUERY_ENGINE_LANG_OP_ESDM_IMPORT 		"esdm_import"
 #define OPH_QUERY_ENGINE_LANG_OP_RAND_IMPORT 		"random_import"
 #define OPH_QUERY_ENGINE_LANG_OP_SELECT             "select"
 #define OPH_QUERY_ENGINE_LANG_OP_FUNCTION           "function"

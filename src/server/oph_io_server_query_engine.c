@@ -641,6 +641,41 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore
 }
 #endif
 
+#ifdef OPH_IO_SERVER_ESDM
+int oph_io_server_run_insert_from_esdm(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args)
+{
+	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
+		return OPH_IO_SERVER_NULL_PARAM;
+	}
+
+	oph_iostore_frag_record_set *record_sets = NULL;
+	unsigned long long frag_size = 0;
+
+	if (_oph_io_server_query_load_from_esdm(meta_db, dev_handle, current_db, query_args, &record_sets, &frag_size)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+		oph_iostore_destroy_frag_recordset(&record_sets);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, frag_size, &record_sets);
+
+	//Destroy tmp recordset 
+	if (record_sets)
+		oph_iostore_destroy_frag_recordset(&record_sets);
+
+	if (ret) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	return OPH_IO_SERVER_SUCCESS;
+}
+#endif
+
 int oph_io_server_run_random_insert(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {

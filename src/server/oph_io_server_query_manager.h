@@ -24,6 +24,9 @@
 #ifdef OPH_IO_SERVER_NETCDF
 #include <netcdf.h>
 #endif
+#ifdef OPH_IO_SERVER_ESDM
+#include <esdm.h>
+#endif
 #include "hashtbl.h"
 #include "oph_io_server_thread.h"
 #include "oph_iostorage_data.h"
@@ -225,6 +228,7 @@ int _oph_ioserver_query_build_input_record_set_create(HASHTBL * query_args, oph_
 int _oph_ioserver_query_build_input_record_set_select(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
 						      oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs);
 
+#ifdef OPH_IO_SERVER_NETCDF
 /**
  * \brief               Internal function used to load data from a NetCDF file into a fragment. Used in case of create as select or file import. 
  * \param meta_db       Pointer to metadb
@@ -237,6 +241,22 @@ int _oph_ioserver_query_build_input_record_set_select(HASHTBL * query_args, oph_
  */
 int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** loaded_record_sets,
 					unsigned long long *loaded_frag_size);
+#endif
+
+#ifdef OPH_IO_SERVER_ESDM
+/**
+ * \brief               Internal function used to load data from a ESDM container into a fragment. Used in case of create as select or file import. 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 		Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param loaded_record_sets 	Pointer to be filled with list of loaded recordset (null terminated list)
+ * \param loaded_frag_size 		Size of loaded fragment
+ * \return              0 if successfull, non-0 otherwise
+ */
+int _oph_io_server_query_load_from_esdm(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** loaded_record_sets,
+					unsigned long long *loaded_frag_size);
+#endif
 
 /**
  * \brief               	Internal function used to build selection field columns. Used in case of select. 
@@ -400,7 +420,18 @@ int oph_io_server_run_multi_insert(oph_metadb_db_row ** meta_db, oph_iostore_han
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_io_server_run_insert_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args);
+#endif
 
+#ifdef OPH_IO_SERVER_ESDM
+/**
+ * \brief               Internal function used for creating data structures from ESDM container 
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_insert_from_esdm(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args);
 #endif
 
 /**

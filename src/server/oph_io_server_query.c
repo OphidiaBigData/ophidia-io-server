@@ -337,6 +337,24 @@ int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler *
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 #endif
+#ifdef OPH_IO_SERVER_ESDM
+	} else if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_ESDM_IMPORT) == 0) {
+		//Execute insert from file query 
+
+		//Check if current DB is setted
+		//TODO Improve how current DB is found
+		if (thread_status->current_db == NULL || thread_status->device == NULL) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_NO_DB_SELECTED);
+			return OPH_IO_SERVER_METADB_ERROR;
+		}
+
+		if (oph_io_server_run_insert_from_esdm(meta_db, dev_handle, thread_status->current_db, query_args)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "File import");
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_DISPATCH_ERROR, "File import");
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+#endif
 	} else if (STRCMP(query_oper, OPH_QUERY_ENGINE_LANG_OP_RAND_IMPORT) == 0) {
 		//Execute insert from random data query 
 
