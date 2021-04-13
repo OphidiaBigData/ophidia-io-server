@@ -41,6 +41,7 @@
 #define DIM_VALUE "?1"
 #define UNCOMPRESSED_VALUE "?2"
 #define COMPRESSED_VALUE "oph_compress('','',?2)"
+#define OPH_ODB_DIM_DIMENSION_TYPE_SIZE 64
 
 extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;
@@ -71,7 +72,6 @@ struct timeval *res, *x, *y;
 	return 0;
 }
 #endif
-
 
 int _oph_ioserver_esdm_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t ** id, int i, int n)
 {
@@ -277,12 +277,13 @@ int oph_ioserver_esdm_cache_to_buffer(short int tot_dim_number, unsigned int *co
 	return 0;
 }
 
-int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp,
-			       short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			       unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, short int dimension_ordered)
+int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
+			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
+			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length,
+			       short int dimension_ordered)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !varid || !array_length) {
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
+	    || !frag_size || !sizeof_var || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -302,7 +303,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -361,7 +363,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
@@ -373,42 +376,33 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
 	if (transpose) {
 		//Create a binary array to store the whole fragment
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = oph_iob_bin_array_create_b(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_SHORT:
-				res = oph_iob_bin_array_create_s(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_INT:
-				res = oph_iob_bin_array_create_i(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_INT64:
-				res = oph_iob_bin_array_create_l(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_FLOAT:
-				res = oph_iob_bin_array_create_f(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_DOUBLE:
-				res = oph_iob_bin_array_create_d(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			default:
-				res = oph_iob_bin_array_create_d(&binary_cache, array_length * tuplexfrag_number);
-		}
+		if (vartype == SMD_DTYPE_INT8)
+			res = oph_iob_bin_array_create_b(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_INT16)
+			res = oph_iob_bin_array_create_s(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_INT32)
+			res = oph_iob_bin_array_create_i(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_INT64)
+			res = oph_iob_bin_array_create_l(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_FLOAT)
+			res = oph_iob_bin_array_create_f(&binary_cache, array_length * tuplexfrag_number);
+		else
+			res = oph_iob_bin_array_create_d(&binary_cache, array_length * tuplexfrag_number);
 		if (res) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			free(binary_cache);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
@@ -419,36 +413,26 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Create array for rows to be insert
 	char *binary_insert = 0;
 	res = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			res = oph_iob_bin_array_create_b(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_SHORT:
-			res = oph_iob_bin_array_create_s(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_INT:
-			res = oph_iob_bin_array_create_i(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_INT64:
-			res = oph_iob_bin_array_create_l(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_FLOAT:
-			res = oph_iob_bin_array_create_f(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_DOUBLE:
-			res = oph_iob_bin_array_create_d(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		default:
-			res = oph_iob_bin_array_create_d(&binary_insert, array_length * tuplexfrag_number);
-	}
+	if (vartype == SMD_DTYPE_INT8)
+		res = oph_iob_bin_array_create_b(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_INT16)
+		res = oph_iob_bin_array_create_s(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_INT32)
+		res = oph_iob_bin_array_create_i(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_INT64)
+		res = oph_iob_bin_array_create_l(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_FLOAT)
+		res = oph_iob_bin_array_create_f(&binary_insert, array_length * tuplexfrag_number);
+	else
+		res = oph_iob_bin_array_create_d(&binary_insert, array_length * tuplexfrag_number);
 	if (res) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -456,7 +440,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -469,7 +454,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -509,7 +495,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 				free(binary_cache);
 			free(binary_insert);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			free(idDim);
 			free(start);
@@ -571,7 +558,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(idDim);
 		free(start);
@@ -585,61 +573,29 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	struct timeval start_transpose_time, end_transpose_time, intermediate_transpose_time, total_transpose_time;
 	total_transpose_time.tv_usec = 0;
 	total_transpose_time.tv_sec = 0;
-
 	gettimeofday(&start_read_time, NULL);
 #endif
 
-	//Fill binary cache
-	res = -1;
-	if (transpose) {
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (binary_cache));
-				break;
-			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (binary_cache));
-				break;
-			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (binary_cache));
-				break;
-			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (binary_cache));
-				break;
-			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (binary_cache));
-				break;
-			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_cache));
-				break;
-			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_cache));
-		}
-	} else {
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (binary_insert));
-				break;
-			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (binary_insert));
-				break;
-			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (binary_insert));
-				break;
-			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (binary_insert));
-				break;
-			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (binary_insert));
-				break;
-			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
-				break;
-			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
-		}
+	esdm_dataspace_t *subspace = NULL;
+	if ((esdm_dataspace_create_full(ndims, count, start, vartype, &subspace))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in subspace creation\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error in subspace creation\n");
+		if (binary_cache)
+			free(binary_cache);
+		free(binary_insert);
+		pthread_mutex_lock(&nc_lock);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
+		pthread_mutex_unlock(&nc_lock);
+		free(idDim);
+		free(start);
+		free(count);
+		free(start_pointer);
+		free(sizemax);
+		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+	//Fill binary cache
+	esdm_status retval = esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace);
 
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
@@ -647,14 +603,15 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Fragment %s:  Total read :\t Time %d,%06d sec\n", measure_name, (int) total_read_time.tv_sec, (int) total_read_time.tv_usec);
 #endif
 
-	if (res != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
+	if (retval) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		if (binary_cache)
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(idDim);
 		free(count);
@@ -665,7 +622,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	pthread_mutex_lock(&nc_lock);
-	nc_close(ncid);
+	esdm_dataset_close(dataset);
+	esdm_container_close(container);
 	pthread_mutex_unlock(&nc_lock);
 
 	free(start);
@@ -860,12 +818,13 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp,
-			       short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			       unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, short int dimension_ordered)
+int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
+			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
+			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length,
+			       short int dimension_ordered)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !varid || !array_length) {
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
+	    || !frag_size || !sizeof_var || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -885,7 +844,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -944,7 +904,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
@@ -956,42 +917,33 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
 	if (transpose) {
 		//Create a binary array to store the whole fragment
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = oph_iob_bin_array_create_b(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_SHORT:
-				res = oph_iob_bin_array_create_s(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_INT:
-				res = oph_iob_bin_array_create_i(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_INT64:
-				res = oph_iob_bin_array_create_l(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_FLOAT:
-				res = oph_iob_bin_array_create_f(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			case NC_DOUBLE:
-				res = oph_iob_bin_array_create_d(&binary_cache, array_length * tuplexfrag_number);
-				break;
-			default:
-				res = oph_iob_bin_array_create_d(&binary_cache, array_length * tuplexfrag_number);
-		}
+		if (vartype == SMD_DTYPE_INT8)
+			res = oph_iob_bin_array_create_b(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_INT16)
+			res = oph_iob_bin_array_create_s(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_INT32)
+			res = oph_iob_bin_array_create_i(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_INT64)
+			res = oph_iob_bin_array_create_l(&binary_cache, array_length * tuplexfrag_number);
+		else if (vartype == SMD_DTYPE_FLOAT)
+			res = oph_iob_bin_array_create_f(&binary_cache, array_length * tuplexfrag_number);
+		else
+			res = oph_iob_bin_array_create_d(&binary_cache, array_length * tuplexfrag_number);
 		if (res) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			free(binary_cache);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
@@ -1002,36 +954,26 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Create array for rows to be insert
 	char *binary_insert = 0;
 	res = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			res = oph_iob_bin_array_create_b(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_SHORT:
-			res = oph_iob_bin_array_create_s(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_INT:
-			res = oph_iob_bin_array_create_i(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_INT64:
-			res = oph_iob_bin_array_create_l(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_FLOAT:
-			res = oph_iob_bin_array_create_f(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		case NC_DOUBLE:
-			res = oph_iob_bin_array_create_d(&binary_insert, array_length * tuplexfrag_number);
-			break;
-		default:
-			res = oph_iob_bin_array_create_d(&binary_insert, array_length * tuplexfrag_number);
-	}
+	if (vartype == SMD_DTYPE_INT8)
+		res = oph_iob_bin_array_create_b(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_INT16)
+		res = oph_iob_bin_array_create_s(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_INT32)
+		res = oph_iob_bin_array_create_i(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_INT64)
+		res = oph_iob_bin_array_create_l(&binary_insert, array_length * tuplexfrag_number);
+	else if (vartype == SMD_DTYPE_FLOAT)
+		res = oph_iob_bin_array_create_f(&binary_insert, array_length * tuplexfrag_number);
+	else
+		res = oph_iob_bin_array_create_d(&binary_insert, array_length * tuplexfrag_number);
 	if (res) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -1039,7 +981,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -1052,7 +995,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -1092,7 +1036,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 				free(binary_cache);
 			free(binary_insert);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			free(idDim);
 			free(start);
@@ -1154,7 +1099,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(idDim);
 		free(start);
@@ -1168,61 +1114,29 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	struct timeval start_transpose_time, end_transpose_time, intermediate_transpose_time, total_transpose_time;
 	total_transpose_time.tv_usec = 0;
 	total_transpose_time.tv_sec = 0;
-
 	gettimeofday(&start_read_time, NULL);
 #endif
 
-	//Fill binary cache
-	res = -1;
-	if (transpose) {
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (binary_cache));
-				break;
-			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (binary_cache));
-				break;
-			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (binary_cache));
-				break;
-			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (binary_cache));
-				break;
-			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (binary_cache));
-				break;
-			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_cache));
-				break;
-			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_cache));
-		}
-	} else {
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (binary_insert));
-				break;
-			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (binary_insert));
-				break;
-			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (binary_insert));
-				break;
-			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (binary_insert));
-				break;
-			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (binary_insert));
-				break;
-			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
-				break;
-			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
-		}
+	esdm_dataspace_t *subspace = NULL;
+	if ((esdm_dataspace_create_full(ndims, count, start, vartype, &subspace))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in subspace creation\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error in subspace creation\n");
+		if (binary_cache)
+			free(binary_cache);
+		free(binary_insert);
+		pthread_mutex_lock(&nc_lock);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
+		pthread_mutex_unlock(&nc_lock);
+		free(idDim);
+		free(start);
+		free(count);
+		free(start_pointer);
+		free(sizemax);
+		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+	//Fill binary cache
+	esdm_status retval = esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace);
 
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
@@ -1230,14 +1144,15 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Fragment %s:  Total read :\t Time %d,%06d sec\n", measure_name, (int) total_read_time.tv_sec, (int) total_read_time.tv_usec);
 #endif
 
-	if (res != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
+	if (retval) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		if (binary_cache)
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(idDim);
 		free(count);
@@ -1248,7 +1163,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	pthread_mutex_lock(&nc_lock);
-	nc_close(ncid);
+	esdm_dataset_close(dataset);
+	esdm_container_close(container);
 	pthread_mutex_unlock(&nc_lock);
 
 	free(start);
@@ -1422,12 +1338,12 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp,
-			       short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			       unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length)
+int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
+			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
+			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !varid || !array_length) {
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
+	    || !frag_size || !sizeof_var || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1507,7 +1423,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
@@ -1519,42 +1436,35 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
 	if (transpose) {
 		//Create a binary array to store the data from file
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				res = oph_iob_bin_array_create_b(&binary_cache, array_length);
-				break;
-			case NC_SHORT:
-				res = oph_iob_bin_array_create_s(&binary_cache, array_length);
-				break;
-			case NC_INT:
-				res = oph_iob_bin_array_create_i(&binary_cache, array_length);
-				break;
-			case NC_INT64:
-				res = oph_iob_bin_array_create_l(&binary_cache, array_length);
-				break;
-			case NC_FLOAT:
-				res = oph_iob_bin_array_create_f(&binary_cache, array_length);
-				break;
-			case NC_DOUBLE:
-				res = oph_iob_bin_array_create_d(&binary_cache, array_length);
-				break;
-			default:
-				res = oph_iob_bin_array_create_d(&binary_cache, array_length);
-		}
+
+		if (vartype == SMD_DTYPE_INT8)
+			res = oph_iob_bin_array_create_b(&binary_cache, array_length);
+		else if (vartype == SMD_DTYPE_INT16)
+			res = oph_iob_bin_array_create_s(&binary_cache, array_length);
+		else if (vartype == SMD_DTYPE_INT32)
+			res = oph_iob_bin_array_create_i(&binary_cache, array_length);
+		else if (vartype == SMD_DTYPE_INT64)
+			res = oph_iob_bin_array_create_l(&binary_cache, array_length);
+		else if (vartype == SMD_DTYPE_FLOAT)
+			res = oph_iob_bin_array_create_f(&binary_cache, array_length);
+		else
+			res = oph_iob_bin_array_create_d(&binary_cache, array_length);
+
 		if (res) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			free(binary_cache);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
@@ -1566,36 +1476,26 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		if (binary_cache)
 			free(binary_cache);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Create array for rows to be insert
 	char *binary_insert = 0;
 	res = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			res = oph_iob_bin_array_create_b(&binary_insert, array_length);
-			break;
-		case NC_SHORT:
-			res = oph_iob_bin_array_create_s(&binary_insert, array_length);
-			break;
-		case NC_INT:
-			res = oph_iob_bin_array_create_i(&binary_insert, array_length);
-			break;
-		case NC_INT64:
-			res = oph_iob_bin_array_create_l(&binary_insert, array_length);
-			break;
-		case NC_FLOAT:
-			res = oph_iob_bin_array_create_f(&binary_insert, array_length);
-			break;
-		case NC_DOUBLE:
-			res = oph_iob_bin_array_create_d(&binary_insert, array_length);
-			break;
-		default:
-			res = oph_iob_bin_array_create_d(&binary_insert, array_length);
-	}
+	if (vartype == SMD_DTYPE_INT8)
+		res = oph_iob_bin_array_create_b(&binary_insert, array_length);
+	else if (vartype == SMD_DTYPE_INT16)
+		res = oph_iob_bin_array_create_s(&binary_insert, array_length);
+	else if (vartype == SMD_DTYPE_INT32)
+		res = oph_iob_bin_array_create_i(&binary_insert, array_length);
+	else if (vartype == SMD_DTYPE_INT64)
+		res = oph_iob_bin_array_create_l(&binary_insert, array_length);
+	else if (vartype == SMD_DTYPE_FLOAT)
+		res = oph_iob_bin_array_create_f(&binary_insert, array_length);
+	else
+		res = oph_iob_bin_array_create_d(&binary_insert, array_length);
 	if (res) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -1603,7 +1503,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
@@ -1638,7 +1539,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 				free(binary_cache);
 			free(binary_insert);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			free(start);
 			free(count);
@@ -1695,7 +1597,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			free(binary_cache);
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(start);
 		free(count);
@@ -1751,7 +1654,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 						free(binary_cache);
 					free(binary_insert);
 					pthread_mutex_lock(&nc_lock);
-					nc_close(ncid);
+					esdm_dataset_close(dataset);
+					esdm_container_close(container);
 					pthread_mutex_unlock(&nc_lock);
 					free(start);
 					free(count);
@@ -1781,7 +1685,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		}
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(start);
 		free(count);
@@ -1806,7 +1711,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		}
 		free(binary_insert);
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		free(start);
 		free(count);
@@ -1840,7 +1746,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			}
 			free(binary_insert);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			free(start);
 			free(count);
@@ -1873,6 +1780,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 #endif
 
 	unsigned long long ii;
+	esdm_dataspace_t *subspace = NULL;
 	for (ii = 0; ii < tuplexfrag_number; ii++) {
 
 		oph_ioserver_esdm_compute_dimension_id(idDim, sizemax, nexp, start_pointer);
@@ -1886,64 +1794,9 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			}
 		}
 
-#ifdef DEBUG
-		//gettimeofday(&start_read_time, NULL);
-#endif
-		//Fill binary cache
-		res = -1;
-		if (transpose) {
-			switch (vartype) {
-				case NC_BYTE:
-				case NC_CHAR:
-					res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (binary_cache));
-					break;
-				case NC_SHORT:
-					res = nc_get_vara_short(ncid, varid, start, count, (short *) (binary_cache));
-					break;
-				case NC_INT:
-					res = nc_get_vara_int(ncid, varid, start, count, (int *) (binary_cache));
-					break;
-				case NC_INT64:
-					res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (binary_cache));
-					break;
-				case NC_FLOAT:
-					res = nc_get_vara_float(ncid, varid, start, count, (float *) (binary_cache));
-					break;
-				case NC_DOUBLE:
-					res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_cache));
-					break;
-				default:
-					res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_cache));
-			}
-		} else {
-			switch (vartype) {
-				case NC_BYTE:
-				case NC_CHAR:
-					res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (binary_insert));
-					break;
-				case NC_SHORT:
-					res = nc_get_vara_short(ncid, varid, start, count, (short *) (binary_insert));
-					break;
-				case NC_INT:
-					res = nc_get_vara_int(ncid, varid, start, count, (int *) (binary_insert));
-					break;
-				case NC_INT64:
-					res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (binary_insert));
-					break;
-				case NC_FLOAT:
-					res = nc_get_vara_float(ncid, varid, start, count, (float *) (binary_insert));
-					break;
-				case NC_DOUBLE:
-					res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
-					break;
-				default:
-					res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
-			}
-		}
-
-		if (res != 0) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
-			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
+		if ((esdm_dataspace_create_full(ndims, count, start, vartype, &subspace))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in subspace creation\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error in subspace creation\n");
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -1957,7 +1810,34 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			}
 			free(binary_insert);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
+			pthread_mutex_unlock(&nc_lock);
+			free(start);
+			free(count);
+			free(start_pointer);
+			free(sizemax);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		//Fill binary cache
+		if (esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			if (transpose) {
+				free(binary_cache);
+				free(counters);
+				free(src_products);
+				free(limits);
+			}
+			free(binary_insert);
+			pthread_mutex_lock(&nc_lock);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			free(start);
 			free(count);
@@ -1965,23 +1845,9 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			free(sizemax);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
-#ifdef DEBUG
-		//gettimeofday(&end_read_time, NULL);
-		//timeval_subtract(&intermediate_read_time, &end_transpose_time, &start_transpose_time);
-		//timeval_add(&total_read_time, &total_read_time, &intermediate_read_time);
-#endif
 
-		if (transpose) {
-#ifdef DEBUG
-			//gettimeofday(&start_transpose_time, NULL);
-#endif
+		if (transpose)
 			oph_ioserver_esdm_cache_to_buffer(nimp, counters, limits, src_products, binary_cache, binary_insert, sizeof_type);
-#ifdef DEBUG
-			//gettimeofday(&end_transpose_time, NULL);
-			//timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
-			//timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
-#endif
-		}
 
 		if (_oph_ioserver_query_build_row(arg_count, &row_size, binary_frag, binary_frag->field_name, value_list, args, &new_record)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
@@ -1999,7 +1865,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			}
 			free(binary_insert);
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			esdm_dataset_close(dataset);
+			esdm_container_close(container);
 			pthread_mutex_unlock(&nc_lock);
 			free(start);
 			free(count);
@@ -2027,7 +1894,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 #endif
 
 	pthread_mutex_lock(&nc_lock);
-	nc_close(ncid);
+	esdm_dataset_close(dataset);
+	esdm_container_close(container);
 	pthread_mutex_unlock(&nc_lock);
 
 	free(count);
@@ -2068,18 +1936,14 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
-	if (!strstr(src_path, "http://") && !strstr(src_path, "https://") && !strstr(src_path, "esdm://")) {
-		char *pointer = src_path;
-		while (pointer && (*pointer == ' '))
-			pointer++;
-		if (pointer) {
-			if (*pointer != '/') {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				logging(LOG_ERROR, __FILE__, __LINE__, "Path to NetCDF file should be absolute\n");
-				return OPH_IO_SERVER_PARSE_ERROR;
-			}
-		}
+	if (!strstr(src_path, "esdm://")) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "URL of an ESDM container should start with esdm://containername\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "URL of an ESDM container should start with esdm://containername\n");
+		return OPH_IO_SERVER_PARSE_ERROR;
 	}
+
+	char *container_name = strstr(src_path, "//") + 2;
+
 	//Check the order and field list values
 	int measure_pos = -1, id_dim_pos = -1;
 	int i = 0;
@@ -2095,62 +1959,55 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-	//Open netcdf file
-	int ncid = 0;
-	int retval, j = 0;
+	//Open ESDM container
+
+	esdm_status ret;
+	esdm_container_t *container = NULL;
+	esdm_dataset_t *dataset = NULL;
+	esdm_dataspace_t *dspace = NULL;
 
 	if (pthread_mutex_lock(&nc_lock) != 0) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-	if ((retval = nc_open(src_path, NC_NOWRITE, &ncid))) {
-		pthread_mutex_unlock(&nc_lock);
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(retval));
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	if (pthread_mutex_unlock(&nc_lock) != 0) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+	if ((ret = esdm_container_open(container_name, ESDM_MODE_FLAG_READ, &container))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open ESDM container '%s': %s\n", src_path, container_name);
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open ESDM container '%s': %s\n", src_path, container_name);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Extract measured variable information
-	int varid = 0;
-	if ((retval = nc_inq_varid(ncid, measure_name, &varid))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Get information from id
-	nc_type vartype;
-	if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
-	//Check ndims value
-	int ndims;
-	if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
+	if ((ret = esdm_dataset_open(container, measure_name, ESDM_MODE_FLAG_READ, &dataset))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open ESDM variable '%s': %s\n", src_path, measure_name);
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open ESDM variable '%s': %s\n", src_path, measure_name);
+		esdm_container_close(container);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
+	if (pthread_mutex_unlock(&nc_lock) != 0) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	//Extract measured variable information
+	if ((ret = esdm_dataset_get_dataspace(dataset, &dspace))) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information from %s\n", src_path);
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information from %s\n", src_path);
+		pthread_mutex_lock(&nc_lock);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
+		pthread_mutex_unlock(&nc_lock);
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	int ndims = dspace->dims;
 	if (ndims != dim_num) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
 		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
+		esdm_dataset_close(dataset);
+		esdm_container_close(container);
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
@@ -2167,28 +2024,19 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 	}
 
 	unsigned long long sizeof_var = 0;
-	switch (vartype) {
-		case NC_BYTE:
-		case NC_CHAR:
-			sizeof_var = (array_length) * sizeof(char);
-			break;
-		case NC_SHORT:
-			sizeof_var = (array_length) * sizeof(short);
-			break;
-		case NC_INT:
-			sizeof_var = (array_length) * sizeof(int);
-			break;
-		case NC_INT64:
-			sizeof_var = (array_length) * sizeof(long long);
-			break;
-		case NC_FLOAT:
-			sizeof_var = (array_length) * sizeof(float);
-			break;
-		case NC_DOUBLE:
-			sizeof_var = (array_length) * sizeof(double);
-			break;
-		default:
-			sizeof_var = (array_length) * sizeof(double);
+	esdm_type_t vartype = dspace->type;
+	if (vartype == SMD_DTYPE_INT8) {
+		sizeof_var = (array_length) * sizeof(char);
+	} else if (vartype == SMD_DTYPE_INT16) {
+		sizeof_var = (array_length) * sizeof(short);
+	} else if (vartype == SMD_DTYPE_INT32) {
+		sizeof_var = (array_length) * sizeof(int);
+	} else if (vartype == SMD_DTYPE_INT64) {
+		sizeof_var = (array_length) * sizeof(long long);
+	} else if (vartype == SMD_DTYPE_FLOAT) {
+		sizeof_var = (array_length) * sizeof(float);
+	} else {
+		sizeof_var = (array_length) * sizeof(double);
 	}
 
 	//Flag set to 1 if dimension are in the order specified in the file
@@ -2201,15 +2049,15 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 	}
 
 	if (dimension_ordered)
-		return _oph_ioserver_esdm_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
-						  frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length);
+		return _oph_ioserver_esdm_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
+						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length);
 	else
 #ifdef OPH_IO_SERVER_ESDM_BLOCK
-		return _oph_ioserver_esdm_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
-						  frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
+		return _oph_ioserver_esdm_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
+						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #else
-		return _oph_ioserver_esdm_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
-						  frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
+		return _oph_ioserver_esdm_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
+						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #endif
 
 }

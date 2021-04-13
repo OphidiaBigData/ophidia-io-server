@@ -262,6 +262,17 @@ int main(int argc, char *argv[])
 	oph_net_signal(SIGABRT, release);
 	oph_net_signal(SIGQUIT, release);
 
+#ifdef OPH_IO_SERVER_ESDM
+	if (esdm_init()) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ESDM cannot be initialized\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "ESDM cannot be initialized\n");
+		oph_unload_plugins(&plugin_table, &oph_function_table);
+		oph_metadb_unload_schema(db_table);
+		oph_server_conf_unload(&conf_db);
+		return -1;
+	}
+#endif
+
 	//Startup client connections
 	for (;;) {
 		clilen = addrlen;
@@ -337,6 +348,10 @@ void release(int signo)
 	oph_metadb_unload_schema(db_table);
 	oph_unload_plugins(&plugin_table, &oph_function_table);
 	oph_server_conf_unload(&conf_db);
+
+#ifdef OPH_IO_SERVER_ESDM
+	esdm_finalize();
+#endif
 
 	exit(0);
 }
