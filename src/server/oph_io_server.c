@@ -33,6 +33,10 @@
 
 #include "oph_license.h"
 
+#ifdef OPH_IO_SERVER_ESDM
+#include <esdm.h>
+#endif
+
 //TODO put globals into global struct 
 //Global server variables (read-only)
 unsigned long long max_packet_length = 0;

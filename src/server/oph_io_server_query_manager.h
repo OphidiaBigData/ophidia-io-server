@@ -309,7 +309,6 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 				  oph_iostore_frag_record ** new_record);
 
 #ifdef OPH_IO_SERVER_NETCDF
-
 /**
  * \brief Create fragment from NetCDF file
  * \param src_path Absoloute path to NetCDF file
@@ -328,7 +327,27 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
  */
 int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
 			  short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+#endif
 
+#ifdef OPH_IO_SERVER_ESDM
+/**
+ * \brief Create fragment from NetCDF file
+ * \param src_path Absoloute path to NetCDF file
+ * \param measure_name Name of measure to be read from file
+ * \param tuplexfrag_number Number of tuple to insert
+ * \param frag_key_start Starting key of fragment
+ * \param compressed_flag If the data to insert is compressed (1) or not (0)
+ * \param dim_num Number of dimensions related to measure
+ * \param dims_type Array of dimension types (explicit or implicit)
+ * \param dims_index Array of dimension indexes
+ * \param dims_start Array of dimension start keys
+ * \param dims_end Array of dimension end keys
+ * \param binary_frag Pointer to recordset structure where fragment is being created
+ * \param frag_size Size of fragment being created
+ * \return 0 if successfull
+ */
+int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
+			    short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
 #endif
 
 /**

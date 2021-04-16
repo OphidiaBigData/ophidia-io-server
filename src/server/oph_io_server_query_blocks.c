@@ -1706,8 +1706,8 @@ int _oph_io_server_query_load_from_esdm(oph_metadb_db_row ** meta_db, oph_iostor
 	unsigned long long frag_size = 0;
 
 	if (_oph_ioserver_esdm_read(src_path, measure, row_num, frag_start, compressed_flag, dim_list_num, dims_type, dims_index, dims_start, dims_end, record_sets, &frag_size)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM container\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM container\n");
 		oph_iostore_destroy_frag_recordset(&record_sets);
 		free(dims_type);
 		free(dims_index);
