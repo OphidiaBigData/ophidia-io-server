@@ -150,6 +150,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_gsl_fft.so
 FUN SIMPLE
 RET STRING
+[oph_filter]
+LIB	@PLUGIN_PATH@/liboph_filter.so
+FUN SIMPLE
+RET STRING
 [oph_gsl_fit_linear]
 LIB	@PLUGIN_PATH@/liboph_gsl_fit_linear.so
 FUN SIMPLE
