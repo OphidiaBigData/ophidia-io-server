@@ -17,10 +17,12 @@
 */
 
 #include "debug.h"
+
 #include <string.h>
 #include <time.h>
 
 #define LOGGING_MAX_STRING 100
+#define CTIME_BUF 32
 
 int msglevel;			/* the higher, the more messages... */
 char *prefix = 0;
@@ -44,24 +46,25 @@ void pmesg(int level, const char *source, long int line_number, const char *form
 
 	switch (level) {
 		case LOG_ERROR:
-			sprintf(log_type, "ERROR");
+			sprintf(log_type, LOG_ERROR_MESSAGE);
 			break;
 		case LOG_INFO:
-			sprintf(log_type, "INFO");
+			sprintf(log_type, LOG_INFO_MESSAGE);
 			break;
 		case LOG_WARNING:
-			sprintf(log_type, "WARNING");
+			sprintf(log_type, LOG_WARNING_MESSAGE);
 			break;
 		case LOG_DEBUG:
-			sprintf(log_type, "DEBUG");
+			sprintf(log_type, LOG_DEBUG_MESSAGE);
 			break;
 		default:
-			sprintf(log_type, "UNKNOWN");
+			sprintf(log_type, LOG_UNKNOWN_MESSAGE);
 			break;
 	}
 	if (msglevel > 10) {
 		time_t t1 = time(NULL);
-		char *s = ctime(&t1);
+		char s[CTIME_BUF];
+		ctime_r(&t1, s);
 		s[strlen(s) - 1] = 0;	// remove \n
 		fprintf(stderr, "[%s][%s][%s][%ld]\t", s, log_type, source, line_number);
 	} else {
@@ -112,7 +115,8 @@ void logging(int level, const char *source, long int line_number, const char *fo
 		}
 		if (msglevel > 10) {
 			time_t t1 = time(NULL);
-			char *s = ctime(&t1);
+			char s[CTIME_BUF];
+			ctime_r(&t1, s);
 			s[strlen(s) - 1] = 0;	// remove \n
 			fprintf(log_file, "[%s][%s][%s][%ld]\t", s, log_type, source, line_number);
 		} else {
