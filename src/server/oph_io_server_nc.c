@@ -1872,6 +1872,7 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 	gettimeofday(&start_read_time, NULL);
 #endif
 
+	char stop = 0;
 	unsigned long long ii;
 	for (ii = 0; ii < tuplexfrag_number; ii++) {
 
@@ -1882,9 +1883,17 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 			for (j = 0; j < ndims; j++) {
 				if (start_pointer[i] == &(start[j])) {
 					*(start_pointer[i]) += dims_start[j];
+					if (*(start_pointer[i]) >= dims_end[i]) {
+						stop = 1;
+						break;
+					}
 				}
 			}
+			if (stop)
+				break;
 		}
+		if (stop)
+			break;
 
 #ifdef DEBUG
 		//gettimeofday(&start_read_time, NULL);
@@ -1940,7 +1949,6 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 					res = nc_get_vara_double(ncid, varid, start, count, (double *) (binary_insert));
 			}
 		}
-
 		if (res != 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
@@ -2055,7 +2063,7 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 }
 
 int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			  short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
+			  short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -2068,6 +2076,22 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		logging(LOG_ERROR, __FILE__, __LINE__, "The use of '..' is forbidden\n");
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
+	// Parse for multiple files
+	int src_paths_num = 0;
+	char *pch = NULL, *save_pointer = NULL;
+	char src_paths[1 + strlen(src_path)];
+	strcpy(src_paths, src_path);
+	while ((pch = strtok_r(src_paths_num ? NULL : src_paths, OPH_QUERY_ENGINE_LANG_MULTI_VALUE_SEPARATOR2, &save_pointer))) {
+		if (!src_paths_num)
+			src_path = pch;
+		src_paths_num++;
+	}
+
+	int offset = 0;		// Used to understand the real index of unlimited dimension
+	int _dims_start[dim_num], _dims_end[dim_num];
+	memcpy(_dims_start, dims_start, dim_num * sizeof(int));
+	memcpy(_dims_end, dims_end, dim_num * sizeof(int));
+
 	if (!strstr(src_path, "http://") && !strstr(src_path, "https://")) {
 		char *pointer = src_path;
 		while (pointer && (*pointer == ' '))
@@ -2154,12 +2178,37 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		pthread_mutex_unlock(&nc_lock);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+
+	if (src_paths_num > 1) {
+		int dim_id[ndims];
+		if ((retval = nc_inq_vardimid(ncid, varid, dim_id))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension ids\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension ids\n");
+			pthread_mutex_lock(&nc_lock);
+			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		size_t lenp;
+		if ((retval = nc_inq_dimlen(ncid, dim_id[dim_unlim], &lenp))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension real size\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension real size\n");
+			pthread_mutex_lock(&nc_lock);
+			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		if (_dims_start[dim_unlim] < offset)
+			_dims_start[dim_unlim] = offset;
+		if (_dims_end[dim_unlim] >= lenp + offset)
+			_dims_end[dim_unlim] = lenp + offset - 1;
+	}
 	//Compute array_length from implicit dims
 	unsigned long long array_length = 1;
 	short int nimp = 0, nexp = 0;
 	for (i = 0; i < ndims; i++) {
 		if (!dims_type[i]) {
-			array_length *= dims_end[i] - dims_start[i] + 1;
+			array_length *= _dims_end[i] - _dims_start[i] + 1;
 			nimp++;
 		} else {
 			nexp++;
@@ -2201,14 +2250,14 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	}
 
 	if (dimension_ordered)
-		return _oph_ioserver_nc_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
+		return _oph_ioserver_nc_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end, binary_frag,
 						frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length);
 	else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
-		return _oph_ioserver_nc_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
+		return _oph_ioserver_nc_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end, binary_frag,
 						frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #else
-		return _oph_ioserver_nc_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end, binary_frag,
+		return _oph_ioserver_nc_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end, binary_frag,
 						frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #endif
 
