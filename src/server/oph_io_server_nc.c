@@ -279,7 +279,7 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 
 int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int offset, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, short int dimension_ordered)
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !varid || !array_length) {
@@ -509,6 +509,9 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 		for (j = 0; j < ndims; j++) {
 			if (start_pointer[i] == &(start[j])) {
 				*(start_pointer[i]) += dims_start[j];
+				// Correction due to multiple files
+				if (j == dim_unlim)
+					*(start_pointer[i]) -= offset;
 			}
 		}
 	}
@@ -837,7 +840,7 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 
 int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int offset, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, short int dimension_ordered)
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !varid || !array_length) {
@@ -1067,6 +1070,9 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		for (j = 0; j < ndims; j++) {
 			if (start_pointer[i] == &(start[j])) {
 				*(start_pointer[i]) += dims_start[j];
+				// Correction due to multiple files
+				if (j == dim_unlim)
+					*(start_pointer[i]) -= offset;
 			}
 		}
 	}
@@ -1389,7 +1395,7 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 	int i = 0, j = 0;
 
 	//Flag set to 1 if implicit dimension are in the order specified in the file
-	short int dimension_ordered = 1;
+	char dimension_ordered = 1;
 	unsigned int curr_lev = 0;
 	for (i = 0; i < ndims; i++) {
 		if (!dims_type[i]) {
@@ -1403,7 +1409,7 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 
 
 	//If flag is set fragment reordering is required
-	short int transpose = 1;
+	char transpose = 1;
 	if (dimension_ordered) {
 		transpose = 0;
 	}
@@ -1815,13 +1821,16 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 	unsigned long long ii;
 	for (ii = 0; ii < tuplexfrag_number; ii++, idDim++) {
 
-		oph_ioserver_nc_compute_dimension_id(idDim - offset, sizemax, nexp, start_pointer);
+		oph_ioserver_nc_compute_dimension_id(idDim, sizemax, nexp, start_pointer);
 
 		for (i = 0; i < nexp; i++) {
 			*(start_pointer[i]) -= 1;
 			for (j = 0; j < ndims; j++) {
 				if (start_pointer[i] == &(start[j])) {
 					*(start_pointer[i]) += dims_start[j];
+					// Correction due to multiple files
+					if (j == dim_unlim)
+						*(start_pointer[i]) -= offset;
 				}
 			}
 		}
@@ -2142,7 +2151,14 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				_dims_start[dim_unlim] = offset;
 			if (_dims_end[dim_unlim] >= lenp + offset)
 				_dims_end[dim_unlim] = lenp + offset - 1;
-			if ((_dims_start[dim_unlim] >= frag_key_start - 1 + tuplexfrag_number) || (_dims_end[dim_unlim] < frag_key_start - 1)) {
+			short int dims_value[ndims];
+			for (i = 0; i < ndims; ++i)
+				dims_value[dims_index[i]] = i;
+			int internal_size = 1;
+			for (i = dims_index[dim_unlim] + 1; i < ndims; ++i)
+				if (dims_type[dims_value[i]])
+					internal_size *= dims_end[dims_value[i]] - dims_start[dims_value[i]] + 1;
+			if ((_dims_start[dim_unlim] >= (frag_key_start - 1 + tuplexfrag_number) / internal_size) || (_dims_end[dim_unlim] < (frag_key_start - 1) / internal_size)) {
 				pthread_mutex_lock(&nc_lock);
 				nc_close(ncid);
 				pthread_mutex_unlock(&nc_lock);
@@ -2191,7 +2207,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 
 		//Flag set to 1 if dimension are in the order specified in the file
-		short int dimension_ordered = 1;
+		char dimension_ordered = 1;
 		for (i = 0; i < ndims; i++) {
 			if (dims_index[i] != i) {
 				dimension_ordered = 0;
