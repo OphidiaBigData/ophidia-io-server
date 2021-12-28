@@ -279,10 +279,11 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 
 int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int offset, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, char dimension_ordered)
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long *start_index,
+			     char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !varid || !array_length) {
+	    || !sizeof_var || !varid || !array_length || !start_index) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -509,9 +510,6 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 		for (j = 0; j < ndims; j++) {
 			if (start_pointer[i] == &(start[j])) {
 				*(start_pointer[i]) += dims_start[j];
-				// Correction due to multiple files
-				if (j == dim_unlim)
-					*(start_pointer[i]) -= offset;
 			}
 		}
 	}
@@ -801,8 +799,9 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 	oph_iostore_frag_record *new_record = NULL;
 	unsigned long long cumulative_size = 0;
 
-	unsigned long long ii;
-	for (ii = 0; ii < tuplexfrag_number; ii++, idDim++) {
+	unsigned long long ii = *start_index;
+	tuplexfrag_number += *start_index;
+	for (; ii < tuplexfrag_number; ii++, idDim++) {
 
 		args[measure_pos]->arg = (char *) (binary_insert + ii * sizeof_var);
 
@@ -825,6 +824,7 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 		new_record = NULL;
 		row_size = 0;
 	}
+	*start_index = ii;
 
 	for (i = 0; i < arg_count; i++)
 		if (args[i])
@@ -840,10 +840,11 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 
 int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int offset, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, char dimension_ordered)
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long *start_index,
+			     char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !varid || !array_length) {
+	    || !sizeof_var || !varid || !array_length || !start_index) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1070,9 +1071,6 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		for (j = 0; j < ndims; j++) {
 			if (start_pointer[i] == &(start[j])) {
 				*(start_pointer[i]) += dims_start[j];
-				// Correction due to multiple files
-				if (j == dim_unlim)
-					*(start_pointer[i]) -= offset;
 			}
 		}
 	}
@@ -1341,8 +1339,9 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 	oph_iostore_frag_record *new_record = NULL;
 	unsigned long long cumulative_size = 0;
 
-	unsigned long long ii;
-	for (ii = 0; ii < tuplexfrag_number; ii++, idDim++) {
+	unsigned long long ii = *start_index;
+	tuplexfrag_number += *start_index;
+	for (; ii < tuplexfrag_number; ii++, idDim++) {
 
 		args[measure_pos]->arg = (char *) (binary_insert + ii * sizeof_var);
 
@@ -1365,6 +1364,7 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		new_record = NULL;
 		row_size = 0;
 	}
+	*start_index = ii;
 
 	for (i = 0; i < arg_count; i++)
 		if (args[i])
@@ -1380,10 +1380,10 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 
 int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int offset, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size,
-			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length)
+			     unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long *start_index)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !varid || !array_length) {
+	    || !sizeof_var || !varid || !array_length || !start_index) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1818,8 +1818,9 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 	gettimeofday(&start_read_time, NULL);
 #endif
 
-	unsigned long long ii;
-	for (ii = 0; ii < tuplexfrag_number; ii++, idDim++) {
+	unsigned long long ii = *start_index;
+	tuplexfrag_number += *start_index;
+	for (; ii < tuplexfrag_number; ii++, idDim++) {
 
 		oph_ioserver_nc_compute_dimension_id(idDim, sizemax, nexp, start_pointer);
 
@@ -1963,6 +1964,8 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 		new_record = NULL;
 		row_size = 0;
 	}
+	*start_index = ii;
+
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
 	timeval_subtract(&total_read_time, &end_read_time, &start_read_time);
@@ -2030,6 +2033,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			src_paths_num++;
 		pch++;
 	}
+
+	unsigned long long _tuplexfrag_number, start_index = 0;
+	long long _frag_key_start;
 
 	char src_paths[1 + strlen(src_path)];
 	strcpy(src_paths, src_path);
@@ -2128,6 +2134,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 
+		_tuplexfrag_number = tuplexfrag_number;
+		_frag_key_start = frag_key_start;
+
 		if (src_paths_num > 1) {
 			int dim_id[ndims];
 			if ((retval = nc_inq_vardimid(ncid, varid, dim_id))) {
@@ -2151,19 +2160,29 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				_dims_start[dim_unlim] = offset;
 			if (_dims_end[dim_unlim] >= lenp + offset)
 				_dims_end[dim_unlim] = lenp + offset - 1;
-			short int dims_value[ndims];
-			for (i = 0; i < ndims; ++i)
-				dims_value[dims_index[i]] = i;
-			int internal_size = 1;
-			for (i = dims_index[dim_unlim] + 1; i < ndims; ++i)
-				if (dims_type[dims_value[i]])
-					internal_size *= dims_end[dims_value[i]] - dims_start[dims_value[i]] + 1;
-			if ((_dims_start[dim_unlim] >= (frag_key_start - 1 + tuplexfrag_number) / internal_size) || (_dims_end[dim_unlim] < (frag_key_start - 1) / internal_size)) {
-				pthread_mutex_lock(&nc_lock);
-				nc_close(ncid);
-				pthread_mutex_unlock(&nc_lock);
-				offset += lenp;
-				continue;
+			if (dims_type[dim_unlim]) {
+				short int dims_value[ndims];
+				for (i = 0; i < ndims; ++i)
+					dims_value[dims_index[i]] = i;
+				int internal_size = 1;
+				for (i = dims_index[dim_unlim] + 1; i < ndims; ++i)
+					if (dims_type[dims_value[i]])
+						internal_size *= dims_end[dims_value[i]] - dims_start[dims_value[i]] + 1;
+				if ((_dims_start[dim_unlim] >= (_frag_key_start - 1 + _tuplexfrag_number) / internal_size) || (_dims_end[dim_unlim] < (_frag_key_start - 1) / internal_size))
+					_tuplexfrag_number = 0;
+				while (_tuplexfrag_number && (_dims_end[dim_unlim] < (_frag_key_start - 2 + _tuplexfrag_number) / internal_size))	// -2 is correct
+					_tuplexfrag_number--;
+				while (_tuplexfrag_number && (_dims_start[dim_unlim] > (_frag_key_start - 1) / internal_size)) {
+					_tuplexfrag_number--;
+					_frag_key_start++;
+				}
+				if (!_tuplexfrag_number) {
+					pthread_mutex_lock(&nc_lock);
+					nc_close(ncid);
+					pthread_mutex_unlock(&nc_lock);
+					offset += lenp;
+					continue;
+				}
 			}
 			// Rescaling
 			_dims_start[dim_unlim] -= offset;
@@ -2217,17 +2236,17 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 		if (dimension_ordered)
 			return_value =
-			    _oph_ioserver_nc_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
-						     dim_unlim, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length);
+			    _oph_ioserver_nc_read_v0(measure_name, _tuplexfrag_number, _frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
+						     dim_unlim, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, &start_index);
 		else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
-			    _oph_ioserver_nc_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
-						     dim_unlim, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
+			    _oph_ioserver_nc_read_v1(measure_name, _tuplexfrag_number, _frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
+						     dim_unlim, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, &start_index, dimension_ordered);
 #else
 			return_value =
-			    _oph_ioserver_nc_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
-						     dim_unlim, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, dimension_ordered);
+			    _oph_ioserver_nc_read_v2(measure_name, _tuplexfrag_number, _frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
+						     dim_unlim, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length, &start_index, dimension_ordered);
 #endif
 
 		if (return_value) {
