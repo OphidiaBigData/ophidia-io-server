@@ -589,49 +589,49 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_cache));
+				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache));
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache));
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache));
+				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache));
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
 		}
 	} else {
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_insert));
+				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert));
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert));
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_insert));
+				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert));
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
 		}
 	}
 
@@ -691,7 +691,7 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
 			dst_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = count[i];
+			limits[dims_index[i]] = i == dim_unlim ? dim_unlim_size : count[i];
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -1099,6 +1099,9 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		for (j = 0; j < ndims; j++) {
 			if (start_pointer[i] == &(start[j])) {
 				*(start_pointer[i]) += dims_start[j];
+				// Correction due to multiple files
+				if (j == dim_unlim)
+					*(start_pointer[i]) -= offset;
 			}
 		}
 	}
@@ -1169,49 +1172,49 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_cache));
+				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache));
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache));
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache));
+				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache));
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache) + offset * array_length);
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
 		}
 	} else {
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_insert));
+				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert));
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert));
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_insert));
+				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert));
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert) + offset * array_length);
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert));
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
 		}
 	}
 
@@ -1269,7 +1272,7 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		for (i = 0; i < ndims; i++) {
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = count[i];
+			limits[dims_index[i]] = i == dim_unlim ? dim_unlim_size : count[i];
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -2100,7 +2103,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	}
 
 	unsigned long long _tuplexfrag_number;
-	long long _frag_key_start;
+	long long _frag_key_start, _f1, _f2;
 	char *binary_cache = NULL, *binary_insert = NULL;
 
 	char src_paths[1 + strlen(src_path)];
@@ -2234,14 +2237,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				for (i = dims_index[dim_unlim] + 1; i < ndims; ++i)
 					if (dims_type[dims_value[i]])
 						internal_size *= dims_end[dims_value[i]] - dims_start[dims_value[i]] + 1;
-
-				if ((_dims_start[dim_unlim] >= (_frag_key_start - 1 + _tuplexfrag_number) / internal_size) || (_dims_end[dim_unlim] < (_frag_key_start - 1) / internal_size))
+				_f1 = (_frag_key_start - 1) / internal_size % dim_unlim_size;
+				_f2 = _f1 + _tuplexfrag_number / internal_size;	// It is ok
+				if ((_dims_start[dim_unlim] >= _f2) || (_dims_end[dim_unlim] < _f1))
 					_tuplexfrag_number = 0;
-				while (_tuplexfrag_number && (_dims_end[dim_unlim] < (_frag_key_start - 2 + _tuplexfrag_number) / internal_size))	// -2 is correct
+				while (_tuplexfrag_number && (_dims_end[dim_unlim] < _f2 - 1)) {	// It is ok
 					_tuplexfrag_number--;
-				while (_tuplexfrag_number && (_dims_start[dim_unlim] > (_frag_key_start - 1) / internal_size)) {
-					_tuplexfrag_number--;
+					_f2 = _f1 + _tuplexfrag_number / internal_size;
+				}
+				while (_tuplexfrag_number && (_dims_start[dim_unlim] > _f1)) {
 					_frag_key_start++;
+					_tuplexfrag_number--;
+					_f1 = (_frag_key_start - 1) / internal_size % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
 					pthread_mutex_lock(&nc_lock);
