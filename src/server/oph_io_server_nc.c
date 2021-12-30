@@ -280,10 +280,10 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, char **binary_cache, char **binary_insert, char is_last, char dimension_ordered)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, char **binary_cache, char **binary_insert, char is_last, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !_tuplexfrag_number || !binary_frag
-	    || !frag_size || !sizeof_var || !varid || !array_length) {
+	    || !frag_size || !sizeof_var || !varid || !array_length || !_array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -554,10 +554,10 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 	for (i = 0; i < ndims; i++)
 		total *= count[i];
 
-	if (total != array_length * _tuplexfrag_number) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
+	if (total != _array_length * _tuplexfrag_number) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", _array_length, total);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array creation: %d\n", res);
-		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
+		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", _array_length, total);
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array creation: %d\n", res);
 		if (*binary_cache) {
 			free(*binary_cache);
@@ -583,55 +583,81 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 	gettimeofday(&start_read_time, NULL);
 #endif
 
+	if (dims_type[dim_unlim] && (offset * internal_size > tuplexfrag_number)) {
+
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unsupported configuration\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unsupported configuration\n");
+		if (*binary_cache) {
+			free(*binary_cache);
+			*binary_cache = NULL;
+		}
+		free(*binary_insert);
+		*binary_insert = NULL;
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+		free(count);
+		free(start);
+		free(start_pointer);
+		free(sizemax);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
 	//Fill binary cache
 	res = -1;
 	if (transpose) {
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_cache) + offset * array_length);
+				res =
+				    nc_get_vara_uchar(ncid, varid, start, count,
+						      (unsigned char *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache) + offset * array_length);
+				res =
+				    nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 		}
 	} else {
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_insert) + offset * array_length);
+				res =
+				    nc_get_vara_uchar(ncid, varid, start, count,
+						      (unsigned char *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_insert) + offset * array_length);
+				res =
+				    nc_get_vara_longlong(ncid, varid, start, count,
+							 (long long *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 		}
 	}
 
@@ -863,10 +889,10 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, char **binary_cache, char **binary_insert, char is_last, char dimension_ordered)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, char **binary_cache, char **binary_insert, char is_last, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !_tuplexfrag_number || !binary_frag
-	    || !frag_size || !sizeof_var || !varid || !array_length) {
+	    || !frag_size || !sizeof_var || !varid || !array_length || !_array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1137,10 +1163,10 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 	for (i = 0; i < ndims; i++)
 		total *= count[i];
 
-	if (total != array_length * _tuplexfrag_number) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
+	if (total != _array_length * _tuplexfrag_number) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", _array_length, total);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array creation: %d\n", res);
-		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
+		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", _array_length, total);
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array creation: %d\n", res);
 		if (*binary_cache) {
 			free(*binary_cache);
@@ -1166,55 +1192,81 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 	gettimeofday(&start_read_time, NULL);
 #endif
 
+	if (dims_type[dim_unlim] && (offset * internal_size > tuplexfrag_number)) {
+
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unsupported configuration\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unsupported configuration\n");
+		if (*binary_cache) {
+			free(*binary_cache);
+			*binary_cache = NULL;
+		}
+		free(*binary_insert);
+		*binary_insert = NULL;
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+		free(count);
+		free(start);
+		free(start_pointer);
+		free(sizemax);
+		return OPH_IO_SERVER_MEMORY_ERROR;
+	}
 	//Fill binary cache
 	res = -1;
 	if (transpose) {
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_cache) + offset * array_length);
+				res =
+				    nc_get_vara_uchar(ncid, varid, start, count,
+						      (unsigned char *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache) + offset * array_length);
+				res =
+				    nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_cache) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 		}
 	} else {
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (*binary_insert) + offset * array_length);
+				res =
+				    nc_get_vara_uchar(ncid, varid, start, count,
+						      (unsigned char *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_short(ncid, varid, start, count, (short *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_int(ncid, varid, start, count, (int *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (*binary_insert) + offset * array_length);
+				res =
+				    nc_get_vara_longlong(ncid, varid, start, count,
+							 (long long *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_float(ncid, varid, start, count, (float *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * array_length);
+				res = nc_get_vara_double(ncid, varid, start, count, (double *) (*binary_insert) + offset * internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number));
 		}
 	}
 
@@ -1251,7 +1303,7 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 	free(start_pointer);
 	free(sizemax);
 
-	if (!is_last) {
+	if (dims_type[dim_unlim] && !is_last) {
 		free(count);
 		return OPH_IO_SERVER_SUCCESS;
 	}
@@ -1422,13 +1474,14 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 	return OPH_IO_SERVER_SUCCESS;
 }
 
+// This version is not optimized in case the unlimited dimension is implicit!!!!! Use another version instead
 int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ncid, int ndims, int nimp, int nexp, short int *dims_type,
 			     short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int varid, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, char **binary_cache, char **binary_insert, char is_last)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, char **binary_cache, char **binary_insert, char is_last)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ncid || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !_tuplexfrag_number || !binary_frag
-	    || !frag_size || !sizeof_var || !varid || !array_length) {
+	    || !frag_size || !sizeof_var || !varid || !array_length || !_array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1687,10 +1740,10 @@ int _oph_ioserver_nc_read_v0(char *measure_name, unsigned long long tuplexfrag_n
 	for (i = 0; i < ndims; i++)
 		total *= count[i];
 
-	if (total != array_length) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
+	if (total != _array_length) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", _array_length, total);
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array creation: %d\n", res);
-		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
+		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", _array_length, total);
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array creation: %d\n", res);
 		if (*binary_cache) {
 			free(*binary_cache);
@@ -2206,6 +2259,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		_tuplexfrag_number = tuplexfrag_number;
 		_frag_key_start = frag_key_start;
 
+		int internal_size = 1;
 		if (src_paths_num > 1) {
 			int dim_id[ndims];
 			if ((retval = nc_inq_vardimid(ncid, varid, dim_id))) {
@@ -2229,26 +2283,33 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				_dims_start[dim_unlim] = offset;
 			if (_dims_end[dim_unlim] >= lenp + offset)
 				_dims_end[dim_unlim] = lenp + offset - 1;
+			short int dims_value[ndims], first = 1;
+			for (i = 0; i < ndims; ++i)
+				dims_value[dims_index[i]] = i;
+			for (i = dim_unlim + 1; i < ndims; ++i)
+				if (dims_type[i] == dims_type[dim_unlim]) {
+					if (first && dims_type[i])	// Don't consider the most external if explicit
+						first = 0;
+					else
+						internal_size *= dims_end[i] - dims_start[i] + 1;
+				}
 			if (dims_type[dim_unlim]) {
-				short int dims_value[ndims];
-				for (i = 0; i < ndims; ++i)
-					dims_value[dims_index[i]] = i;
-				int internal_size = 1;
+				int internal_size2 = 1;
 				for (i = dims_index[dim_unlim] + 1; i < ndims; ++i)
 					if (dims_type[dims_value[i]])
-						internal_size *= dims_end[dims_value[i]] - dims_start[dims_value[i]] + 1;
-				_f1 = (_frag_key_start - 1) / internal_size % dim_unlim_size;
-				_f2 = _f1 + _tuplexfrag_number / internal_size;	// It is ok
+						internal_size2 *= dims_end[dims_value[i]] - dims_start[dims_value[i]] + 1;
+				_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
+				_f2 = _f1 + _tuplexfrag_number / internal_size2;	// It is ok
 				if ((_dims_start[dim_unlim] >= _f2) || (_dims_end[dim_unlim] < _f1))
 					_tuplexfrag_number = 0;
 				while (_tuplexfrag_number && (_dims_end[dim_unlim] < _f2 - 1)) {	// It is ok
 					_tuplexfrag_number--;
-					_f2 = _f1 + _tuplexfrag_number / internal_size;
+					_f2 = _f1 + _tuplexfrag_number / internal_size2;
 				}
 				while (_tuplexfrag_number && (_dims_start[dim_unlim] > _f1)) {
 					_frag_key_start++;
 					_tuplexfrag_number--;
-					_f1 = (_frag_key_start - 1) / internal_size % dim_unlim_size;
+					_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
 					pthread_mutex_lock(&nc_lock);
@@ -2263,7 +2324,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			_dims_end[dim_unlim] -= offset;
 		}
 		//Compute array_length from implicit dims
-		unsigned long long array_length = 1;
+		unsigned long long array_length = 1, _array_length;
 		short int nimp = 0, nexp = 0;
 		for (i = 0; i < ndims; i++) {
 			if (!dims_type[i]) {
@@ -2273,6 +2334,10 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				nexp++;
 			}
 		}
+		if (dims_type[dim_unlim])
+			_array_length = array_length;
+		else
+			_array_length = array_length * (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) / dim_unlim_size;
 
 		unsigned long long sizeof_var = 0;
 		switch (vartype) {
@@ -2312,18 +2377,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			return_value =
 			    _oph_ioserver_nc_read_v0(measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
 						     dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length,
-						     &binary_cache, &binary_insert, k == src_paths_num);
+						     _array_length, internal_size, &binary_cache, &binary_insert, k == src_paths_num);
 		else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
 			    _oph_ioserver_nc_read_v1(measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
 						     dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length,
-						     &binary_cache, &binary_insert, k == src_paths_num, dimension_ordered);
+						     _array_length, internal_size, &binary_cache, &binary_insert, k == src_paths_num, dimension_ordered);
 #else
 			return_value =
 			    _oph_ioserver_nc_read_v2(measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ncid, ndims, nimp, nexp, dims_type, dims_index, _dims_start, _dims_end,
 						     dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, varid, id_dim_pos, measure_pos, array_length,
-						     &binary_cache, &binary_insert, k == src_paths_num, dimension_ordered);
+						     _array_length, internal_size, &binary_cache, &binary_insert, k == src_paths_num, dimension_ordered);
 #endif
 
 		if (return_value) {
