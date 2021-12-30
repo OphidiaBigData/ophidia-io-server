@@ -581,10 +581,12 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 	gettimeofday(&start_read_time, NULL);
 #endif
 
+	char dim_unlim_whole = 1;
 	offset *= internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number);
 	if (dims_type[dim_unlim] && (offset >= array_length * tuplexfrag_number)) {
 		offset = 0;
 		is_last = 1;
+		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
 	res = -1;
@@ -694,7 +696,7 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
 			dst_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = i == dim_unlim ? dim_unlim_size : count[i];
+			limits[dims_index[i]] = dim_unlim_whole && (i == dim_unlim) ? dim_unlim_size : count[i];
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -1167,10 +1169,12 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 	gettimeofday(&start_read_time, NULL);
 #endif
 
+	char dim_unlim_whole = 1;
 	offset *= internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number);
 	if (dims_type[dim_unlim] && (offset > array_length * tuplexfrag_number)) {
 		offset = 0;
 		is_last = 1;
+		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
 	res = -1;
@@ -1278,7 +1282,7 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 		for (i = 0; i < ndims; i++) {
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = i == dim_unlim ? dim_unlim_size : count[i];
+			limits[dims_index[i]] = dim_unlim_whole && (i == dim_unlim) ? dim_unlim_size : count[i];
 			file_indexes[dims_index[i]] = k++;
 		}
 
