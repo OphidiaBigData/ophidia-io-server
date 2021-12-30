@@ -583,7 +583,7 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 
 	char dim_unlim_whole = 1;
 	offset *= internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number);
-	if (dims_type[dim_unlim] && (offset >= array_length * tuplexfrag_number)) {
+	if (!dims_index[dim_unlim] && dims_type[dim_unlim]) {
 		offset = 0;
 		is_last = 1;
 		dim_unlim_whole = 0;
@@ -688,7 +688,6 @@ int _oph_ioserver_nc_read_v2(char *measure_name, unsigned long long tuplexfrag_n
 		unsigned int *limits = (unsigned int *) malloc(ndims * sizeof(unsigned));
 
 		int *file_indexes = (int *) malloc(ndims * sizeof(int));
-
 		int k = 0;
 
 		//Setup arrays for recursive selection
@@ -1171,7 +1170,7 @@ int _oph_ioserver_nc_read_v1(char *measure_name, unsigned long long tuplexfrag_n
 
 	char dim_unlim_whole = 1;
 	offset *= internal_size * (dims_type[dim_unlim] ? array_length : tuplexfrag_number);
-	if (dims_type[dim_unlim] && (offset > array_length * tuplexfrag_number)) {
+	if (!dims_index[dim_unlim] && dims_type[dim_unlim]) {
 		offset = 0;
 		is_last = 1;
 		dim_unlim_whole = 0;
