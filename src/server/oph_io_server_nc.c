@@ -277,19 +277,24 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 			char *exec_path = OPH_NC_LOAD_EXEC;
 			if (execvp(exec_path, (char *[]) {
 				   exec_path, id, src_path, measure_name, start_str, count_str, NULL}) == -1)
-				exit(1);
+				exit(errno);
 			else
 				exit(0);
 		}
 
 		int status;
 		waitpid(child_pid, &status, 0);
+		if((WIFEXITED(status)) == 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
 		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Loading process status is: %d\n", status);
 		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Shared cache ID is: %d\n", shm_id);
 
-		if (status != 0) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
-			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+		if ((status = WEXITSTATUS(status)) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", strerror(status));
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", strerror(status));
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 	} else {
@@ -375,10 +380,10 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 int _oph_ioserver_nc_release_buffer(Buffer * buff, char *buffer, char is_cache)
 {
 	if (is_cache) {
-		if (buff->insert_sh)
+		if (buff->cache_sh)
 			shmdt(buffer);
 	} else {
-		if (buff->cache_sh)
+		if (buff->insert_sh)
 			shmdt(buffer);
 	}
 	return OPH_IO_SERVER_SUCCESS;

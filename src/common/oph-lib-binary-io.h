@@ -25,6 +25,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "debug.h"
 
 #ifndef OPH_IOB_SIZEOFDOUBLE

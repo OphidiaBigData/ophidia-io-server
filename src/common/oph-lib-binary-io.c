@@ -18,6 +18,7 @@
 
 #include "oph-lib-binary-io.h"
 
+
 extern int msglevel;
 
 
@@ -212,7 +213,7 @@ int oph_iob_bin_array_shared_create(int *shm_id, long long num_values, int oph_i
 
 		*shm_id = shmget(IPC_PRIVATE, sizeof_num*num_values*sizeof(char), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
 		if ((*shm_id) < 0){
-                pmesg(1, __FILE__, __LINE__, "Error in creating shared memory");
+                pmesg(1, __FILE__, __LINE__, "Error in creating shared memory %s\n", strerror(errno));
                 return OPH_IOB_NOMEM;
 		}
         return OPH_IOB_OK;

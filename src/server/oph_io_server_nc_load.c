@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	} else {
-		pmesg(LOG_INFO, __FILE__, __LINE__, "Data correctly loaded in shared memory\n");
+		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Data correctly loaded in shared memory\n");
 		return OPH_IO_SERVER_SUCCESS;
 	}
 }
