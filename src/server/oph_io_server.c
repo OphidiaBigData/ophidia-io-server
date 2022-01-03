@@ -253,6 +253,7 @@ int main(int argc, char *argv[])
 	oph_net_signal(SIGINT, release);
 	oph_net_signal(SIGABRT, release);
 	oph_net_signal(SIGQUIT, release);
+	oph_net_signal(SIGPIPE, SIG_IGN);
 
 	//Startup client connections
 	for (;;) {

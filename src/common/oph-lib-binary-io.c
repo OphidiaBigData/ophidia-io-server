@@ -204,6 +204,20 @@ int oph_iob_bin_array_create(char **bin_array, long long num_values, int oph_iob
         return OPH_IOB_OK;
 }
 
+int oph_iob_bin_array_shared_create(int *shm_id, long long num_values, int oph_iob_type){
+        size_t sizeof_num;
+        int res = oph_iob_sizeof_type(oph_iob_type, &sizeof_num);
+        if(res)
+                return res;
+
+		*shm_id = shmget(IPC_PRIVATE, sizeof_num*num_values*sizeof(char), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+		if ((*shm_id) < 0){
+                pmesg(1, __FILE__, __LINE__, "Error in creating shared memory");
+                return OPH_IOB_NOMEM;
+		}
+        return OPH_IOB_OK;
+}
+
 int oph_iob_bin_array_add(char *bin_array, void* num, long long position, unsigned int oph_iob_type){
         if(!bin_array){
                 pmesg(1, __FILE__, __LINE__, "Invalid binary buffer");
