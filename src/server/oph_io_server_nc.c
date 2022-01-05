@@ -107,7 +107,7 @@ int _oph_ioserver_nc_clear_buffer_(Buffer * buff, char is_cache, char is_all)
 		}
 	}
 	if (!is_cache || is_all) {
-#ifdef OPH_OPH_PAR_NC4
+#ifdef OPH_PAR_NC4
 		if (buff->insert_sh) {
 			shmctl(buff->insert_sh, IPC_RMID, NULL);
 			buff->insert_sh = 0;
@@ -278,7 +278,8 @@ int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, n
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
+
+int _oph_ioserver_nc_read_data_v0(Buffer * buff, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count, int ncid, int varid)
 {
 #ifdef OPH_PAR_NC4
 	if (shared) {
@@ -372,62 +373,68 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 		else
 			buffer = buff->insert;
 
-		if (pthread_mutex_lock(&nc_lock) != 0) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			return OPH_IO_SERVER_EXEC_ERROR;
-		}
-		int ncid = 0;
-		if ((res = nc_open(src_path, NC_NOWRITE, &ncid))) {
-			pthread_mutex_unlock(&nc_lock);
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
-			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
-			return OPH_IO_SERVER_EXEC_ERROR;
-		}
-		if (pthread_mutex_unlock(&nc_lock) != 0) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			return OPH_IO_SERVER_EXEC_ERROR;
-		}
-		//Extract measured variable information
-		int varid = 0;
-		if ((res = nc_inq_varid(ncid, measure_name, &varid))) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
-			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
-			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
-			pthread_mutex_unlock(&nc_lock);
-			return OPH_IO_SERVER_EXEC_ERROR;
+		int ncid_int = 0, varid_int = 0;
+		if (ncid == 0 || varid == 0) {
+			if (pthread_mutex_lock(&nc_lock) != 0) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+			if ((res = nc_open(src_path, NC_NOWRITE, &ncid_int))) {
+				pthread_mutex_unlock(&nc_lock);
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
+				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+			if (pthread_mutex_unlock(&nc_lock) != 0) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+			//Extract measured variable information
+			int varid = 0;
+			if ((res = nc_inq_varid(ncid_int, measure_name, &varid_int))) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
+				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
+				pthread_mutex_lock(&nc_lock);
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+		} else {
+			ncid_int = ncid;
+			varid_int = varid;
 		}
 
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid, varid, start, count, (unsigned char *) (buffer));
+				res = nc_get_vara_uchar(ncid_int, varid_int, start, count, (unsigned char *) (buffer));
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid, varid, start, count, (short *) (buffer));
+				res = nc_get_vara_short(ncid_int, varid_int, start, count, (short *) (buffer));
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid, varid, start, count, (int *) (buffer));
+				res = nc_get_vara_int(ncid_int, varid_int, start, count, (int *) (buffer));
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid, varid, start, count, (long long *) (buffer));
+				res = nc_get_vara_longlong(ncid_int, varid_int, start, count, (long long *) (buffer));
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid, varid, start, count, (float *) (buffer));
+				res = nc_get_vara_float(ncid_int, varid_int, start, count, (float *) (buffer));
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (buffer));
+				res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) (buffer));
 				break;
 			default:
-				res = nc_get_vara_double(ncid, varid, start, count, (double *) (buffer));
+				res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) (buffer));
 		}
 
-		pthread_mutex_lock(&nc_lock);
-		nc_close(ncid);
-		pthread_mutex_unlock(&nc_lock);
-
+		if (ncid == 0 || varid == 0) {
+			pthread_mutex_lock(&nc_lock);
+			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
+		}
 		if (res != 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
@@ -437,6 +444,11 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 	}
 #endif
 	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
+{
+	return _oph_ioserver_nc_read_data_v0(buff, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0);
 }
 
 #define _oph_ioserver_nc_release_buffer_cache(buff, buffer) _oph_ioserver_nc_release_buffer(buff, buffer, 1)
@@ -1888,6 +1900,95 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 	gettimeofday(&start_read_time, NULL);
 #endif
+	int ncid = 0, varid = 0;
+	if (!is_netcdf4) {
+		int res = 0;
+		if (pthread_mutex_lock(&nc_lock) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+			_oph_ioserver_nc_clear_buffer(&buff);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			if (transpose) {
+				free(counters);
+				free(src_products);
+				free(limits);
+			}
+			free(start);
+			free(count);
+			free(start_pointer);
+			free(sizemax);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		if ((res = nc_open(src_path, NC_NOWRITE, &ncid))) {
+			pthread_mutex_unlock(&nc_lock);
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
+			_oph_ioserver_nc_clear_buffer(&buff);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			if (transpose) {
+				free(counters);
+				free(src_products);
+				free(limits);
+			}
+			free(start);
+			free(count);
+			free(start_pointer);
+			free(sizemax);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		if (pthread_mutex_unlock(&nc_lock) != 0) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
+			_oph_ioserver_nc_clear_buffer(&buff);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			if (transpose) {
+				free(counters);
+				free(src_products);
+				free(limits);
+			}
+			free(start);
+			free(count);
+			free(start_pointer);
+			free(sizemax);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		//Extract measured variable information
+		if ((res = nc_inq_varid(ncid, measure_name, &varid))) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
+			pthread_mutex_lock(&nc_lock);
+			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
+			_oph_ioserver_nc_clear_buffer(&buff);
+			for (i = 0; i < arg_count; i++)
+				if (args[i])
+					free(args[i]);
+			free(args);
+			free(value_list);
+			if (transpose) {
+				free(counters);
+				free(src_products);
+				free(limits);
+			}
+			free(start);
+			free(count);
+			free(start_pointer);
+			free(sizemax);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+	}
 
 	unsigned long long ii;
 	for (ii = 0; ii < tuplexfrag_number; ii++) {
@@ -1907,7 +2008,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		//gettimeofday(&start_read_time, NULL);
 #endif
 		//Fill binary cache
-		if (_oph_ioserver_nc_read_data(&buff, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+		if (_oph_ioserver_nc_read_data_v0(&buff, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, ncid, varid)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			_oph_ioserver_nc_clear_buffer(&buff);
@@ -1925,6 +2026,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			free(count);
 			free(start_pointer);
 			free(sizemax);
+			if (!is_netcdf4) {
+				pthread_mutex_lock(&nc_lock);
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+			}
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 #ifdef DEBUG
@@ -1952,6 +2058,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			free(count);
 			free(start_pointer);
 			free(sizemax);
+			if (!is_netcdf4) {
+				pthread_mutex_lock(&nc_lock);
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+			}
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 
@@ -1977,6 +2088,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 				free(count);
 				free(start_pointer);
 				free(sizemax);
+				if (!is_netcdf4) {
+					pthread_mutex_lock(&nc_lock);
+					nc_close(ncid);
+					pthread_mutex_unlock(&nc_lock);
+				}
 				return OPH_IO_SERVER_MEMORY_ERROR;
 			}
 
@@ -2012,6 +2128,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			free(count);
 			free(start_pointer);
 			free(sizemax);
+			if (!is_netcdf4) {
+				pthread_mutex_lock(&nc_lock);
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+			}
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 		idDim++;
@@ -2034,6 +2155,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		printf("Fragment %s:  Total transpose :\t Time %d,%06d sec\n", measure_name, (int) total_transpose_time.tv_sec, (int) total_transpose_time.tv_usec);
 #endif
 
+	if (!is_netcdf4) {
+		pthread_mutex_lock(&nc_lock);
+		nc_close(ncid);
+		pthread_mutex_unlock(&nc_lock);
+	}
 	free(count);
 	free(start);
 	free(start_pointer);
@@ -2225,12 +2351,10 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 	}
 
-#ifndef OPH_PAR_NC4
-	if (dimension_ordered)
+	if (dimension_ordered && !is_netcdf4)
 		return _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
 						binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length);
 	else
-#endif
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 		return _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
 						binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length, dimension_ordered);
