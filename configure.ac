@@ -223,6 +223,15 @@ if test "x${have_netcdf}" = "xyes"; then
 fi
 AM_CONDITIONAL([HAVE_NETCDF], [test "x$have_netcdf" = "xyes"])
 
+#Enable parallel nc4 support
+parallel_nc4="no"
+AC_ARG_ENABLE(parallel_nc4,
+        [  --enable-parallel-nc4          turn on support for parallel nc4 loading],
+        [parallel_nc4="yes"],
+        [parallel_nc4="no"]
+        )
+AM_CONDITIONAL([PAR_NC4], [test "x$parallel_nc4" = "xyes" -a "x$have_netcdf" = "xyes"])
+AM_COND_IF([PAR_NC4], [AC_MSG_NOTICE(NetCDF4 parallel support enabled)], [AC_MSG_NOTICE(NetCDF4 parallel support disabled)])
 
 #Enable optimization
 optimization="no"

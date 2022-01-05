@@ -24,7 +24,11 @@ noinst_LTLIBRARIES=liboph_io_server_query_manager.la
 
 if HAVE_NETCDF
 liboph_io_server_query_manager_la_SOURCES = oph_io_server_query_blocks.c oph_io_server_query_engine.c  oph_io_server_nc.c  oph_io_server_query_procedures.c oph_io_server_query.c  
+if PAR_NC4
+liboph_io_server_query_manager_la_CFLAGS = ${OPENMP_CFLAGS} $(OPT) $(NETCDF_CFLAGS) -I../metadb -I../common -I../iostorage -I../query_engine -I. -fPIC @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\" -DOPH_IO_SERVER_NETCDF -DOPH_PAR_NC4
+else
 liboph_io_server_query_manager_la_CFLAGS = ${OPENMP_CFLAGS} $(OPT) $(NETCDF_CFLAGS) -I../metadb -I../common -I../iostorage -I../query_engine -I. -fPIC @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\" -DOPH_IO_SERVER_NETCDF
+endif
 liboph_io_server_query_manager_la_LIBADD = @LIBLTDL@ $(NETCDF_LIBS) -lm -L../common -ldebug -lhashtbl -loph_binary_io -loph_server_util -L../metadb  -loph_metadb  -L../query_engine -loph_query_engine -loph_query_parser -L../iostorage -loph_iostorage_data  -loph_iostorage_interface 
 liboph_io_server_query_manager_la_LDFLAGS = -module -static 
 
@@ -36,10 +40,9 @@ liboph_io_server_query_manager_la_LIBADD = @LIBLTDL@ -L../common -ldebug -lhasht
 liboph_io_server_query_manager_la_LDFLAGS = -module -static 
 endif
 
-if HAVE_NETCDF
-bin_PROGRAMS= oph_io_server oph_io_server_nc_load
-else
 bin_PROGRAMS= oph_io_server
+if PAR_NC4
+bin_PROGRAMS+= oph_io_server_nc_load
 endif
 bindir=${prefix}/bin
 
@@ -53,7 +56,7 @@ oph_io_server_LDADD = -L. -L../common -ldebug -lpthread -loph_binary_io -loph_se
 endif
 oph_io_server_LDFLAGS= -Wl,-R -Wl,. 
 
-if HAVE_NETCDF
+if PAR_NC4
 oph_io_server_nc_load_SOURCES = oph_io_server_nc_load.c
 oph_io_server_nc_load_CFLAGS = $(OPT) $(NETCDF_CFLAGS) -I../common -I../iostorage -I../query_engine -fPIC -I. -I../metadb -I../network @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
 oph_io_server_nc_load_LDADD = $(NETCDF_LIBS) -L. -L../common -ldebug -loph_server_conf -loph_io_server_query_manager

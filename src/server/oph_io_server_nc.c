@@ -65,6 +65,7 @@ extern unsigned long long cache_size;
 
 #define OPH_NC_LOAD_EXEC OPH_IO_SERVER_PREFIX "/bin/oph_io_server_nc_load"
 #define INT_LEN 13
+#define MSG_LEN 4096
 
 #ifdef DEBUG
 #include "taketime.h"
@@ -94,20 +95,24 @@ typedef struct Buffer {
 int _oph_ioserver_nc_clear_buffer_(Buffer * buff, char is_cache, char is_all)
 {
 	if (is_cache || is_all) {
+#ifdef OPH_PAR_NC4
 		if (buff->cache_sh) {
 			shmctl(buff->cache_sh, IPC_RMID, NULL);
 			buff->cache_sh = 0;
 		}
+#endif
 		if (buff->cache) {
 			free(buff->cache);
 			buff->cache = NULL;
 		}
 	}
 	if (!is_cache || is_all) {
+#ifdef OPH_OPH_PAR_NC4
 		if (buff->insert_sh) {
 			shmctl(buff->insert_sh, IPC_RMID, NULL);
 			buff->insert_sh = 0;
 		}
+#endif
 		if (buff->insert) {
 			free(buff->insert);
 			buff->insert = NULL;
@@ -132,45 +137,59 @@ int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, n
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_b(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_b(&(buff->cache), elems);
 				break;
 			case NC_SHORT:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_s(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_s(&(buff->cache), elems);
 				break;
 			case NC_INT:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_i(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_i(&(buff->cache), elems);
 				break;
 			case NC_INT64:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_l(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_l(&(buff->cache), elems);
 				break;
 			case NC_FLOAT:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_f(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_f(&(buff->cache), elems);
 				break;
 			case NC_DOUBLE:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_d(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_d(&(buff->cache), elems);
 				break;
 			default:
+#ifdef OPH_PAR_NC4
 				if (shared)
 					res = oph_iob_bin_array_shared_create_d(&(buff->cache_sh), elems);
 				else
+#endif
 					res = oph_iob_bin_array_create_d(&(buff->cache), elems);
 		}
 		if (res) {
@@ -193,46 +212,60 @@ int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, n
 	switch (vartype) {
 		case NC_BYTE:
 		case NC_CHAR:
+#ifdef OPH_PAR_NC4
 			//Memory is shared only if shared flag is enabled and no transpose is requried
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_b(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_b(&(buff->insert), elems);
 			break;
 		case NC_SHORT:
+#ifdef OPH_PAR_NC4
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_s(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_s(&(buff->insert), elems);
 			break;
 		case NC_INT:
+#ifdef OPH_PAR_NC4
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_i(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_i(&(buff->insert), elems);
 			break;
 		case NC_INT64:
+#ifdef OPH_PAR_NC4
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_l(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_l(&(buff->insert), elems);
 			break;
 		case NC_FLOAT:
+#ifdef OPH_PAR_NC4
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_f(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_f(&(buff->insert), elems);
 			break;
 		case NC_DOUBLE:
+#ifdef OPH_PAR_NC4
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_d(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_d(&(buff->insert), elems);
 			break;
 		default:
+#ifdef OPH_PAR_NC4
 			if (!transpose && shared)
 				res = oph_iob_bin_array_shared_create_d(&(buff->insert_sh), elems);
 			else
+#endif
 				res = oph_iob_bin_array_create_d(&(buff->insert), elems);
 	}
 	if (res) {
@@ -247,6 +280,7 @@ int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, n
 
 int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
 {
+#ifdef OPH_PAR_NC4
 	if (shared) {
 		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Loading data from binary\n");
 		logging(LOG_DEBUG, __FILE__, __LINE__, "Loading data from binary\n");
@@ -257,34 +291,62 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 		else
 			shm_id = buff->insert_sh;
 
+		//Setup message for child process
+		char msg[MSG_LEN] = { '\0' };
+		int msg_len = INT_LEN + strlen(src_path) + 1 + strlen(measure_name) + 1 + ndims * INT_LEN + 4;
+		if (msg_len > MSG_LEN) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to setup message for child process\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to setup message for child process\n");
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		int c = snprintf(msg, MSG_LEN, "%d|%s|%s|", shm_id, src_path, measure_name);
+		int i = 0, index = 0;
+		for (i = 0; i < ndims; i++)
+			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", (size_t *) start[i]);
+		msg[c + index++] = '|';
+		for (i = 0; i < ndims; i++)
+			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", (size_t *) count[i]);
+
+		pmesg(LOG_DEBUG, __FILE__, __LINE__, "MESSAGE IS %s\n", msg);
+
+		//Open pipe
+		int fd[2];
+		if (pipe(fd) == -1) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in opening pipe: %s\n", strerror(errno));
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error in opening pipe: %s\n", strerror(errno));
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
 		pid_t child_pid;
 		//Fork process to fill shared memory
 		if ((child_pid = fork()) == 0) {
-			//Build string for shared memory id
-			char id[INT_LEN] = { 0 };
-			int c = snprintf(id, INT_LEN, "%d", shm_id);
-
-			//Build string for start and count arrays
-			char start_str[ndims * INT_LEN], count_str[ndims * INT_LEN];
-
-			int i = 0;
-			int index1 = 0, index2 = 0;
-			for (i = 0; i < ndims; i++) {
-				index1 += snprintf(&start_str[index1], INT_LEN + 1, "%d;", (size_t *) start[i]);
-				index2 += snprintf(&count_str[index2], INT_LEN + 1, "%d;", (size_t *) count[i]);
-			}
+			//Replace SDTIN with pipe
+			close(STDIN_FILENO);
+			dup(fd[0]);
+			close(fd[0]);
+			close(fd[1]);
 
 			char *exec_path = OPH_NC_LOAD_EXEC;
 			if (execvp(exec_path, (char *[]) {
-				   exec_path, id, src_path, measure_name, start_str, count_str, NULL}) == -1)
+				   exec_path, NULL}) == -1)
 				exit(errno);
 			else
 				exit(0);
 		}
+		//Close read end of pipe
+		close(fd[0]);
+		//Send message to child process
+		if (write(fd[1], msg, msg_len) == -1) {
+			close(fd[1]);
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to send shared memory id to child\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to send shared memory id to child\n");
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		close(fd[1]);
 
+		//Wait for child process to end
 		int status;
 		waitpid(child_pid, &status, 0);
-		if((WIFEXITED(status)) == 0) {
+		if ((WIFEXITED(status)) == 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			return OPH_IO_SERVER_MEMORY_ERROR;
@@ -298,6 +360,7 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 	} else {
+#endif
 		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Loading data directly\n");
 		logging(LOG_DEBUG, __FILE__, __LINE__, "Loading data directly\n");
 
@@ -370,8 +433,9 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling: %s\n", nc_strerror(res));
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
+#ifdef OPH_PAR_NC4
 	}
-
+#endif
 	return OPH_IO_SERVER_SUCCESS;
 }
 
@@ -379,6 +443,7 @@ int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_ty
 #define _oph_ioserver_nc_release_buffer_insert(buff, buffer) _oph_ioserver_nc_release_buffer(buff, buffer, 0)
 int _oph_ioserver_nc_release_buffer(Buffer * buff, char *buffer, char is_cache)
 {
+#ifdef OPH_PAR_NC4
 	if (is_cache) {
 		if (buff->cache_sh)
 			shmdt(buffer);
@@ -386,6 +451,7 @@ int _oph_ioserver_nc_release_buffer(Buffer * buff, char *buffer, char is_cache)
 		if (buff->insert_sh)
 			shmdt(buffer);
 	}
+#endif
 	return OPH_IO_SERVER_SUCCESS;
 }
 
@@ -394,6 +460,7 @@ int _oph_ioserver_nc_release_buffer(Buffer * buff, char *buffer, char is_cache)
 int _oph_ioserver_nc_get_buffer(Buffer * buff, char **buffer, char is_cache)
 {
 	if (is_cache) {
+#ifdef OPH_PAR_NC4
 		if (buff->cache_sh) {
 			//Attach shared memory segment to process
 			if ((*buffer = shmat(buff->cache_sh, NULL, 0)) == (char *) -1) {
@@ -402,8 +469,10 @@ int _oph_ioserver_nc_get_buffer(Buffer * buff, char **buffer, char is_cache)
 				return OPH_IO_SERVER_MEMORY_ERROR;
 			}
 		} else
+#endif
 			*buffer = buff->cache;
 	} else {
+#ifdef OPH_PAR_NC4
 		if (buff->insert_sh) {
 			//Attach shared memory segment to process
 			if ((*buffer = shmat(buff->insert_sh, NULL, 0)) == (char *) -1) {
@@ -412,6 +481,7 @@ int _oph_ioserver_nc_get_buffer(Buffer * buff, char **buffer, char is_cache)
 				return OPH_IO_SERVER_MEMORY_ERROR;
 			}
 		} else
+#endif
 			*buffer = buff->insert;
 	}
 	return OPH_IO_SERVER_SUCCESS;
@@ -2070,6 +2140,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+#ifdef OPH_PAR_NC4
 	//Read format metadata
 	int format = 0;
 	if ((retval = nc_inq_format(ncid, &format))) {
@@ -2079,6 +2150,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read format information: %s\n", nc_strerror(retval));
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+#endif
 	nc_close(ncid);
 
 	if (pthread_mutex_unlock(&nc_lock) != 0) {
@@ -2094,6 +2166,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	}
 	//Apply proper format management
 	char is_netcdf4 = 0;
+#ifdef OPH_PAR_NC4
 	switch (format) {
 		case NC_FORMAT_CDF5:
 		case NC_FORMAT_NETCDF4:
@@ -2105,7 +2178,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		default:
 			is_netcdf4 = 0;
 	}
-
+#endif
 	//Compute array_length from implicit dims
 	unsigned long long array_length = 1;
 	short int nimp = 0, nexp = 0;
@@ -2152,16 +2225,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 	}
 
-/*	if (dimension_ordered)
+#ifndef OPH_PAR_NC4
+	if (dimension_ordered)
 		return _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
 						binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length);
-	else*/
+	else
+#endif
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
-	return _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
-					binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length, dimension_ordered);
+		return _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
+						binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #else
-	return _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
-					binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length, dimension_ordered);
+		return _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
+						binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos, array_length, dimension_ordered);
 #endif
 
 }
