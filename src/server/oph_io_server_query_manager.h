@@ -302,12 +302,13 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
  * \param dims_index Array of dimension indexes
  * \param dims_start Array of dimension start keys
  * \param dims_end Array of dimension end keys
+ * \param dim_unlim Index of the unlimited dimension
  * \param binary_frag Pointer to recordset structure where fragment is being created
  * \param frag_size Size of fragment being created
  * \return 0 if successfull
  */
 int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			  short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+			  short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
 
 #endif
 
