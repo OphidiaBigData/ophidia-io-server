@@ -120,11 +120,39 @@ int _oph_ioserver_nc_clear_buffer_(Buffer * buff, char is_cache, char is_all)
 	}
 }
 
-int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, nc_type vartype, long long elems)
+int _oph_ioserver_nc_init_buffer(Buffer * buff)
 {
-	//Init Buffer struct
 	*buff = (Buffer) {
 	NULL, NULL, 0, 0};
+	return OPH_IO_SERVER_SUCCESS;
+}
+
+int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, nc_type vartype, long long elems)
+{
+	if (transpose) {
+#ifdef OPH_PAR_NC4
+		if (shared) {
+			if (buff->cache_sh)
+				return OPH_IO_SERVER_SUCCESS;
+		} else
+#endif
+		{
+			if (buff->cache)
+				return OPH_IO_SERVER_SUCCESS;
+		}
+	} else {
+#ifdef OPH_PAR_NC4
+		if (shared) {
+			if (buff->insert_sh)
+				return OPH_IO_SERVER_SUCCESS;
+		} else
+#endif
+		{
+			if (buff->insert)
+				return OPH_IO_SERVER_SUCCESS;
+		}
+	}
+
 	int res = 0;
 
 	if (memory_check()) {
@@ -279,7 +307,8 @@ int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, n
 }
 
 
-int _oph_ioserver_nc_read_data_v0(Buffer * buff, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count, int ncid, int varid)
+int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count, int ncid,
+				  int varid)
 {
 #ifdef OPH_PAR_NC4
 	if (shared) {
@@ -409,25 +438,25 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, char transpose, char shared, nc
 		switch (vartype) {
 			case NC_BYTE:
 			case NC_CHAR:
-				res = nc_get_vara_uchar(ncid_int, varid_int, start, count, (unsigned char *) (buffer));
+				res = nc_get_vara_uchar(ncid_int, varid_int, start, count, (unsigned char *) buffer + offset);
 				break;
 			case NC_SHORT:
-				res = nc_get_vara_short(ncid_int, varid_int, start, count, (short *) (buffer));
+				res = nc_get_vara_short(ncid_int, varid_int, start, count, (short *) buffer + offset);
 				break;
 			case NC_INT:
-				res = nc_get_vara_int(ncid_int, varid_int, start, count, (int *) (buffer));
+				res = nc_get_vara_int(ncid_int, varid_int, start, count, (int *) buffer + offset);
 				break;
 			case NC_INT64:
-				res = nc_get_vara_longlong(ncid_int, varid_int, start, count, (long long *) (buffer));
+				res = nc_get_vara_longlong(ncid_int, varid_int, start, count, (long long *) buffer + offset);
 				break;
 			case NC_FLOAT:
-				res = nc_get_vara_float(ncid_int, varid_int, start, count, (float *) (buffer));
+				res = nc_get_vara_float(ncid_int, varid_int, start, count, (float *) buffer + offset);
 				break;
 			case NC_DOUBLE:
-				res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) (buffer));
+				res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) buffer + offset);
 				break;
 			default:
-				res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) (buffer));
+				res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) buffer + offset);
 		}
 
 		if (ncid == 0 || varid == 0) {
@@ -446,9 +475,9 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, char transpose, char shared, nc
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_data(Buffer * buff, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
+int _oph_ioserver_nc_read_data(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
 {
-	return _oph_ioserver_nc_read_data_v0(buff, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0);
+	return _oph_ioserver_nc_read_data_v0(buff, offset, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0);
 }
 
 #define _oph_ioserver_nc_release_buffer_cache(buff, buffer) _oph_ioserver_nc_release_buffer(buff, buffer, 1)
@@ -706,10 +735,10 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, char **binary_cache, char **binary_insert, char is_last, char dimension_ordered)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last, char dimension_ordered)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !binary_cache || !binary_insert) {
+	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -786,8 +815,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	}
 	//Create binary array
 	long long elems = array_length * tuplexfrag_number;
-	Buffer buff;
-	if (_oph_ioserver_nc_create_buffer(&buff, transpose, is_netcdf4, vartype, elems)) {
+	if (_oph_ioserver_nc_create_buffer(buff, transpose, is_netcdf4, vartype, elems)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		return OPH_IO_SERVER_MEMORY_ERROR;
@@ -823,7 +851,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		if (!flag) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Invalid explicit dimensions in task string \n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Invalid explicit dimensions in task string \n");
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(start);
 			free(count);
 			free(start_pointer);
@@ -878,9 +906,9 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		total *= count[i];
 
 	if (total != _array_length * _tuplexfrag_number) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
-		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
-		_oph_ioserver_nc_clear_buffer(&buff);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = %d, TOTAL = %d\n", _array_length, _tuplexfrag_number, total);
+		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = %d, TOTAL = %d\n", _array_length, _tuplexfrag_number, total);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(start);
 		free(count);
 		free(start_pointer);
@@ -904,10 +932,10 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
-	if (_oph_ioserver_nc_read_data(&buff, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
-		_oph_ioserver_nc_clear_buffer(&buff);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(count);
 		free(start);
 		free(start_pointer);
@@ -981,7 +1009,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 				if (!flag) {
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Invalid dimensions in task string \n");
 					logging(LOG_ERROR, __FILE__, __LINE__, "Invalid dimensions in task string \n");
-					_oph_ioserver_nc_clear_buffer(&buff);
+					_oph_ioserver_nc_clear_buffer(buff);
 					free(count);
 					free(file_indexes);
 					free(counters);
@@ -1000,10 +1028,10 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 #endif
 		//Attach shared memory segment to process
 		char *buffer_in = NULL, *buffer_out = NULL;
-		if (_oph_ioserver_nc_get_buffer_cache(&buff, &buffer_in) || _oph_ioserver_nc_get_buffer_insert(&buff, &buffer_out)) {
+		if (_oph_ioserver_nc_get_buffer_cache(buff, &buffer_in) || _oph_ioserver_nc_get_buffer_insert(buff, &buffer_out)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(count);
 			free(file_indexes);
 			free(counters);
@@ -1017,8 +1045,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		_oph_ioserver_nc_cache_to_buffer3(ndims, counters, limits, blocks, src_products, buffer_in, dst_products, buffer_out, sizeof_type);
 
 		//Detach shared memory segment
-		_oph_ioserver_nc_release_buffer_cache(&buff, buffer_in);
-		_oph_ioserver_nc_release_buffer_insert(&buff, buffer_out);
+		_oph_ioserver_nc_release_buffer_cache(buff, buffer_in);
+		_oph_ioserver_nc_release_buffer_insert(buff, buffer_out);
 #ifdef DEBUG
 		gettimeofday(&end_transpose_time, NULL);
 		timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
@@ -1034,14 +1062,14 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 
 	free(count);
 	//Free only cache
-	_oph_ioserver_nc_clear_buffer_cache(&buff);
+	_oph_ioserver_nc_clear_buffer_cache(buff);
 
 	int arg_count = binary_frag->field_num;
 	oph_query_arg **args = (oph_query_arg **) calloc(arg_count, sizeof(oph_query_arg *));
 	if (!(args)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		_oph_ioserver_nc_clear_buffer_insert(&buff);
+		_oph_ioserver_nc_clear_buffer_insert(buff);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -1053,7 +1081,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			if (args[i])
 				free(args[i]);
 		free(args);
-		_oph_ioserver_nc_clear_buffer_insert(&buff);
+		_oph_ioserver_nc_clear_buffer_insert(buff);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -1074,7 +1102,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 					free(args[i]);
 			free(args);
 			free(value_list);
-			_oph_ioserver_nc_clear_buffer_insert(&buff);
+			_oph_ioserver_nc_clear_buffer_insert(buff);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 	}
@@ -1092,7 +1120,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	unsigned long long cumulative_size = 0;
 
 	char *buffer = NULL;
-	if (_oph_ioserver_nc_get_buffer_insert(&buff, &buffer)) {
+	if (_oph_ioserver_nc_get_buffer_insert(buff, &buffer)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		for (i = 0; i < arg_count; i++)
@@ -1100,7 +1128,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 				free(args[i]);
 		free(args);
 		free(value_list);
-		_oph_ioserver_nc_clear_buffer_insert(&buff);
+		_oph_ioserver_nc_clear_buffer_insert(buff);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -1117,8 +1145,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 					free(args[i]);
 			free(args);
 			free(value_list);
-			_oph_ioserver_nc_release_buffer_insert(&buff, buffer);
-			_oph_ioserver_nc_clear_buffer_insert(&buff);
+			_oph_ioserver_nc_release_buffer_insert(buff, buffer);
+			_oph_ioserver_nc_clear_buffer_insert(buff);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 		//Add record to partial record set
@@ -1135,8 +1163,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			free(args[i]);
 	free(args);
 	free(value_list);
-	_oph_ioserver_nc_release_buffer_insert(&buff, buffer);
-	_oph_ioserver_nc_clear_buffer_insert(&buff);
+	_oph_ioserver_nc_release_buffer_insert(buff, buffer);
+	_oph_ioserver_nc_clear_buffer_insert(buff);
 
 	*frag_size = cumulative_size;
 
@@ -1146,10 +1174,10 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, char **binary_cache, char **binary_insert, char is_last, char dimension_ordered)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !binary_cache || !binary_insert) {
+	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1226,8 +1254,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 	}
 	//Create binary array
 	long long elems = array_length * tuplexfrag_number;
-	Buffer buff;
-	if (_oph_ioserver_nc_create_buffer(&buff, transpose, is_netcdf4, vartype, elems)) {
+	if (_oph_ioserver_nc_create_buffer(buff, transpose, is_netcdf4, vartype, elems)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		return OPH_IO_SERVER_MEMORY_ERROR;
@@ -1263,7 +1290,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 		if (!flag) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Invalid explicit dimensions in task string \n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Invalid explicit dimensions in task string \n");
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(start);
 			free(count);
 			free(start_pointer);
@@ -1318,9 +1345,9 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 		total *= count[i];
 
 	if (total != _array_length * _tuplexfrag_number) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
-		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
-		_oph_ioserver_nc_clear_buffer(&buff);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = %d, TOTAL = %d\n", _array_length, _tuplexfrag_number, total);
+		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = %d, TOTAL = %d\n", _array_length, _tuplexfrag_number, total);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(start);
 		free(count);
 		free(start_pointer);
@@ -1344,10 +1371,10 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
-	if (_oph_ioserver_nc_read_data(&buff, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
-		_oph_ioserver_nc_clear_buffer(&buff);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(count);
 		free(start);
 		free(start_pointer);
@@ -1406,7 +1433,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 				if (!flag) {
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Invalid dimensions in task string \n");
 					logging(LOG_ERROR, __FILE__, __LINE__, "Invalid dimensions in task string \n");
-					_oph_ioserver_nc_clear_buffer(&buff);
+					_oph_ioserver_nc_clear_buffer(buff);
 					free(count);
 					free(file_indexes);
 					free(counters);
@@ -1423,10 +1450,10 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 #endif
 		//Attach shared memory segment to process
 		char *buffer_in = NULL, *buffer_out = NULL;
-		if (_oph_ioserver_nc_get_buffer_cache(&buff, &buffer_in) || _oph_ioserver_nc_get_buffer_insert(&buff, &buffer_out)) {
+		if (_oph_ioserver_nc_get_buffer_cache(buff, &buffer_in) || _oph_ioserver_nc_get_buffer_insert(buff, &buffer_out)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(count);
 			free(file_indexes);
 			free(counters);
@@ -1438,8 +1465,8 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 		oph_ioserver_nc_cache_to_buffer(ndims, counters, limits, src_products, buffer_in, buffer_out, sizeof_type);
 
 		//Detach shared memory segment
-		_oph_ioserver_nc_release_buffer_cache(&buff, buffer_in);
-		_oph_ioserver_nc_release_buffer_insert(&buff, buffer_out);
+		_oph_ioserver_nc_release_buffer_cache(buff, buffer_in);
+		_oph_ioserver_nc_release_buffer_insert(buff, buffer_out);
 #ifdef DEBUG
 		gettimeofday(&end_transpose_time, NULL);
 		timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
@@ -1453,14 +1480,14 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 
 	free(count);
 	//Free only cache
-	_oph_ioserver_nc_clear_buffer_cache(&buff);
+	_oph_ioserver_nc_clear_buffer_cache(buff);
 
 	int arg_count = binary_frag->field_num;
 	oph_query_arg **args = (oph_query_arg **) calloc(arg_count, sizeof(oph_query_arg *));
 	if (!(args)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		_oph_ioserver_nc_clear_buffer_insert(&buff);
+		_oph_ioserver_nc_clear_buffer_insert(buff);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -1472,7 +1499,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 			if (args[i])
 				free(args[i]);
 		free(args);
-		_oph_ioserver_nc_clear_buffer_insert(&buff);
+		_oph_ioserver_nc_clear_buffer_insert(buff);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -1493,7 +1520,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 					free(args[i]);
 			free(args);
 			free(value_list);
-			_oph_ioserver_nc_clear_buffer_insert(&buff);
+			_oph_ioserver_nc_clear_buffer_insert(buff);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 	}
@@ -1511,7 +1538,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 	unsigned long long cumulative_size = 0;
 
 	char *buffer = NULL;
-	if (_oph_ioserver_nc_get_buffer_insert(&buff, &buffer)) {
+	if (_oph_ioserver_nc_get_buffer_insert(buff, &buffer)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		for (i = 0; i < arg_count; i++)
@@ -1519,7 +1546,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 				free(args[i]);
 		free(args);
 		free(value_list);
-		_oph_ioserver_nc_clear_buffer_insert(&buff);
+		_oph_ioserver_nc_clear_buffer_insert(buff);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
@@ -1536,8 +1563,8 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 					free(args[i]);
 			free(args);
 			free(value_list);
-			_oph_ioserver_nc_release_buffer_insert(&buff, buffer);
-			_oph_ioserver_nc_clear_buffer_insert(&buff);
+			_oph_ioserver_nc_release_buffer_insert(buff, buffer);
+			_oph_ioserver_nc_clear_buffer_insert(buff);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 		//Add record to partial record set
@@ -1554,8 +1581,8 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 			free(args[i]);
 	free(args);
 	free(value_list);
-	_oph_ioserver_nc_release_buffer_insert(&buff, buffer);
-	_oph_ioserver_nc_clear_buffer_insert(&buff);
+	_oph_ioserver_nc_release_buffer_insert(buff, buffer);
+	_oph_ioserver_nc_clear_buffer_insert(buff);
 
 	*frag_size = cumulative_size;
 
@@ -1566,10 +1593,10 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, char **binary_cache, char **binary_insert, char is_last)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !binary_cache || !binary_insert) {
+	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1649,8 +1676,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 	}
 	//Create binary array
 	long long elems = array_length;
-	Buffer buff;
-	if (_oph_ioserver_nc_create_buffer(&buff, transpose, is_netcdf4, vartype, elems)) {
+	if (_oph_ioserver_nc_create_buffer(buff, transpose, is_netcdf4, vartype, elems)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		return OPH_IO_SERVER_MEMORY_ERROR;
@@ -1686,7 +1712,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		if (!flag) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Invalid explicit dimensions in task string \n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Invalid explicit dimensions in task string \n");
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(start);
 			free(count);
 			free(start_pointer);
@@ -1723,9 +1749,9 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		total *= count[i];
 
 	if (total != _array_length) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
-		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
-		_oph_ioserver_nc_clear_buffer(&buff);
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = 1 (fixed), TOTAL = %d\n", _array_length, total);
+		logging(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = 1 (fixed), TOTAL = %d\n", _array_length, total);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(start);
 		free(count);
 		free(start_pointer);
@@ -1776,7 +1802,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 				if (!flag) {
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Invalid dimensions in task string \n");
 					logging(LOG_ERROR, __FILE__, __LINE__, "Invalid dimensions in task string \n");
-					_oph_ioserver_nc_clear_buffer(&buff);
+					_oph_ioserver_nc_clear_buffer(buff);
 					free(start);
 					free(count);
 					free(start_pointer);
@@ -1802,7 +1828,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			free(src_products);
 			free(limits);
 		}
-		_oph_ioserver_nc_clear_buffer(&buff);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(start);
 		free(count);
 		free(start_pointer);
@@ -1823,7 +1849,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			free(src_products);
 			free(limits);
 		}
-		_oph_ioserver_nc_clear_buffer(&buff);
+		_oph_ioserver_nc_clear_buffer(buff);
 		free(start);
 		free(count);
 		free(start_pointer);
@@ -1853,7 +1879,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 				free(src_products);
 				free(limits);
 			}
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(start);
 			free(count);
 			free(start_pointer);
@@ -1888,7 +1914,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		if (pthread_mutex_lock(&nc_lock) != 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -1909,7 +1935,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			pthread_mutex_unlock(&nc_lock);
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to open netcdf file '%s': %s\n", src_path, nc_strerror(res));
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -1929,7 +1955,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		if (pthread_mutex_unlock(&nc_lock) != 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -1953,7 +1979,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			pthread_mutex_lock(&nc_lock);
 			nc_close(ncid);
 			pthread_mutex_unlock(&nc_lock);
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -1992,11 +2018,12 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 #ifdef DEBUG
 		//gettimeofday(&start_read_time, NULL);
 #endif
+		// This version is not optimized in case the unlimited dimension is implicit!!!!! offset is set to 0 for this reason
 		//Fill binary cache
-		if (_oph_ioserver_nc_read_data_v0(&buff, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, ncid, varid)) {
+		if (_oph_ioserver_nc_read_data_v0(buff, 0, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, ncid, varid)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -2025,10 +2052,10 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 #endif
 		//Attach shared memory segment to process
 		char *buffer_in = NULL, *buffer_out = NULL;
-		if (_oph_ioserver_nc_get_buffer_insert(&buff, &buffer_out)) {
+		if (_oph_ioserver_nc_get_buffer_insert(buff, &buffer_out)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_clear_buffer(buff);
 			for (i = 0; i < arg_count; i++)
 				if (args[i])
 					free(args[i]);
@@ -2055,10 +2082,10 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 #ifdef DEBUG
 			//gettimeofday(&start_transpose_time, NULL);
 #endif
-			if (_oph_ioserver_nc_get_buffer_cache(&buff, &buffer_in)) {
+			if (_oph_ioserver_nc_get_buffer_cache(buff, &buffer_in)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				_oph_ioserver_nc_clear_buffer(&buff);
+				_oph_ioserver_nc_clear_buffer(buff);
 				for (i = 0; i < arg_count; i++)
 					if (args[i])
 						free(args[i]);
@@ -2084,7 +2111,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			oph_ioserver_nc_cache_to_buffer(nimp, counters, limits, src_products, buffer_in, buffer_out, sizeof_type);
 
 			//Detach shared memory segment
-			_oph_ioserver_nc_release_buffer_cache(&buff, buffer_in);
+			_oph_ioserver_nc_release_buffer_cache(buff, buffer_in);
 #ifdef DEBUG
 			//gettimeofday(&end_transpose_time, NULL);
 			//timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
@@ -2107,8 +2134,8 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 				free(src_products);
 				free(limits);
 			}
-			_oph_ioserver_nc_release_buffer_insert(&buff, buffer_out);
-			_oph_ioserver_nc_clear_buffer(&buff);
+			_oph_ioserver_nc_release_buffer_insert(buff, buffer_out);
+			_oph_ioserver_nc_clear_buffer(buff);
 			free(start);
 			free(count);
 			free(start_pointer);
@@ -2127,7 +2154,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 		new_record = NULL;
 		row_size = 0;
-		_oph_ioserver_nc_release_buffer_insert(&buff, buffer_out);
+		_oph_ioserver_nc_release_buffer_insert(buff, buffer_out);
 	}
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
@@ -2159,7 +2186,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			free(args[i]);
 	free(args);
 	free(value_list);
-	_oph_ioserver_nc_clear_buffer(&buff);
+	_oph_ioserver_nc_clear_buffer(buff);
 
 	*frag_size = cumulative_size;
 
@@ -2200,7 +2227,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 	unsigned long long _tuplexfrag_number;
 	long long _frag_key_start, _f1, _f2;
-	char *binary_cache = NULL, *binary_insert = NULL;
+	Buffer buff_, *buff = &buff_;
+	_oph_ioserver_nc_init_buffer(buff);
 
 	char src_paths[1 + strlen(src_path)];
 	strcpy(src_paths, src_path);
@@ -2281,6 +2309,13 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+		if (ndims != dim_num) {
+			nc_close(ncid);
+			pthread_mutex_unlock(&nc_lock);
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
 #ifdef OPH_PAR_NC4
 		//Read format metadata
 		int format = 0;
@@ -2292,17 +2327,28 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 #endif
-		nc_close(ncid);
+		int dim_id[dim_num];
+		if (src_paths_num > 1) {
+			if ((retval = nc_inq_vardimid(ncid, varid, dim_id))) {
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension ids\n");
+				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension ids\n");
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+			if ((retval = nc_inq_dimlen(ncid, dim_id[dim_unlim], &lenp))) {
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension real size\n");
+				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension real size\n");
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
+		}
 
+		nc_close(ncid);
 		if (pthread_mutex_unlock(&nc_lock) != 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
-			return OPH_IO_SERVER_EXEC_ERROR;
-		}
-
-		if (ndims != dim_num) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
-			logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 
@@ -2311,17 +2357,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 		int internal_size = 1;
 		if (src_paths_num > 1) {
-			int dim_id[ndims];
-			if ((retval = nc_inq_vardimid(ncid, varid, dim_id))) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension ids\n");
-				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension ids\n");
-				return OPH_IO_SERVER_EXEC_ERROR;
-			}
-			if ((retval = nc_inq_dimlen(ncid, dim_id[dim_unlim], &lenp))) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension real size\n");
-				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to extract dimension real size\n");
-				return OPH_IO_SERVER_EXEC_ERROR;
-			}
 			// Reduce subset to current file range
 			if (_dims_start[dim_unlim] < offset)
 				_dims_start[dim_unlim] = offset;
@@ -2357,9 +2392,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 					_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
-					pthread_mutex_lock(&nc_lock);
-					nc_close(ncid);
-					pthread_mutex_unlock(&nc_lock);
 					offset += lenp;
 					continue;
 				}
@@ -2438,18 +2470,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			return_value =
 			    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start,
 						     dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
-						     array_length, _array_length, internal_size, &binary_cache, &binary_insert, k == src_paths_num);
+						     array_length, _array_length, internal_size, buff, k == src_paths_num);
 		else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
 			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start,
 						     dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
-						     array_length, _array_length, internal_size, &binary_cache, &binary_insert, k == src_paths_num, dimension_ordered);
+						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
 #else
 			return_value =
 			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start,
 						     dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
-						     array_length, _array_length, internal_size, &binary_cache, &binary_insert, k == src_paths_num, dimension_ordered);
+						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
 #endif
 		if (return_value) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading the file %s\n", src_path);
@@ -2461,10 +2493,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		k++;
 	}
 
-	if (binary_cache)
-		free(binary_cache);
-	if (binary_insert)
-		free(binary_insert);
+	_oph_ioserver_nc_clear_buffer(buff);
 
 	return return_value;
 }
