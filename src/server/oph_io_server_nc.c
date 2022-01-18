@@ -428,7 +428,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, cha
 				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
 				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(res));
 				pthread_mutex_lock(&nc_lock);
-				nc_close(ncid);
+				nc_close(ncid_int);
 				pthread_mutex_unlock(&nc_lock);
 				return OPH_IO_SERVER_EXEC_ERROR;
 			}
@@ -463,7 +463,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, cha
 
 		if (ncid == 0 || varid == 0) {
 			pthread_mutex_lock(&nc_lock);
-			nc_close(ncid);
+			nc_close(ncid_int);
 			pthread_mutex_unlock(&nc_lock);
 		}
 		if (res != 0) {
