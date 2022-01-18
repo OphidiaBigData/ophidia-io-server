@@ -88,6 +88,12 @@ int main(int argc, char *argv[])
 	}
 	*ptr = 0;
 	char *count_msg = ptr + 1;
+	if ((ptr = strchr(ptr + 1, '|')) == NULL) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to parse message from master process\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+	*ptr = 0;
+	int offset = strtol(ptr + 1, NULL, 10);
 
 	char *c1 = start_msg;
 	char *c2 = count_msg;
@@ -149,25 +155,25 @@ int main(int argc, char *argv[])
 	switch (vartype) {
 		case NC_BYTE:
 		case NC_CHAR:
-			res = nc_get_vara_uchar(ncfile_id, varid, start, count, (unsigned char *) (buffer));
+			res = nc_get_vara_uchar(ncfile_id, varid, start, count, (unsigned char *) buffer + offset);
 			break;
 		case NC_SHORT:
-			res = nc_get_vara_short(ncfile_id, varid, start, count, (short *) (buffer));
+			res = nc_get_vara_short(ncfile_id, varid, start, count, (short *) buffer + offset);
 			break;
 		case NC_INT:
-			res = nc_get_vara_int(ncfile_id, varid, start, count, (int *) (buffer));
+			res = nc_get_vara_int(ncfile_id, varid, start, count, (int *) buffer + offset);
 			break;
 		case NC_INT64:
-			res = nc_get_vara_longlong(ncfile_id, varid, start, count, (long long *) (buffer));
+			res = nc_get_vara_longlong(ncfile_id, varid, start, count, (long long *) buffer + offset);
 			break;
 		case NC_FLOAT:
-			res = nc_get_vara_float(ncfile_id, varid, start, count, (float *) (buffer));
+			res = nc_get_vara_float(ncfile_id, varid, start, count, (float *) buffer + offset);
 			break;
 		case NC_DOUBLE:
-			res = nc_get_vara_double(ncfile_id, varid, start, count, (double *) (buffer));
+			res = nc_get_vara_double(ncfile_id, varid, start, count, (double *) buffer + offset);
 			break;
 		default:
-			res = nc_get_vara_double(ncfile_id, varid, start, count, (double *) (buffer));
+			res = nc_get_vara_double(ncfile_id, varid, start, count, (double *) buffer + offset);
 	}
 	nc_close(ncfile_id);
 

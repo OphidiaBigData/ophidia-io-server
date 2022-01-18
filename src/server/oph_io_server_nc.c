@@ -323,7 +323,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, cha
 
 		//Setup message for child process
 		char msg[MSG_LEN] = { '\0' };
-		int msg_len = INT_LEN + strlen(src_path) + 1 + strlen(measure_name) + 1 + ndims * INT_LEN + 4;
+		int msg_len = strlen(src_path) + strlen(measure_name) + 2 * (ndims + 1) * (INT_LEN + 1);
 		if (msg_len > MSG_LEN) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to setup message for child process\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to setup message for child process\n");
@@ -336,6 +336,8 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, cha
 		msg[c + index++] = '|';
 		for (i = 0; i < ndims; i++)
 			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", (size_t *) count[i]);
+		msg[c + index++] = '|';
+		snprintf(&msg[c + index], INT_LEN + 1, "%d", offset);
 
 		pmesg(LOG_DEBUG, __FILE__, __LINE__, "MESSAGE IS %s\n", msg);
 
@@ -2468,19 +2470,19 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 		if (dimension_ordered && !is_netcdf4)
 			return_value =
-			    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start,
-						     dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
+			    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
+						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
 						     array_length, _array_length, internal_size, buff, k == src_paths_num);
 		else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
-			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start,
-						     dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
+			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
+						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
 						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
 #else
 			return_value =
-			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, dims_start,
-						     dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
+			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
+						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
 						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
 #endif
 		if (return_value) {
