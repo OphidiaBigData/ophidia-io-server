@@ -2395,6 +2395,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				}
 				if (!_tuplexfrag_number) {
 					offset += lenp;
+					k++;
 					continue;
 				}
 			}
@@ -2470,18 +2471,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 		if (dimension_ordered && !is_netcdf4)
 			return_value =
-			    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
+			    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
 						     array_length, _array_length, internal_size, buff, k == src_paths_num);
 		else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
-			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
+			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
 						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
 #else
 			return_value =
-			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
+			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
 						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
 #endif
