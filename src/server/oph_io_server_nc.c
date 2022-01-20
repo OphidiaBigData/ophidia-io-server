@@ -797,7 +797,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 
 		//External explicit
 		if (dims_type[j]) {
-			relative_rows = (int) (tuplexfrag_number / curr_rows);
+			relative_rows = (int) (_tuplexfrag_number / curr_rows);
 			curr_rows *= (dims_end[j] - dims_start[j] + 1);
 			if (relative_rows < (dims_end[j] - dims_start[j] + 1)) {
 				whole_explicit = 0;
@@ -807,12 +807,12 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	}
 
 	//If external explicit is not integer
-	if ((tuplexfrag_number % curr_rows) != 0)
+	if (_tuplexfrag_number % curr_rows)
 		whole_explicit = 0;
 
 	if (!whole_explicit) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented: %d tuples divided by %d\n", _tuplexfrag_number, curr_rows);
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented: %d tuple divided by %d\n", _tuplexfrag_number, curr_rows);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Create binary array
@@ -1236,7 +1236,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 
 		//External explicit
 		if (dims_type[j]) {
-			relative_rows = (int) (tuplexfrag_number / curr_rows);
+			relative_rows = (int) (_tuplexfrag_number / curr_rows);
 			curr_rows *= (dims_end[j] - dims_start[j] + 1);
 			if (relative_rows < (dims_end[j] - dims_start[j] + 1)) {
 				whole_explicit = 0;
@@ -1246,12 +1246,12 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 	}
 
 	//If external explicit is not integer
-	if ((tuplexfrag_number % curr_rows) != 0)
+	if (_tuplexfrag_number % curr_rows)
 		whole_explicit = 0;
 
 	if (!whole_explicit) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented: %d tuples divided by %d\n", _tuplexfrag_number, curr_rows);
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented: %d tuple divided by %d\n", _tuplexfrag_number, curr_rows);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Create binary array
@@ -1658,7 +1658,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 		//External explicit
 		if (dims_type[j]) {
-			relative_rows = (int) (tuplexfrag_number / curr_rows);
+			relative_rows = (int) (_tuplexfrag_number / curr_rows);
 			curr_rows *= (dims_end[j] - dims_start[j] + 1);
 			if (relative_rows < (dims_end[j] - dims_start[j] + 1)) {
 				whole_explicit = 0;
@@ -1668,12 +1668,12 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 	}
 
 	//If external explicit is not integer
-	if ((tuplexfrag_number % curr_rows) != 0)
+	if (_tuplexfrag_number % curr_rows)
 		whole_explicit = 0;
 
 	if (!whole_explicit) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented: %d tuples divided by %d\n", _tuplexfrag_number, curr_rows);
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create fragment: internal explicit dimensions are fragmented: %d tuple divided by %d\n", _tuplexfrag_number, curr_rows);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Create binary array
