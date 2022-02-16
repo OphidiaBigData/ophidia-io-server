@@ -22,6 +22,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include "debug.h"
 
 #ifndef OPH_IOB_SIZEOFDOUBLE
@@ -216,6 +220,20 @@ int oph_iob_copy_in_numeric_array(const char *bin_array, long long array_length,
 #define oph_iob_bin_array_create_b(bin_array, num_values) oph_iob_bin_array_create(bin_array,num_values,OPH_IOB_BYTE)
 int oph_iob_bin_array_create(char **bin_array, long long num_values, int oph_iob_type);
 
+/**
+ * \brief Allocate a shared memory area for storing as binary values a predefined number of numeric (double | float | int | long) values
+ * \param shm_id Id of the shared memory to allocate; it may subsequently be deallocated
+ * \param num_values Number of numeric values to store
+ * \return 0 if succes, != 0 otherwise
+ */
+#define oph_iob_bin_array_shared_create_i(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_INT)
+#define oph_iob_bin_array_shared_create_f(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_FLOAT)
+#define oph_iob_bin_array_shared_create_d(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_DOUBLE)
+#define oph_iob_bin_array_shared_create_c(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_CHAR)
+#define oph_iob_bin_array_shared_create_l(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_LONG)
+#define oph_iob_bin_array_shared_create_s(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_SHORT)
+#define oph_iob_bin_array_shared_create_b(shm_id, num_values) oph_iob_bin_array_shared_create(shm_id,num_values,OPH_IOB_BYTE)
+int oph_iob_bin_array_shared_create(int *shm_id, long long num_values, int oph_iob_type);
 
 /**
  * \brief Add (or replace) a binary value in the binary array
