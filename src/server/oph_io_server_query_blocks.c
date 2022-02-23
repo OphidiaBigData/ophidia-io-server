@@ -1379,14 +1379,8 @@ int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostor
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 
-	char *dim_unlimited = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_DIM_UNLIM);
-	if (!dim_unlimited) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE);
-		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE);
-		oph_iostore_destroy_frag_recordset(&record_sets);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
 	int dim_unlim = 0;
+	char *dim_unlimited = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_DIM_UNLIM);
 	if (dim_unlimited)
 		dim_unlim = (int) strtol(dim_unlimited, NULL, 10);
 
