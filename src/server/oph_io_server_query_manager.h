@@ -348,7 +348,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
  * \return 0 if successfull
  */
 int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			    short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+			    short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
 #endif
 
 /**
