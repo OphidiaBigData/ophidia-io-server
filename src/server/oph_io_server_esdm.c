@@ -140,6 +140,27 @@ typedef struct _oph_esdm_stream_data_out_t {
 	uint64_t number;
 } oph_esdm_stream_data_out_t;
 
+int oph_esdm_is_a_reduce_func(const char *operation)
+{
+	if (!operation)
+		return 0;
+
+	if (!strcmp(operation, OPH_ESDM_FUNCTION_MAX))
+		return 1;
+	if (!strcmp(operation, OPH_ESDM_FUNCTION_MIN))
+		return 2;
+	if (!strcmp(operation, OPH_ESDM_FUNCTION_AVG))
+		return 3;
+	if (!strcmp(operation, OPH_ESDM_FUNCTION_SUM))
+		return 4;
+	if (!strcmp(operation, OPH_ESDM_FUNCTION_STD))
+		return 5;
+	if (!strcmp(operation, OPH_ESDM_FUNCTION_VAR))
+		return 6;
+
+	return 0;
+}
+
 void *oph_esdm_stream_func(esdm_dataspace_t * space, void *buff, void *user_ptr, void *esdm_fill_value)
 {
 	UNUSED(esdm_fill_value);
@@ -3970,7 +3991,7 @@ int _oph_ioserver_esdm_cache_to_buffer3(short int tot_dim_number, unsigned int *
 {
 	//At lease 1 dim shuld be defined
 
-	short int i = 0, j = 0;
+	short int i = 0, j = 0, last = tot_dim_number - 1;
 	long long k = 0, index = 0;
 	long long dst_addr = 0, src_addr = 0;
 	long long total_iter = 1;
@@ -3981,7 +4002,7 @@ int _oph_ioserver_esdm_cache_to_buffer3(short int tot_dim_number, unsigned int *
 	for (i = 0; i < tot_dim_number; i++) {
 		if (i != 0)
 			counters[i] = 0;
-		if (i != tot_dim_number - 1)
+		if (i != last)
 			total_iter *= (limits[i] - counters[i]);
 		tmp_start[i] = 0;
 		tmp_end[i] = blocks[i];
@@ -3991,25 +4012,25 @@ int _oph_ioserver_esdm_cache_to_buffer3(short int tot_dim_number, unsigned int *
 		dst_products[i] *= sizeof_var;
 	}
 
-	long long src_jump = src_products[tot_dim_number - 1];
-	long long dst_jump = dst_products[tot_dim_number - 1];
+	long long src_jump = src_products[last];
+	long long dst_jump = dst_products[last];
 	long long inner_blocks = 0;
 	long long inner_counter = 0;
 
-	total_iter *= ceil((double) (limits[tot_dim_number - 1] - counters[tot_dim_number - 1]) / blocks[tot_dim_number - 1]);
+	total_iter *= ceil((double) (limits[last] - counters[last]) / blocks[last]);
 
 	for (index = 0; index < total_iter; index++) {
 		dst_addr = src_addr = 0;
 
 		//External dimensions
-		for (i = 0; i < tot_dim_number - 1; i++) {
+		for (i = 0; i < last; i++) {
 			src_addr += (long long) counters[i] * src_products[i];
 			dst_addr += (long long) counters[i] * dst_products[i];
 		}
 
 		//Internal dimension
-		inner_counter = tmp_start[tot_dim_number - 1];
-		inner_blocks = tmp_end[tot_dim_number - 1];
+		inner_counter = tmp_start[last];
+		inner_blocks = tmp_end[last];
 		for (k = inner_counter; k < inner_blocks; k++) {
 			memcpy(dst_binary + (dst_addr + k * dst_jump), src_binary + (src_addr + k * src_jump), sizeof_var);
 		}
@@ -4023,7 +4044,7 @@ int _oph_ioserver_esdm_cache_to_buffer3(short int tot_dim_number, unsigned int *
 				counters[i] = tmp_start[i];
 
 				if (i == 0) {
-					for (j = tot_dim_number - 1; j >= 0; j--) {
+					for (j = last; j >= 0; j--) {
 						tmp_start[j] += blocks[j];
 						tmp_end[j] += blocks[j];
 
@@ -4049,7 +4070,7 @@ int _oph_ioserver_esdm_cache_to_buffer3(short int tot_dim_number, unsigned int *
 int _oph_ioserver_esdm_cache_to_buffer2(short int tot_dim_number, unsigned int *counters, unsigned int *limits, unsigned int *blocks, unsigned int *src_products, char *src_binary,
 					unsigned int *dst_products, char *dst_binary, size_t sizeof_var)
 {
-	short int i = 0, j = 0;
+	short int i = 0, j = 0, last = tot_dim_number - 1;
 	long long dst_addr = 0, src_addr = 0;
 	long long index = 0;
 	long long total_iter = 1;
@@ -4078,7 +4099,7 @@ int _oph_ioserver_esdm_cache_to_buffer2(short int tot_dim_number, unsigned int *
 		memcpy(dst_binary + dst_addr, src_binary + src_addr, sizeof_var);
 
 		//Increase block counters starting from most rapidly varying dimension
-		for (i = tot_dim_number - 1; i >= 0; i--) {
+		for (i = last; i >= 0; i--) {
 			counters[i]++;
 			if (counters[i] < tmp_end[i]) {
 				break;
@@ -4086,7 +4107,7 @@ int _oph_ioserver_esdm_cache_to_buffer2(short int tot_dim_number, unsigned int *
 				counters[i] = tmp_start[i];
 
 				if (i == 0) {
-					for (j = tot_dim_number - 1; j >= 0; j--) {
+					for (j = last; j >= 0; j--) {
 						tmp_start[j] += blocks[j];
 						tmp_end[j] += blocks[j];
 
@@ -4110,7 +4131,7 @@ int _oph_ioserver_esdm_cache_to_buffer2(short int tot_dim_number, unsigned int *
 
 int oph_ioserver_esdm_cache_to_buffer(short int tot_dim_number, unsigned int *counters, unsigned int *limits, unsigned int *products, char *binary_cache, char *binary_insert, size_t sizeof_var)
 {
-	short int i = 0;
+	short int i = 0, last = tot_dim_number - 1;
 	long long addr = 0;
 	long long index = 0;
 	long long total_iter = 1;
@@ -4130,7 +4151,7 @@ int oph_ioserver_esdm_cache_to_buffer(short int tot_dim_number, unsigned int *co
 		memcpy(binary_insert + index * sizeof_var, binary_cache + addr, sizeof_var);
 
 		//Increase counters starting from most rapidly varying dimension
-		for (i = tot_dim_number - 1; i >= 0; i--) {
+		for (i = last; i >= 0; i--) {
 			counters[i]++;
 			if (counters[i] < limits[i]) {
 				break;
@@ -4411,9 +4432,11 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
+	char check_for_reduce_func = !oph_esdm_is_a_reduce_func(sub_operation);
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
-		total *= count[i];
+		if (dims_type[i] || check_for_reduce_func)
+			total *= count[i];
 
 	if (total != array_length * tuplexfrag_number) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
@@ -4532,7 +4555,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
 			dst_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = count[i];
+			limits[dims_index[i]] = check_for_reduce_func ? count[i] : 1;
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -4970,9 +4993,11 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
+	char check_for_reduce_func = !oph_esdm_is_a_reduce_func(sub_operation);
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
-		total *= count[i];
+		if (dims_type[i] || check_for_reduce_func)
+			total *= count[i];
 
 	if (total != array_length * tuplexfrag_number) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
@@ -5089,7 +5114,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		for (i = 0; i < ndims; i++) {
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = count[i];
+			limits[dims_index[i]] = check_for_reduce_func ? count[i] : 1;
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -5487,9 +5512,11 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
+	char check_for_reduce_func = !oph_esdm_is_a_reduce_func(sub_operation);
 	unsigned long long total = 1;
-	for (i = 0; i < ndims; i++)
-		total *= count[i];
+	if (check_for_reduce_func)
+		for (i = 0; i < ndims; i++)
+			total *= count[i];
 
 	if (total != array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
@@ -5531,7 +5558,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			if (!dims_type[i]) {
 				counters[dims_index[i] - nexp] = 0;
 				src_products[dims_index[i] - nexp] = 1;
-				limits[dims_index[i] - nexp] = count[i];
+				limits[dims_index[i] - nexp] = check_for_reduce_func ? count[i] : 1;
 				file_indexes[dims_index[i] - nexp] = k++;
 			}
 		}
@@ -5979,11 +6006,13 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Compute array_length from implicit dims
+	char check_for_reduce_func = !oph_esdm_is_a_reduce_func(sub_operation);
 	unsigned long long array_length = 1;
 	short int nimp = 0, nexp = 0;
 	for (i = 0; i < ndims; i++) {
 		if (!dims_type[i]) {
-			array_length *= dims_end[i] - dims_start[i] + 1;
+			if (check_for_reduce_func)
+				array_length *= dims_end[i] - dims_start[i] + 1;
 			nimp++;
 		} else {
 			nexp++;
