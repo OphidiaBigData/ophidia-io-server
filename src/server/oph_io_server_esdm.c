@@ -4167,7 +4167,7 @@ int oph_ioserver_esdm_cache_to_buffer(short int tot_dim_number, unsigned int *co
 int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
 			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
 			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
-			       char *sub_args, short int dimension_ordered)
+			       char *sub_args, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
 	    || !frag_size || !sizeof_var || !array_length) {
@@ -4184,7 +4184,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	//TODO - Check that memory for the two arrays is actually available
 	//Flag set to 1 if whole fragment fits in memory
 	unsigned long long memory_size = memory_buffer * (unsigned long long) MB_SIZE;
-	short int whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size / 2 ? 0 : 1);
+	char whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size / 2 ? 0 : 1);
 
 	if (!whole_fragment) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
@@ -4196,10 +4196,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//If flag is set fragment reordering is required
-	short int transpose = 1;
-	if (dimension_ordered) {
-		transpose = 0;
-	}
+	char transpose = !dimension_ordered;
+
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
 	for (i = 0; i < nexp; i++) {
@@ -4222,7 +4220,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	//Check if only most external dimension (bigger than 1) is splitted
 	long long curr_rows = 1;
 	long long relative_rows = 0;
-	short int whole_explicit = 1;
+	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -4362,7 +4360,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
-	short int flag = 0;
+	char flag = 0;
 	for (j = 0; j < nexp; j++) {
 		flag = 0;
 		//Find dimension with index = i
@@ -4728,7 +4726,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
 			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
 			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
-			       char *sub_args, short int dimension_ordered)
+			       char *sub_args, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
 	    || !frag_size || !sizeof_var || !array_length) {
@@ -4745,7 +4743,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	//TODO - Check that memory for the two arrays is actually available
 	//Flag set to 1 if whole fragment fits in memory
 	unsigned long long memory_size = memory_buffer * (unsigned long long) MB_SIZE;
-	short int whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size / 2 ? 0 : 1);
+	char whole_fragment = ((tuplexfrag_number * sizeof_var) > memory_size / 2 ? 0 : 1);
 
 	if (!whole_fragment) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read fragment in memory. Memory required is: %lld\n", tuplexfrag_number * sizeof_var);
@@ -4757,10 +4755,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//If flag is set fragment reordering is required
-	short int transpose = 1;
-	if (dimension_ordered) {
-		transpose = 0;
-	}
+	char transpose = !dimension_ordered;
+
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
 	for (i = 0; i < nexp; i++) {
@@ -4783,7 +4779,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	//Check if only most external dimension (bigger than 1) is splitted
 	long long curr_rows = 1;
 	long long relative_rows = 0;
-	short int whole_explicit = 1;
+	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -4923,7 +4919,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
-	short int flag = 0;
+	char flag = 0;
 	for (j = 0; j < nexp; j++) {
 		flag = 0;
 		//Find dimension with index = i
@@ -5283,7 +5279,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	int i = 0, j = 0;
 
 	//Flag set to 1 if implicit dimension are in the order specified in the file
-	short int dimension_ordered = 1;
+	char dimension_ordered = 1;
 	unsigned int curr_lev = 0;
 	for (i = 0; i < ndims; i++) {
 		if (!dims_type[i]) {
@@ -5297,10 +5293,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 
 
 	//If flag is set fragment reordering is required
-	short int transpose = 1;
-	if (dimension_ordered) {
-		transpose = 0;
-	}
+	char transpose = !dimension_ordered;
+
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
 	for (i = 0; i < nexp; i++) {
@@ -5323,7 +5317,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	//Check if only most external dimension (bigger than 1) is splitted
 	long long curr_rows = 1;
 	long long relative_rows = 0;
-	short int whole_explicit = 1;
+	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -5447,7 +5441,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
-	short int flag = 0;
+	char flag = 0;
 	for (j = 0; j < nexp; j++) {
 		flag = 0;
 		//Find dimension with index = i
@@ -6044,7 +6038,7 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		}
 	}
 
-	if (dimension_ordered)
+	if (dimension_ordered || oph_esdm_is_a_reduce_func(sub_operation))
 		return _oph_ioserver_esdm_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
 						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args);
 	else
