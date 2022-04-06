@@ -34,6 +34,7 @@
 #define OPH_QUERY_ENGINE_LANG_FUNCTION_START     '('
 #define OPH_QUERY_ENGINE_LANG_FUNCTION_END     ')'
 #define OPH_QUERY_ENGINE_LANG_HIERARCHY_SEPARATOR	'.'
+#define OPH_QUERY_ENGINE_LANG_MULTI_VALUE_SEPARATOR2 "|"
 
 //*****************Query operation***************//
 
@@ -84,6 +85,9 @@
 #define OPH_QUERY_ENGINE_LANG_ARG_DIM_INDEX   "dim_index"
 #define OPH_QUERY_ENGINE_LANG_ARG_DIM_START   "dim_start"
 #define OPH_QUERY_ENGINE_LANG_ARG_DIM_END     "dim_end"
+#define OPH_QUERY_ENGINE_LANG_ARG_DIM_UNLIM   "dim_unlim"
+#define OPH_QUERY_ENGINE_LANG_ARG_OPERATION   "sub_operation"
+#define OPH_QUERY_ENGINE_LANG_ARG_ARGS        "sub_args"
 #define OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE    "measure_type"
 #define OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN 	"array_len"
 #define OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM 	"algorithm"
@@ -98,6 +102,7 @@
 
 #define OPH_QUERY_ENGINE_LANG_VAL_RAND_ALGO_TEMP		"temperatures"
 #define OPH_QUERY_ENGINE_LANG_VAL_RAND_ALGO_DEFAULT	"default"
+#define OPH_QUERY_ENGINE_LANG_VAL_NONE "none"
 
 //*****************Keywords***************//
 

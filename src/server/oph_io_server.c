@@ -265,6 +265,7 @@ int main(int argc, char *argv[])
 	oph_net_signal(SIGINT, release);
 	oph_net_signal(SIGABRT, release);
 	oph_net_signal(SIGQUIT, release);
+	oph_net_signal(SIGPIPE, SIG_IGN);
 
 #ifdef OPH_IO_SERVER_ESDM
 	if (esdm_init()) {
