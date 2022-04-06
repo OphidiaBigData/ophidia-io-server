@@ -246,6 +246,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_normalize.so
 FUN SIMPLE
 RET STRING
+[oph_operation_array]
+LIB     @PLUGIN_PATH@/liboph_operation_array.so
+FUN SIMPLE
+RET STRING
 [oph_operator]
 LIB	@PLUGIN_PATH@/liboph_operator.so
 FUN SIMPLE
