@@ -248,6 +248,13 @@ int oph_io_server_run_create_as_select_file(oph_metadb_db_row ** meta_db, oph_io
 }
 #endif
 
+#ifdef OPH_IO_SERVER_ESDM
+int oph_io_server_run_create_as_select_esdm(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args)
+{
+	return _oph_io_server_run_create_as_select(meta_db, dev_handle, current_db, args, query_args, 2);
+}
+#endif
+
 int oph_io_server_run_select(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args, oph_iostore_frag_record_set ** output_rs)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !output_rs) {

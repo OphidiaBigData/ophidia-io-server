@@ -379,6 +379,7 @@ int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_star
  */
 int oph_io_server_run_create_as_select_table(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
 
+#ifdef OPH_IO_SERVER_NETCDF
 /**
  * \brief               Internal function used to execute create as select operation with file load
  * \param meta_db       Pointer to metadb
@@ -389,6 +390,20 @@ int oph_io_server_run_create_as_select_table(oph_metadb_db_row ** meta_db, oph_i
  * \return              0 if successfull, non-0 otherwise
  */
 int oph_io_server_run_create_as_select_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
+#endif
+
+#ifdef OPH_IO_SERVER_ESDM
+/**
+ * \brief               Internal function used to execute create as select operation with file load
+ * \param meta_db       Pointer to metadb
+ * \param dev_handle 	Handler to current IO server device
+ * \param current_db 	Name of DB currently selected
+ * \param query_args    Hash table containing args to be selected
+ * \param args 			Additional args used in prepared statements (can be NULL)
+ * \return              0 if successfull, non-0 otherwise
+ */
+int oph_io_server_run_create_as_select_esdm(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, oph_query_arg ** args, HASHTBL * query_args);
+#endif
 
 /**
  * \brief               Internal function used to execute select operation 

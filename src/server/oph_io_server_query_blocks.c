@@ -1810,7 +1810,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 		if (file_load_flag) {
 			//If data can be loaded from file, check for proper keyword
 			tmp_file_kw = ((from_components_num == 1) ? from_components[0] : from_components[1]);
-			if (!STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_FILE)) {
+			if (!STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_FILE) || !STRCMP(tmp_file_kw, OPH_QUERY_ENGINE_LANG_KW_ESDM)) {
 				//Only a single file can be provided in combination with at least another table
 				if ((table_list_num == 1) || (from_components_num == 2) || (file_pos != -1)) {
 					pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_HIERARCHY_PARSE_ERROR, table_list[l]);
@@ -1985,12 +1985,22 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 	if (file_load_flag) {
 		unsigned long long frag_size = 0;
 		//If file keyword is provided, load data from file
-		if (_oph_io_server_query_load_from_file(meta_db, dev_handle, current_db, query_args, &(orig_record_sets[file_pos]), &frag_size)) {
+#ifdef OPH_IO_SERVER_NETCDF
+		if ((file_load_flag == 1) && _oph_io_server_query_load_from_file(meta_db, dev_handle, current_db, query_args, &(orig_record_sets[file_pos]), &frag_size)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+#endif
+#ifdef OPH_IO_SERVER_ESDM
+		if ((file_load_flag == 2) && _oph_io_server_query_load_from_esdm(meta_db, dev_handle, current_db, query_args, &(orig_record_sets[file_pos]), &frag_size)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+#endif
 		//TODO create specific functions to better manage temporary tables
 		//Make the table temporary
 		orig_record_sets[file_pos]->tmp_flag = 1;
