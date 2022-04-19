@@ -380,6 +380,10 @@ esac
 
 AC_SUBST(OPT)
 
+if test -d "$srcdir/esdm-pav-analytical-kernels"; then
+    AC_CONFIG_SUBDIRS([esdm-pav-analytical-kernels])
+fi
+
 AC_OUTPUT([Makefile
            src/Makefile
            src/common/Makefile
