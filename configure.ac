@@ -391,7 +391,7 @@ esac
 
 AC_SUBST(OPT)
 
-if [ "x${have_esdm_pav_kernels}" -eq "xyes" ] && test -d "$srcdir/esdm-pav-analytical-kernels"; then
+if test "x${have_esdm_pav_kernels}" = "xyes" && test -d "$srcdir/esdm-pav-analytical-kernels"; then
     AC_CONFIG_SUBDIRS([esdm-pav-analytical-kernels])
 fi
 
