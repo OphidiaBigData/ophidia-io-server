@@ -3,10 +3,14 @@
 
 ### Added:
 
+- OPH_CONCATESDM2 operator [#22](https://github.com/OphidiaBigData/ophidia-io-server/pull/22)
+- Support for oph_operation_array primitive [#20](https://github.com/OphidiaBigData/ophidia-io-server/pull/20)
+- Support for oph_filter primitive [#19](https://github.com/OphidiaBigData/ophidia-io-server/pull/19)
 - Optimizations to query engine and nested plugin execution [#18](https://github.com/OphidiaBigData/ophidia-io-server/pull/18)
 
 ### Changed:
 
+- Improved data import features [#21](https://github.com/OphidiaBigData/ophidia-io-server/pull/21)
 - Improved nc file import core functions and execution flow [#17](https://github.com/OphidiaBigData/ophidia-io-server/pull/17)
 
 ### Fixed:
