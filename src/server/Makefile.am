@@ -38,7 +38,13 @@ endif
 if HAVE_ESDM
 additional_FILES += oph_io_server_esdm.c
 additional_CFLAGS += $(ESDM_CFLAGS) -DOPH_IO_SERVER_ESDM -I${prefix}/include
-additional_LIBS += -lsmd $(ESDM_LIBS) -L${prefix}/lib -lesdm_kernels
+if HAVE_ESDM_PAV_KERNELS
+additional_CFLAGS += -DOPH_ESDM_PAV_KERNERS
+endif
+additional_LIBS += -lsmd $(ESDM_LIBS)
+if HAVE_ESDM_PAV_KERNELS
+additional_LIBS += -L${prefix}/lib -lesdm_kernels
+endif
 endif
 
 liboph_io_server_query_manager_la_SOURCES = oph_io_server_query_blocks.c oph_io_server_query_engine.c oph_io_server_query_procedures.c oph_io_server_query.c ${additional_FILES}

@@ -547,7 +547,10 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	char check_for_reduce_func = 1;
+#ifdef OPH_ESDM_PAV_KERNERS
+	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+#endif
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
 		if (dims_type[i] || check_for_reduce_func)
@@ -603,6 +606,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 
 	//Fill binary cache
 	esdm_status retval;
+#ifdef OPH_ESDM_PAV_KERNERS
 	if (sub_operation) {
 		char fill_value[sizeof_type], *pointer = NULL;
 		retval = esdm_dataset_get_fill_value(dataset, fill_value);
@@ -618,6 +622,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 			retval = esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func);
 		}
 	} else
+#endif
 		retval = esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace);
 
 #ifdef DEBUG
@@ -1106,7 +1111,10 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	char check_for_reduce_func = 1;
+#ifdef OPH_ESDM_PAV_KERNERS
+	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+#endif
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
 		if (dims_type[i] || check_for_reduce_func)
@@ -1162,6 +1170,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 
 	//Fill binary cache
 	esdm_status retval;
+#ifdef OPH_ESDM_PAV_KERNERS
 	if (sub_operation) {
 		char fill_value[sizeof_type], *pointer = NULL;
 		retval = esdm_dataset_get_fill_value(dataset, fill_value);
@@ -1177,6 +1186,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 			retval = esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func);
 		}
 	} else
+#endif
 		retval = esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace);
 
 #ifdef DEBUG
@@ -1623,7 +1633,10 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	char check_for_reduce_func = 1;
+#ifdef OPH_ESDM_PAV_KERNERS
+	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+#endif
 	unsigned long long total = 1;
 	if (check_for_reduce_func)
 		for (i = 0; i < ndims; i++)
@@ -1821,6 +1834,8 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 #endif
 
 	esdm_dataspace_t *subspace = NULL;
+
+#ifdef OPH_ESDM_PAV_KERNERS
 	esdm_stream_data_t stream_data;
 	char fill_value[sizeof_type], *pointer = NULL;
 
@@ -1849,6 +1864,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		free(sizemax);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
+#endif
 
 	unsigned long long ii;
 	for (ii = 0; ii < tuplexfrag_number; ii++) {
@@ -1890,6 +1906,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 		//Fill binary cache
+#ifdef OPH_ESDM_PAV_KERNERS
 		if (sub_operation) {
 
 			stream_data.operation = sub_operation;
@@ -1925,7 +1942,9 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 				return OPH_IO_SERVER_MEMORY_ERROR;
 			}
 
-		} else if (esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace)) {
+		} else
+#endif
+		if (esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			for (i = 0; i < arg_count; i++)
@@ -2117,7 +2136,10 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Compute array_length from implicit dims
-	char check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	char check_for_reduce_func = 1;
+#ifdef OPH_ESDM_PAV_KERNERS
+	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+#endif
 	unsigned long long array_length = 1;
 	short int nimp = 0, nexp = 0;
 	for (i = 0; i < ndims; i++) {
@@ -2155,7 +2177,11 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		}
 	}
 
-	if (dimension_ordered || esdm_is_a_reduce_func(sub_operation))
+	if (dimension_ordered
+#ifdef OPH_ESDM_PAV_KERNERS
+	    || esdm_is_a_reduce_func(sub_operation)
+#endif
+	    )
 		return _oph_ioserver_esdm_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
 						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args);
 	else

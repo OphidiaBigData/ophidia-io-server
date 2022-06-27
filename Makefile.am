@@ -18,7 +18,11 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = esdm-pav-analytical-kernels . libltdl src
+SUBDIRS=
+if HAVE_ESDM_PAV_KERNELS
+SUBDIRS+= esdm-pav-analytical-kernels
+endif
+SUBDIRS+= . libltdl src
 
 sysconf_DATA = etc/oph_primitives_list etc/oph_ioserver.conf etc/oph_device_list 
 
