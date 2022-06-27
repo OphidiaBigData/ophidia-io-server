@@ -243,6 +243,17 @@ AC_ARG_WITH(esdm_path,
            )
 AM_CONDITIONAL([HAVE_ESDM], [test "x$have_esdm" = "xyes"])
 
+#Check if ESDM PAV kernels are installed
+have_esdm_pav_kernels="no"
+AC_ARG_ENABLE(esdm_pav_kernels,
+        [  --enable-esdm-pav-kernels          
+            Turn on ESDM PAV kernels],
+        [have_esdm_pav_kernels="yes" 
+            AC_MSG_NOTICE(ESDM PAV kernels enabled)],
+        [have_esdm_pav_kernels="no"
+            AC_MSG_NOTICE(ESDM PAV kernels disabled)]
+        )
+AM_CONDITIONAL([HAVE_ESDM_PAV_KERNELS], [test "x$have_esdm_pav_kernels" = "xyes"])
 
 #Enable parallel nc4 support
 parallel_nc4="no"
@@ -379,6 +390,10 @@ case "${host}" in
 esac
 
 AC_SUBST(OPT)
+
+if test "x${have_esdm_pav_kernels}" = "xyes" && test -d "$srcdir/esdm-pav-analytical-kernels"; then
+    AC_CONFIG_SUBDIRS([esdm-pav-analytical-kernels])
+fi
 
 AC_OUTPUT([Makefile
            src/Makefile
