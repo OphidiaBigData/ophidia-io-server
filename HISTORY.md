@@ -3,6 +3,7 @@
 
 ### Added:
 
+- Include the package of ESDM PAV kernels [#23](https://github.com/OphidiaBigData/ophidia-analytics-framework/pull/23)
 - OPH_CONCATESDM2 operator [#22](https://github.com/OphidiaBigData/ophidia-io-server/pull/22)
 - Support for oph_operation_array primitive [#20](https://github.com/OphidiaBigData/ophidia-io-server/pull/20)
 - Support for oph_filter primitive [#19](https://github.com/OphidiaBigData/ophidia-io-server/pull/19)
