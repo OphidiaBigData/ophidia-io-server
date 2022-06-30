@@ -1,17 +1,31 @@
 
+## Next release
+
+### Fixed:
+
+- Bug in debug printing function
+
+### Added:
+
+- Include ESDM-PAV kernels package [#23](https://github.com/OphidiaBigData/ophidia-io-server/pull/23)
+- New configuration argument 'WORKING_DIR'
+- Support for OPH_CONCATESDM2 [#22](https://github.com/OphidiaBigData/ophidia-io-server/pull/22)
+- Support for OPH_IMPORTNCS operator to load multiple files in a single fragment [#21](https://github.com/OphidiaBigData/ophidia-io-server/pull/21)
+- Support for ESDM-based operators (OPH_IMPORTESDM, OPH_IMPORTESDM2, OPH_EXPORTESDM, OPH_EXPORTESDM2, OPH_CONCATESDM) [#21](https://github.com/OphidiaBigData/ophidia-io-server/pull/21)
+- Support for oph_filter [#19](https://github.com/OphidiaBigData/ophidia-io-server/pull/19), oph_operation_array [#20](https://github.com/OphidiaBigData/ophidia-io-server/pull/20) primitives
+
+### Changed:
+
+- Improved parallel access to NetCDFv4 files [#21](https://github.com/OphidiaBigData/ophidia-io-server/pull/21)
+
 ## v1.6.0 - 2021-03-05
 
 ### Added:
 
-- Include the package of ESDM PAV kernels [#23](https://github.com/OphidiaBigData/ophidia-analytics-framework/pull/23)
-- OPH_CONCATESDM2 operator [#22](https://github.com/OphidiaBigData/ophidia-io-server/pull/22)
-- Support for oph_operation_array primitive [#20](https://github.com/OphidiaBigData/ophidia-io-server/pull/20)
-- Support for oph_filter primitive [#19](https://github.com/OphidiaBigData/ophidia-io-server/pull/19)
 - Optimizations to query engine and nested plugin execution [#18](https://github.com/OphidiaBigData/ophidia-io-server/pull/18)
 
 ### Changed:
 
-- Improved data import features [#21](https://github.com/OphidiaBigData/ophidia-io-server/pull/21)
 - Improved nc file import core functions and execution flow [#17](https://github.com/OphidiaBigData/ophidia-io-server/pull/17)
 
 ### Fixed:
