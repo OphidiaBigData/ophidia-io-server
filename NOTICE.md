@@ -36,6 +36,10 @@ https://creativecommons.org/publicdomain/zero/1.0/
 MIT License</br>
 http://www.unidata.ucar.edu/software/netcdf/copyright.html
 
+- Earth System Data Middleware</br>
+LGPLv3</br>
+https://github.com/ESiWACE/esdm/blob/master/LICENSE
+
 Source code generated with GNU Bison (https://www.gnu.org/software/bison/) and flex (http://flex.sourceforge.net) is included.</br>
 
 Additionally some source code (in src/oph_network.c) and configuration lines (in configure.ac) have been adapted from the example source code available from Unix Network Programming, Volume 1, 3rd ed., by W. R. Stevens, B. Fenner, A. M. Rudoff. </br>
