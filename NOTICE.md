@@ -2,7 +2,7 @@ Ophidia IO Server General
 -------------------------
 
 Ophidia IO Server
-Copyright (C) 2014-2021 CMCC Foundation
+Copyright (C) 2014-2022 CMCC Foundation
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
