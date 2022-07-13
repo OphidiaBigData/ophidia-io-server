@@ -661,8 +661,8 @@ int oph_io_server_run_insert_from_esdm(oph_metadb_db_row ** meta_db, oph_iostore
 	unsigned long long frag_size = 0;
 
 	if (_oph_io_server_query_load_from_esdm(meta_db, dev_handle, current_db, query_args, &record_sets, &frag_size)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM dataset\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM dataset\n");
 		oph_iostore_destroy_frag_recordset(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}

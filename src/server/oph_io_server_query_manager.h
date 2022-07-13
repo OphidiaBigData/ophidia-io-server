@@ -332,8 +332,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 #ifdef OPH_IO_SERVER_ESDM
 /**
- * \brief Create fragment from NetCDF file
- * \param src_path Absoloute path to NetCDF file
+ * \brief Create fragment from ESDM dataset
+ * \param src_path URL to ESDM dataset
  * \param measure_name Name of measure to be read from file
  * \param tuplexfrag_number Number of tuple to insert
  * \param frag_key_start Starting key of fragment

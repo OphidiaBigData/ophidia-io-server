@@ -1995,8 +1995,8 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 #endif
 #ifdef OPH_IO_SERVER_ESDM
 		if ((file_load_flag == 2) && _oph_io_server_query_load_from_esdm(meta_db, dev_handle, current_db, query_args, &(orig_record_sets[file_pos]), &frag_size)) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
-			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM dataset\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM dataset\n");
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
