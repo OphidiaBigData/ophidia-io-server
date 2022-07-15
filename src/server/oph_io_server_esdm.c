@@ -547,13 +547,15 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = 1;
+	char check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
-	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
-		if (dims_type[i] || check_for_reduce_func)
+		if (dims_type[i] || !check_for_reduce_func)
+			total *= count[i];
+		else if (check_for_reduce_func > 1)
 			total *= count[i];
 
 	if (total != array_length * tuplexfrag_number) {
@@ -675,7 +677,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
 			dst_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = check_for_reduce_func ? count[i] : 1;
+			limits[dims_index[i]] = check_for_reduce_func ? check_for_reduce_func : count[i];
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -1111,13 +1113,15 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = 1;
+	char check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
-	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
-		if (dims_type[i] || check_for_reduce_func)
+		if (dims_type[i] || !check_for_reduce_func)
+			total *= count[i];
+		else if (check_for_reduce_func > 1)
 			total *= count[i];
 
 	if (total != array_length * tuplexfrag_number) {
@@ -1237,7 +1241,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 		for (i = 0; i < ndims; i++) {
 			counters[dims_index[i]] = 0;
 			src_products[dims_index[i]] = 1;
-			limits[dims_index[i]] = check_for_reduce_func ? count[i] : 1;
+			limits[dims_index[i]] = check_for_reduce_func ? check_for_reduce_func : count[i];
 			file_indexes[dims_index[i]] = k++;
 		}
 
@@ -1633,14 +1637,16 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = 1;
+	char check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
-	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
 	unsigned long long total = 1;
-	if (check_for_reduce_func)
+	if (!check_for_reduce_func) {
 		for (i = 0; i < ndims; i++)
 			total *= count[i];
+	} else
+		total = check_for_reduce_func;
 
 	if (total != array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TOTAL = %d\n", array_length, total);
@@ -1682,7 +1688,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			if (!dims_type[i]) {
 				counters[dims_index[i] - nexp] = 0;
 				src_products[dims_index[i] - nexp] = 1;
-				limits[dims_index[i] - nexp] = check_for_reduce_func ? count[i] : 1;
+				limits[dims_index[i] - nexp] = check_for_reduce_func ? check_for_reduce_func : count[i];
 				file_indexes[dims_index[i] - nexp] = k++;
 			}
 		}
@@ -2136,16 +2142,18 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Compute array_length from implicit dims
-	char check_for_reduce_func = 1;
+	char check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
-	check_for_reduce_func = !esdm_is_a_reduce_func(sub_operation);
+	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
 	unsigned long long array_length = 1;
 	short int nimp = 0, nexp = 0;
 	for (i = 0; i < ndims; i++) {
 		if (!dims_type[i]) {
-			if (check_for_reduce_func)
+			if (!check_for_reduce_func)
 				array_length *= dims_end[i] - dims_start[i] + 1;
+			else if (check_for_reduce_func > 1)
+				array_length *= check_for_reduce_func;
 			nimp++;
 		} else {
 			nexp++;
