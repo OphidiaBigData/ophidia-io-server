@@ -547,7 +547,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = 0;
+	int check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
 	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
@@ -1113,7 +1113,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = 0;
+	int check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
 	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
@@ -1637,7 +1637,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	}
 
 	//Check
-	char check_for_reduce_func = 0;
+	int check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
 	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
@@ -2142,7 +2142,7 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//Compute array_length from implicit dims
-	char check_for_reduce_func = 0;
+	int check_for_reduce_func = 0;
 #ifdef OPH_ESDM_PAV_KERNERS
 	check_for_reduce_func = esdm_is_a_reduce_func(sub_operation);
 #endif
