@@ -37,9 +37,9 @@ endif
 
 if HAVE_ESDM
 additional_FILES += oph_io_server_esdm.c
-additional_CFLAGS += $(ESDM_CFLAGS) -DOPH_IO_SERVER_ESDM -I${prefix}/include
+additional_CFLAGS += $(ESDM_CFLAGS) -DOPH_IO_SERVER_ESDM
 if HAVE_ESDM_PAV_KERNELS
-additional_CFLAGS += -DOPH_ESDM_PAV_KERNERS
+additional_CFLAGS += -DOPH_ESDM_PAV_KERNELS -I${prefix}/include
 endif
 additional_LIBS += -lsmd $(ESDM_LIBS)
 if HAVE_ESDM_PAV_KERNELS
