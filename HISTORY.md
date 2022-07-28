@@ -1,4 +1,14 @@
 
+## v1.7.1 - 2022-07-28
+
+### Fixed:
+
+- Bug in bootstrap module
+
+### Added:
+
+- Support for new analytical kernel 'stat'
+
 ## v1.7.0 - 2022-07-01
 
 ### Fixed:
