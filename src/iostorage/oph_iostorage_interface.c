@@ -37,6 +37,15 @@ extern pthread_mutex_t libtool_lock;
 
 static int oph_iostore_find_device(const char *device, char **dyn_lib, unsigned short int *is_persitent);
 
+int (*_DEVICE_setup)(oph_iostore_handler * handle);
+int (*_DEVICE_cleanup)(oph_iostore_handler * handle);
+int (*_DEVICE_get_db)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
+int (*_DEVICE_put_db)(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
+int (*_DEVICE_delete_db)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
+int (*_DEVICE_get_frag)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
+int (*_DEVICE_put_frag)(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
+int (*_DEVICE_delete_frag)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
+
 int oph_iostore_setup(const char *device, oph_iostore_handler ** handle)
 {
 	if (!handle) {

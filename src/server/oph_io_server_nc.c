@@ -307,7 +307,7 @@ int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, n
 }
 
 
-int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count, int ncid,
+int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count, int ncid,
 				  int varid)
 {
 #ifdef OPH_PAR_NC4
@@ -359,7 +359,8 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, cha
 
 			char *exec_path = OPH_NC_LOAD_EXEC;
 			if (execvp(exec_path, (char *[]) {
-				   exec_path, NULL}) == -1)
+				   exec_path, NULL
+				   }) == -1)
 				exit(errno);
 			else
 				exit(0);
@@ -477,7 +478,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, cha
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_data(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
+int _oph_ioserver_nc_read_data(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count)
 {
 	return _oph_ioserver_nc_read_data_v0(buff, offset, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0);
 }
@@ -530,7 +531,7 @@ int _oph_ioserver_nc_get_buffer(Buffer * buff, char **buffer, char is_cache)
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t ** id, int i, int n)
+int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t **id, int i, int n)
 {
 	if (i < n - 1) {
 		unsigned long tmp;
@@ -544,7 +545,7 @@ int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long tota
 	return 0;
 }
 
-int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t ** id)
+int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t **id)
 {
 	if (n > 0) {
 		int i;
