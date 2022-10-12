@@ -20,7 +20,7 @@ if DEBUG
 OPT+=-DDEBUG
 endif
 
-noinst_LTLIBRARIES=liboph_metadb.la
+lib_LTLIBRARIES=liboph_metadb.la
 
 bin_PROGRAMS= oph_metadb_reader
 if DEBUG
