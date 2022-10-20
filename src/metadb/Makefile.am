@@ -21,7 +21,7 @@ if DEBUG
 OPT+=-DDEBUG
 endif
 
-lib_LTLIBRARIES=liboph_metadb.la
+noinst_LTLIBRARIES=liboph_metadb.la
 
 liboph_metadb_la_SOURCES = oph_metadb_interface.c oph_metadb_auxiliary.c
 liboph_metadb_la_CFLAGS = $(OPT) -I. -I.. -I../common -I../iostorage -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
