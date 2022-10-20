@@ -1,4 +1,10 @@
 
+## v1.7.2 - 2022-10-20
+
+### Changed:
+
+- Folder structure for executables building [#24](https://github.com/OphidiaBigData/ophidia-io-server/pull/24)
+
 ## v1.7.1 - 2022-07-28
 
 ### Fixed:
