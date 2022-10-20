@@ -400,11 +400,13 @@ AC_OUTPUT([Makefile
            src/common/Makefile
            src/iostorage/Makefile
            src/devices/Makefile
-           src/metadb/Makefile           
+           src/metadb/Makefile
+           src/metadb/execs/Makefile           
            src/network/Makefile           
            src/query_engine/Makefile
            src/client/Makefile      
            src/server/Makefile
+           src/server/execs/Makefile
            etc/oph_primitives_list
            etc/oph_device_list
            ])
