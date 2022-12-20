@@ -16,15 +16,24 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SUBDIRS=. execs
 if DEBUG 
 OPT+=-DDEBUG
 endif
 
-noinst_LTLIBRARIES=liboph_metadb.la
+bin_PROGRAMS= oph_metadb_reader
+if DEBUG
+bin_PROGRAMS+=oph_metadb_client 
+endif
+bindir=${prefix}/bin
 
-liboph_metadb_la_SOURCES = oph_metadb_interface.c oph_metadb_auxiliary.c
-liboph_metadb_la_CFLAGS = $(OPT) -I. -I.. -I../common -I../iostorage -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
-liboph_metadb_la_LIBADD= -L../common -ldebug -L../iostorage -loph_iostorage_data
-liboph_metadb_la_LDFLAGS = -module -static
+if DEBUG
+oph_metadb_client_SOURCES = oph_metadb_client.c
+oph_metadb_client_CFLAGS = $(OPT) -I../../common -I../../iostorage -I../ -fPIC @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+oph_metadb_client_LDADD =  -L../  -L../../common -ldebug -lpthread -loph_metadb -loph_server_conf -loph_server_util
+oph_metadb_client_LDFLAGS= -Wl,-R -Wl,. 
+endif
 
+oph_metadb_reader_SOURCES = oph_metadb_reader.c
+oph_metadb_reader_CFLAGS = $(OPT) -I../../common -I../../iostorage -I../ -fPIC @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+oph_metadb_reader_LDADD =  -L../ -L../../common -ldebug -loph_metadb -loph_server_conf -loph_server_util
+oph_metadb_reader_LDFLAGS= -Wl,-R -Wl,. 

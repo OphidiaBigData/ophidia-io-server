@@ -17,7 +17,7 @@
 #
 
 AC_PREREQ([2.60])
-AC_INIT([ophidia-io-server], [1.7.1], [ophidia-info@cmcc.it])
+AC_INIT([ophidia-io-server], [1.7.2], [ophidia-info@cmcc.it])
 
 AC_CONFIG_AUX_DIR([config])
 
@@ -400,11 +400,13 @@ AC_OUTPUT([Makefile
            src/common/Makefile
            src/iostorage/Makefile
            src/devices/Makefile
-           src/metadb/Makefile           
+           src/metadb/Makefile
+           src/metadb/execs/Makefile           
            src/network/Makefile           
            src/query_engine/Makefile
            src/client/Makefile      
            src/server/Makefile
+           src/server/execs/Makefile
            etc/oph_primitives_list
            etc/oph_device_list
            ])
