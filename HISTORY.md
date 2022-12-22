@@ -1,4 +1,10 @@
 
+## v1.7.3 - 2022-12-22
+
+### Changed:
+
+- Update reference to ESDM-PAV kernels package 
+
 ## v1.7.2 - 2022-10-20
 
 ### Changed:
