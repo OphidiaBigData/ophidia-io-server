@@ -1,6 +1,10 @@
 
 ## v1.7.3 - 2023-01-03
 
+### Fixed:
+
+- Bug in handling unlimited dimensions
+
 ### Added:
 
 - Support for CentOS 9 [#25](https://github.com/OphidiaBigData/ophidia-io-server/pull/25)

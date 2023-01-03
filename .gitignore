@@ -47,3 +47,4 @@ src/iostorage/oph_iostorage_client
 src/query_engine/oph_query_expression_client
 m4/ltargz.m4
 src/metadb/execs/oph_metadb_reader
+src/server/execs/oph_io_server

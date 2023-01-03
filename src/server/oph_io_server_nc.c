@@ -2216,9 +2216,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	}
 	// Parse for multiple files
 	int k = 1, src_paths_num = *src_path ? 1 : 0, return_value = OPH_IO_SERVER_SUCCESS, offset = 0;	// Used to understand the real index of unlimited dimension
-	int _dims_start[dim_num], _dims_end[dim_num];
-	int dim_unlim_size = dims_end[dim_unlim] - dims_start[dim_unlim] + 1;
-	size_t lenp = 0;
 
 	char *pch = src_path, *save_pointer = NULL;
 	while (pch && *pch) {
@@ -2226,6 +2223,15 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			src_paths_num++;
 		pch++;
 	}
+	if ((src_paths_num > 1) && (dim_unlim < 0)) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "An unlimited dimension must be present when multiple files are imported\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "An unlimited dimension must be present when multiple files are imported\n");
+		return OPH_IO_SERVER_PARSE_ERROR;
+	}
+
+	int dim_unlim_size = dim_unlim < 0 ? 0 : dims_end[dim_unlim] - dims_start[dim_unlim] + 1;
+	int _dims_start[dim_num], _dims_end[dim_num];
+	size_t lenp = 0;
 
 	unsigned long long _tuplexfrag_number;
 	long long _frag_key_start, _f1, _f2;
@@ -2414,7 +2420,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				nexp++;
 			}
 		}
-		if (dims_type[dim_unlim])
+		if ((dim_unlim < 0) || dims_type[dim_unlim])
 			_array_length = array_length;
 		else
 			_array_length = array_length * (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) / dim_unlim_size;
