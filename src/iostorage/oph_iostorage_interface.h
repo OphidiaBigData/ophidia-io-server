@@ -59,28 +59,28 @@ typedef struct {
 //****************Plugin Interface******************//
 
 //Function to initialize storage library.
-int (*_DEVICE_setup) (oph_iostore_handler * handle);
+extern int (*_DEVICE_setup)(oph_iostore_handler * handle);
 
 //Function to finalize the storage library and release all dynamic loading resources.
-int (*_DEVICE_cleanup) (oph_iostore_handler * handle);
+extern int (*_DEVICE_cleanup)(oph_iostore_handler * handle);
 
 //Function to retrieve a DB record from storage device
-int (*_DEVICE_get_db) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
+extern int (*_DEVICE_get_db)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
 
 //Function to insert a DB record into storage device
-int (*_DEVICE_put_db) (oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
+extern int (*_DEVICE_put_db)(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
 
 //Function to delete a DB from a storage device
-int (*_DEVICE_delete_db) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
+extern int (*_DEVICE_delete_db)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
 //Function to retrieve a fragment record from storage device
-int (*_DEVICE_get_frag) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
+extern int (*_DEVICE_get_frag)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
 
 //Function to insert a fragment record into storage device
-int (*_DEVICE_put_frag) (oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
+extern int (*_DEVICE_put_frag)(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
 
 //Function to delete a fragment from a storage device
-int (*_DEVICE_delete_frag) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
+extern int (*_DEVICE_delete_frag)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
 //*****************Internal Functions (used by query engine library)***************//
 
