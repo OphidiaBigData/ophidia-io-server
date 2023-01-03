@@ -77,7 +77,7 @@ struct timeval *res, *x, *y;
 
 #include "esdm_kernels.h"
 
-int _oph_ioserver_esdm_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t **id, int i, int n)
+int _oph_ioserver_esdm_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t ** id, int i, int n)
 {
 	if (i < n - 1) {
 		unsigned long tmp;
@@ -91,7 +91,7 @@ int _oph_ioserver_esdm_get_dimension_id(unsigned long residual, unsigned long to
 	return 0;
 }
 
-int oph_ioserver_esdm_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t **id)
+int oph_ioserver_esdm_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t ** id)
 {
 	if (n > 0) {
 		int i;

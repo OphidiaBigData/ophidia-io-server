@@ -1,5 +1,9 @@
 
-## v1.7.3 - 2022-12-22
+## v1.7.3 - 2023-01-03
+
+### Added:
+
+- Support for CentOS 9 [#25](https://github.com/OphidiaBigData/ophidia-io-server/pull/25)
 
 ### Changed:
 
