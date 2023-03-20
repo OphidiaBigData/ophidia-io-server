@@ -1,4 +1,11 @@
 
+## Next release
+
+### Changed:
+
+- Option list
+- Configuration argument 'SERVER_HOSTNAME' is optional
+
 ## v1.7.3 - 2023-01-20
 
 ### Fixed:
