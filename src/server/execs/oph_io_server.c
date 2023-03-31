@@ -63,9 +63,9 @@ char *oph_server_conf_file = OPH_SERVER_CONF_FILE_PATH;
 int main(int argc, char *argv[])
 {
 #ifdef DEBUG
-	int msglevel = LOG_DEBUG_T;
+	int msglevel = LOG_DEBUG;
 #else
-	int msglevel = LOG_INFO_T;
+	int msglevel = LOG_INFO;
 #endif
 
 	int listenfd, tmpconnfd, *connfd = NULL;
@@ -73,20 +73,22 @@ int main(int argc, char *argv[])
 	void *server_child(void *);
 	pthread_t tid;
 	socklen_t clilen, addrlen;
-	set_debug_level(msglevel);
 
 	int ch;
 	unsigned short int instance = 0;
 
-	static char *USAGE = "\nUSAGE:\noph_io_server [-i <instance_number>]\n";
+	static char *USAGE = "\nUSAGE:\noph_io_server [-i <instance_number>]\n\nOptions:\n-c <conf_file>: set configuration file\n-d: enable debug mode\n-h: show this help\n-i <instance_number>: set number of the instance in configutation file\n-m: disable memory check\n-v: show conditions\n-w: enable warning level messages\n-x: show warrenty\n-z: show license\n";
 
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
 
-	while ((ch = getopt(argc, argv, "c:dhi:xz")) != -1) {
+	while ((ch = getopt(argc, argv, "c:dhi:mvwxz")) != -1) {
 		switch (ch) {
 			case 'c':
 				oph_server_conf_file = optarg;
+				break;
+			case 'd':
+				msglevel = LOG_DEBUG;
 				break;
 			case 'h':
 				fprintf(stdout, "%s", USAGE);
@@ -94,8 +96,15 @@ int main(int argc, char *argv[])
 			case 'i':
 				instance = (unsigned short int) strtol(optarg, NULL, 10);
 				break;
-			case 'd':
+			case 'm':
 				disable_mem_check = 1;
+				break;
+			case 'v':
+				return 0;
+				break;
+			case 'w':
+				if (msglevel < LOG_WARNING)
+					msglevel = LOG_WARNING;
 				break;
 			case 'x':
 				fprintf(stdout, "%s", OPH_WARRANTY);
@@ -108,14 +117,14 @@ int main(int argc, char *argv[])
 				return 0;
 		}
 	}
+	set_debug_level(msglevel + 10);
 
-
-	if (disable_mem_check == 1) {
+	if (disable_mem_check)
 		pmesg(LOG_INFO, __FILE__, __LINE__, "Disable Memory check\n");
-	}
-	if (instance == 0) {
+
+	if (!instance)
 		pmesg(LOG_INFO, __FILE__, __LINE__, "Using default (first) instance in configuration file\n");
-	}
+
 	//mallopt(M_TRIM_THRESHOLD, 1024);
 	//mallopt(M_TOP_PAD, 0);
 	//mallopt(M_MMAP_THRESHOLD, 1);
@@ -125,7 +134,7 @@ int main(int argc, char *argv[])
 	//Load params from conf files
 	if (oph_server_conf_load(instance, &conf_db)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading configuration file\n");
-		//logging(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
+		logging(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
 		return -1;
 	}
 
@@ -142,32 +151,25 @@ int main(int argc, char *argv[])
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_DIR, &dir)) {
 		pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to get server dir param\n");
-		//logging(LOG_ERROR,__FILE__,__LINE__,"Unable to get hostname param\n");
-		//oph_server_conf_unload(&conf_db);
-		//return -1;
 		dir = OPH_IO_SERVER_PREFIX;
 	}
 	//Setup debug and MetaDB directories
 	set_log_prefix(dir);
 	oph_metadb_set_data_prefix(dir);
 
-	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_HOSTNAME, &hostname)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
-		oph_server_conf_unload(&conf_db);
-		return -1;
-	}
+	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_HOSTNAME, &hostname))
+		pmesg(LOG_WARNING, __FILE__, __LINE__, "Unable to get 'hostname' param: using node address\n");
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_PORT, &port)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get 'port' param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get 'port' param\n");
 		oph_server_conf_unload(&conf_db);
 		return -1;
 	}
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_MPL, &max_length)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get 'max_length' param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get 'max_length' param\n");
 		oph_server_conf_unload(&conf_db);
 		return -1;
 	}
@@ -175,8 +177,8 @@ int main(int argc, char *argv[])
 	max_packet_length = strtoll(max_length, NULL, 10);
 
 	if (oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_TTL, &ttl)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get hostname param\n");
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get 'ttl' param\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get 'ttl' param\n");
 		oph_server_conf_unload(&conf_db);
 		return -1;
 	}
