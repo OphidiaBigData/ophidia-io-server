@@ -77,7 +77,8 @@ int main(int argc, char *argv[])
 	int ch;
 	unsigned short int instance = 0;
 
-	static char *USAGE = "\nUSAGE:\noph_io_server [-i <instance_number>]\n\nOptions:\n-c <conf_file>: set configuration file\n-d: enable debug mode\n-h: show this help\n-i <instance_number>: set number of the instance in configutation file\n-m: disable memory check\n-v: show conditions\n-w: enable warning level messages\n-x: show warrenty\n-z: show license\n";
+	static char *USAGE =
+	    "\nUSAGE:\noph_io_server [-i <instance_number>]\n\nOptions:\n-c <conf_file>: set configuration file\n-d: enable debug mode\n-h: show this help\n-i <instance_number>: set number of the instance in configutation file\n-m: disable memory check\n-v: show conditions\n-w: enable warning level messages\n-x: show warrenty\n-z: show license\n";
 
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
 	//Load params from conf files
 	if (oph_server_conf_load(instance, &conf_db)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading configuration file\n");
-		logging(LOG_ERROR,__FILE__,__LINE__,"Error while loading configuration file\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error while loading configuration file\n");
 		return -1;
 	}
 
