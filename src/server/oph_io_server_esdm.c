@@ -610,19 +610,18 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	esdm_status retval;
 #ifdef OPH_ESDM_PAV_KERNELS
 	if (sub_operation) {
-		char fill_value[sizeof_type], *pointer = NULL;
-		retval = esdm_dataset_get_fill_value(dataset, fill_value);
-		if (!retval) {
-			esdm_stream_data_t stream_data;
-			stream_data.operation = sub_operation;
-			stream_data.args = sub_args;
-			stream_data.buff = pointer = transpose ? binary_cache : binary_insert;
-			stream_data.valid = 0;
-			stream_data.fill_value = fill_value;
-			for (j = 0; j < array_length; j++, pointer += sizeof_type)
-				memcpy(pointer, fill_value, sizeof_type);
-			retval = esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func);
-		}
+		char fill_value[sizeof_type], *_fill_value = fill_value, *pointer = NULL;
+		if (esdm_dataset_get_fill_value(dataset, _fill_value))
+			_fill_value = NULL;
+		esdm_stream_data_t stream_data;
+		stream_data.operation = sub_operation;
+		stream_data.args = sub_args;
+		stream_data.buff = pointer = transpose ? binary_cache : binary_insert;
+		stream_data.valid = 0;
+		stream_data.fill_value = _fill_value;
+		for (j = 0; j < array_length; j++, pointer += sizeof_type)
+			memcpy(pointer, _fill_value, sizeof_type);
+		retval = esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func);
 	} else
 #endif
 		retval = esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace);
@@ -1176,19 +1175,18 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	esdm_status retval;
 #ifdef OPH_ESDM_PAV_KERNELS
 	if (sub_operation) {
-		char fill_value[sizeof_type], *pointer = NULL;
-		retval = esdm_dataset_get_fill_value(dataset, fill_value);
-		if (!retval) {
-			esdm_stream_data_t stream_data;
-			stream_data.operation = sub_operation;
-			stream_data.args = sub_args;
-			stream_data.buff = pointer = transpose ? binary_cache : binary_insert;
-			stream_data.valid = 0;
-			stream_data.fill_value = fill_value;
-			for (j = 0; j < array_length; j++, pointer += sizeof_type)
-				memcpy(pointer, fill_value, sizeof_type);
-			retval = esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func);
-		}
+		char fill_value[sizeof_type], *_fill_value = fill_value, *pointer = NULL;
+		if (esdm_dataset_get_fill_value(dataset, _fill_value))
+			_fill_value = NULL;
+		esdm_stream_data_t stream_data;
+		stream_data.operation = sub_operation;
+		stream_data.args = sub_args;
+		stream_data.buff = pointer = transpose ? binary_cache : binary_insert;
+		stream_data.valid = 0;
+		stream_data.fill_value = _fill_value;
+		for (j = 0; j < array_length; j++, pointer += sizeof_type)
+			memcpy(pointer, _fill_value, sizeof_type);
+		retval = esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func);
 	} else
 #endif
 		retval = esdm_read(dataset, transpose ? binary_cache : binary_insert, subspace);
@@ -1843,33 +1841,9 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 
 #ifdef OPH_ESDM_PAV_KERNELS
 	esdm_stream_data_t stream_data;
-	char fill_value[sizeof_type], *pointer = NULL;
-
-	if (esdm_dataset_get_fill_value(dataset, fill_value)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to get the fill value\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to get the fill value\n");
-		for (i = 0; i < arg_count; i++)
-			if (args[i])
-				free(args[i]);
-		free(args);
-		free(value_list);
-		if (transpose) {
-			free(binary_cache);
-			free(counters);
-			free(src_products);
-			free(limits);
-		}
-		free(binary_insert);
-		pthread_mutex_lock(&nc_lock);
-		esdm_dataset_close(dataset);
-		esdm_container_close(container);
-		pthread_mutex_unlock(&nc_lock);
-		free(start);
-		free(count);
-		free(start_pointer);
-		free(sizemax);
-		return OPH_IO_SERVER_EXEC_ERROR;
-	}
+	char fill_value[sizeof_type], *_fill_value = fill_value, *pointer = NULL;
+	if (esdm_dataset_get_fill_value(dataset, _fill_value))
+		_fill_value = NULL;
 #endif
 
 	unsigned long long ii;
@@ -1919,9 +1893,9 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 			stream_data.args = sub_args;
 			stream_data.buff = pointer = transpose ? binary_cache : binary_insert;
 			stream_data.valid = 0;
-			stream_data.fill_value = fill_value;
+			stream_data.fill_value = _fill_value;
 			for (j = 0; j < array_length; j++, pointer += sizeof_type)
-				memcpy(pointer, fill_value, sizeof_type);
+				memcpy(pointer, _fill_value, sizeof_type);
 			if (esdm_read_stream(dataset, subspace, &stream_data, esdm_stream_func, esdm_reduce_func)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 				logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
