@@ -281,8 +281,8 @@ int oph_ioserver_esdm_cache_to_buffer(short int tot_dim_number, unsigned int *co
 	return 0;
 }
 
-int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
-			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
+int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container, esdm_dataset_t *dataset,
+			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag,
 			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
 			       char *sub_args, char dimension_ordered)
 {
@@ -846,8 +846,8 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
-			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
+int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container, esdm_dataset_t *dataset,
+			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag,
 			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
 			       char *sub_args, char dimension_ordered)
 {
@@ -1390,8 +1390,8 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t * container, esdm_dataset_t * dataset,
-			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set * binary_frag,
+int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container, esdm_dataset_t *dataset,
+			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag,
 			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
 			       char *sub_args)
 {
@@ -2027,7 +2027,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 }
 
 int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			    short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
+			    short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
