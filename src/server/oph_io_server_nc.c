@@ -1930,7 +1930,9 @@ int _oph_ioserver_nc_read_v0_n4(char *src_path, char *measure_name, unsigned lon
 #endif
 	int ncid = 0, varid = 0;
 
-	unsigned long long ii;
+	char *buffer_in = NULL, *buffer_out = NULL;
+
+	unsigned long long ii, tuplexfrag_number_1 = tuplexfrag_number - 1;
 	for (ii = 0; ii < tuplexfrag_number; ii++, idDim++) {
 
 		oph_ioserver_nc_compute_dimension_id(idDim, sizemax, nexp, start_pointer);
@@ -1980,7 +1982,6 @@ int _oph_ioserver_nc_read_v0_n4(char *src_path, char *measure_name, unsigned lon
 		//timeval_add(&total_read_time, &total_read_time, &intermediate_read_time);
 #endif
 		//Attach shared memory segment to process
-		char *buffer_in = NULL, *buffer_out = NULL;
 		if (!ii && _oph_ioserver_nc_get_buffer_insert(buff, &buffer_out)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2002,11 +2003,11 @@ int _oph_ioserver_nc_read_v0_n4(char *src_path, char *measure_name, unsigned lon
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 
-		if (transpose) {
+		if (transpose && (ii >= tuplexfrag_number_1)) {
 #ifdef DEBUG
 			//gettimeofday(&start_transpose_time, NULL);
 #endif
-			if (!ii && _oph_ioserver_nc_get_buffer_cache(buff, &buffer_in)) {
+			if (_oph_ioserver_nc_get_buffer_cache(buff, &buffer_in)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 				_oph_ioserver_nc_clear_buffer(buff);
@@ -2068,7 +2069,9 @@ int _oph_ioserver_nc_read_v0_n4(char *src_path, char *measure_name, unsigned lon
 
 		new_record = NULL;
 		row_size = 0;
-		_oph_ioserver_nc_release_buffer_insert(buff, buffer_out);
+
+		if (ii >= tuplexfrag_number_1)
+			_oph_ioserver_nc_release_buffer_insert(buff, buffer_out);
 	}
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
