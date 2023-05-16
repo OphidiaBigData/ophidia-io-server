@@ -338,14 +338,14 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 		for (i = 0; i < ndims; i++)
 			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", (size_t *) count[i]);
 		msg[c + index++] = '|';
-		snprintf(&msg[c + index], INT_LEN + 1, "%d", offset);
+		index += snprintf(&msg[c + index], INT_LEN + 1, "%d", offset);
 		msg[c + index++] = '|';
-		snprintf(&msg[c + index], LONG_LEN + 1, "%lld", tuples);
+		index += snprintf(&msg[c + index], LONG_LEN + 1, "%lld", tuples);
 		if (tuples > 1) {
 			msg[c + index++] = '|';
-			snprintf(&msg[c + index], LONG_LEN + 1, "%lld", idDim);
+			index += snprintf(&msg[c + index], LONG_LEN + 1, "%lld", idDim);
 			msg[c + index++] = '|';
-			snprintf(&msg[c + index], INT_LEN + 1, "%d", nexp);
+			index += snprintf(&msg[c + index], INT_LEN + 1, "%d", nexp);
 			msg[c + index++] = '|';
 			for (i = 0; i < nexp; i++)
 				index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", sizemax[i]);
@@ -1622,7 +1622,7 @@ int _oph_ioserver_nc_read_v0_n4(char *src_path, char *measure_name, unsigned lon
 		return OPH_IO_SERVER_NULL_PARAM;
 	}
 #ifdef DEBUG
-	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v0.0\n");
+	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v0.1\n");
 #endif
 
 	int i = 0, j = 0;

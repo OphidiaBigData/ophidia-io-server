@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 				n3++;
 		}
 		while (*c3++);
-		if (n1 != n3) {
+		if (nexp != n3) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Arguments are not correct\n");
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
