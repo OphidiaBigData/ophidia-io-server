@@ -1930,7 +1930,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 #endif
 	int ncid = 0, varid = 0;
 
-	char *buffer_in = NULL, *buffer_out = NULL;
+	char *buffer_in = NULL, *buffer_out = NULL, *_buffer_out = NULL;
 
 	unsigned long long ii, tuplexfrag_number_1 = tuplexfrag_number - 1;
 	for (ii = 0; ii < tuplexfrag_number; ii++, idDim++) {
@@ -2002,8 +2002,12 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 			free(sizemax);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
+		if (ii)
+			_buffer_out += sizeof_var;
+		else
+			_buffer_out = buffer_out;
 
-		if (transpose && (ii >= tuplexfrag_number_1)) {
+		if (transpose) {
 #ifdef DEBUG
 			//gettimeofday(&start_transpose_time, NULL);
 #endif
@@ -2028,7 +2032,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 				return OPH_IO_SERVER_MEMORY_ERROR;
 			}
 
-			oph_ioserver_nc_cache_to_buffer(nimp, counters, limits, src_products, buffer_in, buffer_out, sizeof_type);
+			oph_ioserver_nc_cache_to_buffer(nimp, counters, limits, src_products, buffer_in, _buffer_out, sizeof_type);
 
 			//Detach shared memory segment
 			_oph_ioserver_nc_release_buffer_cache(buff, buffer_in);
@@ -2039,7 +2043,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 #endif
 		}
 
-		args[measure_pos]->arg = (char *) (buffer_out + ii * sizeof_var);
+		args[measure_pos]->arg = (char *) _buffer_out;
 
 		if (_oph_ioserver_query_build_row(arg_count, &row_size, binary_frag, binary_frag->field_name, value_list, args, &new_record)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ROW_CREATE_ERROR);
