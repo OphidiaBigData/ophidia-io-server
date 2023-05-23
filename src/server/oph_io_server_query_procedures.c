@@ -34,7 +34,7 @@ extern int msglevel;
 extern pthread_rwlock_t rwlock;
 
 //Procedure OPH_IO_SERVER_PROCEDURE_SUBSET
-int oph_io_server_run_subset_procedure(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args)
+int oph_io_server_run_subset_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args)
 {
 	if (!query_args || !dev_handle || !thread_status || !meta_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -218,7 +218,7 @@ int oph_io_server_run_subset_procedure(oph_metadb_db_row ** meta_db, oph_iostore
 }
 
 //Function for EXPORTNC
-int oph_io_server_run_export_procedure(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args)
+int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args)
 {
 	if (!query_args || !dev_handle || !thread_status || !meta_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -325,7 +325,7 @@ int oph_io_server_run_export_procedure(oph_metadb_db_row ** meta_db, oph_iostore
 }
 
 //Function for CUBESIZE
-int oph_io_server_run_size_procedure(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args)
+int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args)
 {
 	if (!query_args || !thread_status || !meta_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);

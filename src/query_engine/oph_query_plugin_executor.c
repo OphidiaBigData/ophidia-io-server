@@ -52,7 +52,7 @@ extern HASHTBL *plugin_table;
 
 void (*_oph_plugin_reset)(UDF_INIT *, UDF_ARGS *, char *, char *);
 
-int free_udf_arg(UDF_ARGS * args)
+int free_udf_arg(UDF_ARGS *args)
 {
 	if (!args)
 		return -1;
@@ -73,7 +73,7 @@ int free_udf_arg(UDF_ARGS * args)
 	return 0;
 }
 
-int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, oph_query_expr_value * res, oph_plugin_api * functions)
+int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, oph_query_expr_value *res, oph_plugin_api *functions)
 {
 	if (!plugin || !args || !initid || !res || !functions)
 		return -1;
@@ -158,7 +158,7 @@ int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * i
 	return 0;
 }
 
-int oph_query_plugin_clear(oph_plugin_api * function, void *dlh, UDF_INIT * initid)
+int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid)
 {
 	if (!function || !dlh || !initid)
 		return -1;
@@ -183,7 +183,7 @@ int oph_query_plugin_clear(oph_plugin_api * function, void *dlh, UDF_INIT * init
 }
 
 
-int oph_query_plugin_deinit(oph_plugin_api * function, void *dlh, UDF_INIT * initid, UDF_ARGS * internal_args)
+int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args)
 {
 	if (!function || !dlh || !initid || !internal_args)
 		return -1;
@@ -230,7 +230,7 @@ int oph_query_plugin_deinit(oph_plugin_api * function, void *dlh, UDF_INIT * ini
 	return 0;
 }
 
-int oph_query_plugin_init(oph_plugin_api * function, void **dlh, UDF_INIT ** initid, UDF_ARGS ** internal_args, char *plugin_name, int arg_count, oph_query_expr_value * args, char *is_aggregate)
+int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value *args, char *is_aggregate)
 {
 	if (!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table || !is_aggregate)
 		return -1;
@@ -477,7 +477,7 @@ int oph_query_plugin_init(oph_plugin_api * function, void **dlh, UDF_INIT ** ini
 	return 0;
 }
 
-int oph_query_plugin_add(oph_plugin_api * function, void **dlh, UDF_INIT * initid, UDF_ARGS * internal_args, int arg_count, oph_query_expr_value * args)
+int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, int arg_count, oph_query_expr_value *args)
 {
 	if (!function || !dlh || !initid || !internal_args || !arg_count || !args)
 		return -1;
@@ -580,7 +580,7 @@ int oph_query_plugin_add(oph_plugin_api * function, void **dlh, UDF_INIT * initi
 }
 
 
-int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * initid, UDF_ARGS * internal_args, char *plugin_name, int arg_count, oph_query_expr_value * args, oph_query_expr_value * res)
+int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value *args, oph_query_expr_value *res)
 {
 	if (!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
 		return -1;
