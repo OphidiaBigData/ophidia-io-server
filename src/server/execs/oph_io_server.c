@@ -78,17 +78,20 @@ int main(int argc, char *argv[])
 	unsigned short int instance = 0;
 
 	static char *USAGE =
-	    "\nUSAGE:\noph_io_server [-i <instance_number>]\n\nOptions:\n-c <conf_file>: set configuration file\n-d: enable debug mode\n-h: show this help\n-i <instance_number>: set number of the instance in configutation file\n-m: disable memory check\n-v: show conditions\n-w: enable warning level messages\n-x: show warrenty\n-z: show license\n";
+	    "\nUSAGE:\noph_io_server [-i <instance_number>]\n\nOptions:\n-c <conf_file>: set configuration file\n-D: enable debug mode\n-h: show this help\n-i <instance_number>: set number of the instance in configutation file\n-m: disable memory check\n-v: show conditions\n-w: enable warning level messages\n-x: show warrenty\n-z: show license\n";
 
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
 
-	while ((ch = getopt(argc, argv, "c:dhi:mvwxz")) != -1) {
+	while ((ch = getopt(argc, argv, "c:dDhi:mvwxz")) != -1) {
 		switch (ch) {
 			case 'c':
 				oph_server_conf_file = optarg;
 				break;
-			case 'd':
+			case 'd':	// Left for retro-compability: use option 'm' instead
+				disable_mem_check = 1;
+				break;
+			case 'D':
 				msglevel = LOG_DEBUG;
 				break;
 			case 'h':
