@@ -274,6 +274,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_predicate2.so
 FUN SIMPLE
 RET STRING
+[oph_predicate3]
+LIB	@PLUGIN_PATH@/liboph_predicate3.so
+FUN SIMPLE
+RET STRING
 [oph_quantize]
 LIB	@PLUGIN_PATH@/liboph_quantize.so
 FUN SIMPLE
