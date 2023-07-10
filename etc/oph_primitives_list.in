@@ -210,6 +210,10 @@ RET INTEGER
 LIB	@PLUGIN_PATH@/liboph_interlace.so
 FUN SIMPLE
 RET STRING
+[oph_interlace2]
+LIB	@PLUGIN_PATH@/liboph_interlace2.so
+FUN SIMPLE
+RET STRING
 [oph_mask_array]
 LIB	@PLUGIN_PATH@/liboph_mask_array.so
 FUN SIMPLE

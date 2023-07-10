@@ -230,14 +230,27 @@ int oph_io_client_setup_query(oph_io_client_connection *connection, const char *
 	unsigned int arg_number = 0;
 	unsigned long long payload_len = 0;
 
-	if (!args) {
+	if (!args || !args[0]) {
 		//Build simple request message TYPE|ARG_NUMBER|QUERY_LEN|QUERY|DEVICE_LEN|DEVICE
 
-		message_len = strlen(OPH_IO_CLIENT_MSG_EXEC_QUERY) + 1 + sizeof(unsigned int) + 2 * sizeof(unsigned long long) + strlen(operation) + 1 + strlen(operation) + 1;
+		// Remove possible references to unkwnon args
+		char *op = strdup(operation), *pointer = NULL;
+		while ((pointer = strstr(op, "?"))) {
+			char _op[4 + strlen(op)];
+			m = pointer - op;
+			strncpy(_op, op, m);
+			strcpy(_op + m, "NULL");
+			strcpy(_op + m + 4, 1 + pointer);
+			free(op);
+			op = strdup(_op);
+		}
+
+		message_len = strlen(OPH_IO_CLIENT_MSG_EXEC_QUERY) + 1 + sizeof(unsigned int) + 2 * sizeof(unsigned long long) + strlen(op) + 1 + strlen(op) + 1;
 		request = (char *) calloc(message_len, sizeof(char));
 		if (!request) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error allocation memory\n");
 			free(*query);
+			free(op);
 			return OPH_IO_CLIENT_INTERFACE_MEMORY_ERR;
 		}
 
@@ -245,10 +258,10 @@ int oph_io_client_setup_query(oph_io_client_connection *connection, const char *
 		arg_number = 1;
 		memcpy(request + m, (void *) &arg_number, sizeof(unsigned int));
 		m += sizeof(unsigned int);
-		payload_len = strlen(operation);
+		payload_len = strlen(op);
 		memcpy(request + m, (void *) &payload_len, sizeof(unsigned long long));
 		m += sizeof(unsigned long long);
-		m += snprintf(request + m, strlen(operation) + 1, "%s", operation);
+		m += snprintf(request + m, strlen(op) + 1, "%s", op);
 		payload_len = strlen(device);
 		memcpy(request + m, (void *) &payload_len, sizeof(unsigned long long));
 		m += sizeof(unsigned long long);
@@ -256,6 +269,8 @@ int oph_io_client_setup_query(oph_io_client_connection *connection, const char *
 
 		(*query)->query = (void *) request;
 		(*query)->fixed_length = m;
+
+		free(op);
 	} else {
 		//Build complex request message TYPE|ARG_NUMBER|QUERY_LEN|QUERY|DEVICE_LEN|DEVICE|N_RUN|CURR_RUN|ARG1_LEN|ARG1_TYPE|ARG1|...
 
