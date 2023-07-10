@@ -1,6 +1,15 @@
 
 ## Next release
 
+### Fixed:
+
+- Version 0 of the fuction used to load NetCDF data from a file compliant with the version 4 of NetCDF specification [#27](https://github.com/OphidiaBigData/ophidia-io-server/pull/27)
+- Bug in handling of fill values for ESDM datasets
+
+### Added:
+
+- Primitive oph_interlace2 [#26](https://github.com/OphidiaBigData/ophidia-io-server/pull/26)
+
 ### Changed:
 
 - Option list
