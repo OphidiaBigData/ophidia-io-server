@@ -83,7 +83,7 @@
 #define oph_iob_readas_binary_l(num,bin_val,length) oph_iob_readas_binary(num,bin_val,length,OPH_IOB_LONG)
 #define oph_iob_readas_binary_s(num,bin_val,length) oph_iob_readas_binary(num,bin_val,length,OPH_IOB_SHORT)
 #define oph_iob_readas_binary_b(num,bin_val,length) oph_iob_readas_binary(num,bin_val,length,OPH_IOB_BYTE)
-int oph_iob_readas_binary(void *num, char **bin_val, size_t *length, unsigned int num_type);
+int oph_iob_readas_binary(void *num, char **bin_val, size_t * length, unsigned int num_type);
 
 
 /**
@@ -100,7 +100,7 @@ int oph_iob_readas_binary(void *num, char **bin_val, size_t *length, unsigned in
 #define oph_iob_copy_in_binary_l(num,bin_val,length) oph_iob_copy_in_binary(num,bin_val,length,OPH_IOB_LONG)
 #define oph_iob_copy_in_binary_s(num,bin_val,length) oph_iob_copy_in_binary(num,bin_val,length,OPH_IOB_SHORT)
 #define oph_iob_copy_in_binary_b(num,bin_val,length) oph_iob_copy_in_binary(num,bin_val,length,OPH_IOB_BYTE)
-int oph_iob_copy_in_binary(void *num, char **bin_val, size_t *length, unsigned int num_type);
+int oph_iob_copy_in_binary(void *num, char **bin_val, size_t * length, unsigned int num_type);
 
 
 /**
@@ -270,5 +270,5 @@ int oph_iob_bin_array_get(const char *bin_array, char **bin_val, long long posit
 /**
    Internal functions
  */
-int oph_iob_sizeof_type(unsigned int num_type, size_t *sizeof_num);
+int oph_iob_sizeof_type(unsigned int num_type, size_t * sizeof_num);
 #endif

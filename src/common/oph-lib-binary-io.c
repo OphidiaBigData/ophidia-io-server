@@ -22,7 +22,7 @@
 extern int msglevel;
 
 
-int oph_iob_copy_in_binary(void *num, char **bin_val, size_t *length, unsigned int num_type)
+int oph_iob_copy_in_binary(void *num, char **bin_val, size_t * length, unsigned int num_type)
 {
 	size_t sizeof_num;
 	int res = oph_iob_sizeof_type(num_type, &sizeof_num);
@@ -39,7 +39,7 @@ int oph_iob_copy_in_binary(void *num, char **bin_val, size_t *length, unsigned i
 	return OPH_IOB_OK;
 }
 
-int oph_iob_readas_binary(void *num, char **bin_val, size_t *length, unsigned int num_type)
+int oph_iob_readas_binary(void *num, char **bin_val, size_t * length, unsigned int num_type)
 {
 	size_t sizeof_num;
 	int res = oph_iob_sizeof_type(num_type, &sizeof_num);
@@ -261,7 +261,7 @@ int oph_iob_bin_array_get(const char *bin_array, char **bin_val, long long posit
 }
 
 /* INTERNAL FUNCTIONS SECTION */
-int oph_iob_sizeof_type(unsigned int num_type, size_t *sizeof_num)
+int oph_iob_sizeof_type(unsigned int num_type, size_t * sizeof_num)
 {
 	switch (num_type) {
 		case OPH_IOB_LONG:
