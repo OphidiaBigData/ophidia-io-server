@@ -37,7 +37,7 @@
 extern int msglevel;
 
 //Setup oph_plugin with default values
-int oph_init_plugin(oph_plugin *plugin)
+int oph_init_plugin(oph_plugin * plugin)
 {
 	if (!plugin) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -53,7 +53,7 @@ int oph_init_plugin(oph_plugin *plugin)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_free_plugin(oph_plugin *plugin)
+int oph_free_plugin(oph_plugin * plugin)
 {
 	if (!plugin) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -69,7 +69,7 @@ int oph_free_plugin(oph_plugin *plugin)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_load_plugins(HASHTBL **plugin_htable, oph_query_expr_symtable **function_table)
+int oph_load_plugins(HASHTBL ** plugin_htable, oph_query_expr_symtable ** function_table)
 {
 	FILE *fp = NULL;
 	char line[OPH_PLUGIN_FILE_LINE] = { 0 };
@@ -262,7 +262,7 @@ int oph_load_plugins(HASHTBL **plugin_htable, oph_query_expr_symtable **function
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_unload_plugins(HASHTBL **plugin_htable, oph_query_expr_symtable **function_table)
+int oph_unload_plugins(HASHTBL ** plugin_htable, oph_query_expr_symtable ** function_table)
 {
 	if (!plugin_htable || !function_table) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);

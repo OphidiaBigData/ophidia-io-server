@@ -133,7 +133,7 @@ oph_query_expr_node *oph_query_expr_create_variable(char *name)
 	return b;
 }
 
-oph_query_expr_node *oph_query_expr_create_function(char *name, oph_query_expr_node *args)
+oph_query_expr_node *oph_query_expr_create_function(char *name, oph_query_expr_node * args)
 {
 	oph_query_expr_node *b = allocate_node();
 
@@ -155,7 +155,7 @@ oph_query_expr_node *oph_query_expr_create_function(char *name, oph_query_expr_n
 	return b;
 }
 
-oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type type, oph_query_expr_node *left, oph_query_expr_node *right)
+oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type type, oph_query_expr_node * left, oph_query_expr_node * right)
 {
 	oph_query_expr_node *b = allocate_node();
 
@@ -170,7 +170,7 @@ oph_query_expr_node *oph_query_expr_create_operation(oph_query_expr_node_type ty
 	return b;
 }
 
-int oph_query_expr_delete_node(oph_query_expr_node *b, oph_query_expr_symtable *table)
+int oph_query_expr_delete_node(oph_query_expr_node * b, oph_query_expr_symtable * table)
 {
 	//base case for recursion and error case if null pointer is passed by user
 	if (b == NULL)
@@ -246,7 +246,7 @@ int oph_query_expr_create_function_symtable(int additional_size)
 }
 
 
-int oph_query_expr_create_symtable(oph_query_expr_symtable **table, int additional_size)
+int oph_query_expr_create_symtable(oph_query_expr_symtable ** table, int additional_size)
 {
 	if (table == NULL || additional_size < 0) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -280,7 +280,7 @@ int oph_query_expr_create_symtable(oph_query_expr_symtable **table, int addition
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_expr_destroy_symtable(oph_query_expr_symtable *table)
+int oph_query_expr_destroy_symtable(oph_query_expr_symtable * table)
 {
 	if (table == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -304,7 +304,7 @@ int oph_query_expr_destroy_symtable(oph_query_expr_symtable *table)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-oph_query_expr_record *oph_query_expr_lookup(const char *s, oph_query_expr_symtable *table)
+oph_query_expr_record *oph_query_expr_lookup(const char *s, oph_query_expr_symtable * table)
 {
 	//make sure pointer is not null
 	if (table == NULL) {
@@ -321,7 +321,7 @@ oph_query_expr_record *oph_query_expr_lookup(const char *s, oph_query_expr_symta
 }
 
 int oph_query_expr_add_function(const char *name, int fun_type, int args_num, oph_query_expr_value(*value_fun) (oph_query_expr_value *, int, char *, oph_query_expr_udf_descriptor *, int, int *),
-				oph_query_expr_symtable *table)
+				oph_query_expr_symtable * table)
 {
 	if (table == NULL || args_num < 0 || value_fun == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -368,7 +368,7 @@ int oph_query_expr_add_function(const char *name, int fun_type, int args_num, op
 }
 
 int oph_query_expr_add_variable(const char *name, oph_query_expr_value_type var_type, double double_value, long long long_value,
-				char *string_value, oph_query_arg *binary_value, oph_query_expr_symtable *table)
+				char *string_value, oph_query_arg * binary_value, oph_query_expr_symtable * table)
 {
 
 	if (table == NULL) {
@@ -455,23 +455,23 @@ int oph_query_expr_add_variable(const char *name, oph_query_expr_value_type var_
 	return OPH_QUERY_ENGINE_MEMORY_ERROR;
 }
 
-int oph_query_expr_add_double(const char *name, double value, oph_query_expr_symtable *table)
+int oph_query_expr_add_double(const char *name, double value, oph_query_expr_symtable * table)
 {
 	return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_DOUBLE, value, 0, NULL, NULL, table);
 }
 
-int oph_query_expr_add_long(const char *name, long long value, oph_query_expr_symtable *table)
+int oph_query_expr_add_long(const char *name, long long value, oph_query_expr_symtable * table)
 {
 	return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_LONG, 0, value, NULL, NULL, table);
 }
 
-int oph_query_expr_add_string(const char *name, char *value, oph_query_expr_symtable *table)
+int oph_query_expr_add_string(const char *name, char *value, oph_query_expr_symtable * table)
 {
 	//redirect to more general function
 	return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_STRING, 0, 0, value, NULL, table);
 }
 
-int oph_query_expr_add_binary(const char *name, oph_query_arg *value, oph_query_expr_symtable *table)
+int oph_query_expr_add_binary(const char *name, oph_query_arg * value, oph_query_expr_symtable * table)
 {
 	return oph_query_expr_add_variable(name, OPH_QUERY_EXPR_TYPE_BINARY, 0, 0, NULL, value, table);
 }
@@ -480,7 +480,7 @@ int eeparse(int mode, oph_query_expr_node ** expression, yyscan_t scanner);
 
 oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fun_type, int num_args_required, int *num_args_used, int *er, oph_query_expr_symtable * table, char *jump_flag);
 
-int oph_query_expr_get_ast(const char *expr, oph_query_expr_node **e)
+int oph_query_expr_get_ast(const char *expr, oph_query_expr_node ** e)
 {
 	if (expr == NULL || e == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -567,7 +567,7 @@ oph_query_arg *get_binary_value(oph_query_expr_value value, int *er, const char 
 	}
 }
 
-oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_symtable *table)
+oph_query_expr_value evaluate(oph_query_expr_node * e, int *er, oph_query_expr_symtable * table)
 {
 	switch (e->type) {
 		case eVALUE:
@@ -826,7 +826,7 @@ oph_query_expr_value evaluate(oph_query_expr_node *e, int *er, oph_query_expr_sy
 }
 
 //helper of evaluate
-oph_query_expr_value *get_array_args(char *name, oph_query_expr_node *e, int fun_type, int num_args_required, int *num_args_used, int *er, oph_query_expr_symtable *table, char *jump_flag)
+oph_query_expr_value *get_array_args(char *name, oph_query_expr_node * e, int fun_type, int num_args_required, int *num_args_used, int *er, oph_query_expr_symtable * table, char *jump_flag)
 {
 	int num_args_provided = 0;
 	oph_query_expr_node *cur = e;
@@ -872,7 +872,7 @@ oph_query_expr_value *get_array_args(char *name, oph_query_expr_node *e, int fun
 }
 
 
-int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value **res, oph_query_expr_symtable *table)
+int oph_query_expr_eval_expression(oph_query_expr_node * e, oph_query_expr_value ** res, oph_query_expr_symtable * table)
 {
 	if (e == NULL || res == NULL || table == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -912,7 +912,7 @@ int oph_query_expr_eval_expression(oph_query_expr_node *e, oph_query_expr_value 
 	}
 }
 
-int oph_query_expr_change_group(oph_query_expr_node *b)
+int oph_query_expr_change_group(oph_query_expr_node * b)
 {
 	//base case for recursion and error case if null pointer is passed by user
 	if (b == NULL) {
@@ -931,7 +931,7 @@ int oph_query_expr_change_group(oph_query_expr_node *b)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_expr_get_variables_help(oph_query_expr_node *e, int *max_size, int *current_size, char ***names)
+int oph_query_expr_get_variables_help(oph_query_expr_node * e, int *max_size, int *current_size, char ***names)
 {
 	if (!e)
 		return OPH_QUERY_ENGINE_SUCCESS;
@@ -970,7 +970,7 @@ int oph_query_expr_get_variables_help(oph_query_expr_node *e, int *max_size, int
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_expr_get_variables(oph_query_expr_node *e, char ***var_list, int *var_count)
+int oph_query_expr_get_variables(oph_query_expr_node * e, char ***var_list, int *var_count)
 {
 	if (e == NULL || var_list == NULL || var_count == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
