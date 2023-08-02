@@ -2767,7 +2767,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		memcpy(_dims_start, dims_start, dim_num * sizeof(int));
 		memcpy(_dims_end, dims_end, dim_num * sizeof(int));
 
-		if (!strstr(src_path, "http://") && !strstr(src_path, "https://") && !strstr(src_path, "file://") && !strstr(src_path, "esdm://")) {
+		if (!strstr(src_path, "http://") && !strstr(src_path, "https://") && !strstr(src_path, "file://") && !strstr(src_path, "s3://") && !strstr(src_path, "esdm://")) {
 			char *pointer = src_path;
 			while (pointer && (*pointer == ' '))
 				pointer++;
