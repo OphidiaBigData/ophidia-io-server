@@ -3,6 +3,7 @@
 
 ### Added:
 
+- Support for Ophidia I/O servers with persistent memory
 - Allow S3 data sources
 
 ## v1.8.0 - 2023-07-31

@@ -335,6 +335,33 @@ AC_ARG_WITH(device_file_path,
 DEVICE_PATH=$device_file_path
 AC_SUBST(DEVICE_PATH)
 
+have_memkind=no
+AC_ARG_ENABLE(memkind,
+	[	--enable-memkind	Enable MEMKIND (disabled by default)	],
+	[	have_memkind=yes
+		AC_MSG_NOTICE([MEMKIND support enabled])	],
+	[	have_memkind=no
+		AC_MSG_NOTICE([MEMKIND support disabled])	]
+	)
+AM_CONDITIONAL([HAVE_MEMKIND], [test "x${have_memkind}" = "xyes"])
+if test "x${have_memkind}" = "xyes"; then
+	PKG_CHECK_MODULES(MEMKIND, memkind >= 1.11.0)
+
+	AC_ARG_WITH(memkind_header_path,
+	[  --with-memkind-header-path=PATH	Location of memkind includes directory],
+	[	memkind_header_path="-I$withval"	],
+	[	memkind_header_path="$MEMKIND_CFLAGS"	])
+	MEMKIND_INCLUDE="$memkind_header_path"
+	AC_SUBST(MEMKIND_INCLUDE)
+
+	AC_ARG_WITH(memkind_lib_path,
+	[  --with-memkind-lib-path=PATH	Location if memkind library directory],
+	[	memkind_lib_path="-L$withval -lmemkind -Wl,-rpath -Wl,$withval"	],
+	[	memkind_lib_path="$MEMKIND_LIBS"	])
+	MEMKIND_LIB="$memkind_lib_path"
+	AC_SUBST(MEMKIND_LIB)
+fi
+
 OPT=""
 case "${host}" in
         *-*-solaris*)   PLATFORM=SUN_OS

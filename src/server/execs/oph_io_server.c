@@ -37,6 +37,11 @@
 #include <esdm.h>
 #endif
 
+#ifdef OPH_IO_PMEM
+#include <limits.h>
+#include <memkind.h>
+#endif
+
 //TODO put globals into global struct 
 //Global server variables (read-only)
 unsigned long long max_packet_length = 0;
@@ -46,6 +51,10 @@ unsigned short disable_mem_check = 0;
 unsigned long long memory_buffer = 0;
 unsigned short cache_line_size = 0;
 unsigned long long cache_size = 0;
+
+#ifdef OPH_IO_PMEM
+struct memkind *pmem_kind = NULL;
+#endif
 
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -231,6 +240,28 @@ int main(int argc, char *argv[])
 			logging(LOG_WARNING, __FILE__, __LINE__, "Unable to set working directory '%s'\n", working_dir);
 		}
 	}
+#ifdef OPH_IO_PMEM
+	size_t pmem_size = 0;
+	char *pmem = 0;
+	if (!oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_PMEM_MAX_SIZE, &pmem) && pmem)
+		pmem_size = strtol(pmem, NULL, 10);
+
+	if (!oph_server_conf_get_param(conf_db, OPH_SERVER_CONF_PMEM, &pmem) && pmem) {
+		char path[PATH_MAX] = "/tmp/";
+		if (!realpath(pmem, path)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to set pmem dir path '%s'\n", pmem);
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to set pmem dir path '%s'\n", pmem);
+			oph_server_conf_unload(&conf_db);
+			return -1;
+		}
+		if (memkind_create_pmem(path, pmem_size, &pmem_kind)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create pmem kind with size %d from '%s'\n", pmem_size, pmem);
+			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create pmem kind with size %d from '%s'\n", pmem_size, pmem);
+			oph_server_conf_unload(&conf_db);
+			return -1;
+		}
+	}
+#endif
 
 	if (oph_load_plugins(&plugin_table, &oph_function_table)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to load plugin table\n");
@@ -317,8 +348,16 @@ int main(int argc, char *argv[])
 	//Cleanup procedures
 	free(cliaddr);
 	oph_metadb_unload_schema(db_table);
-	oph_server_conf_unload(&conf_db);
 	oph_unload_plugins(&plugin_table, &oph_function_table);
+	oph_server_conf_unload(&conf_db);
+
+#ifdef OPH_IO_SERVER_ESDM
+	esdm_finalize();
+#endif
+
+#ifdef OPH_IO_PMEM
+	memkind_destroy_kind(pmem_kind);
+#endif
 
 	return 0;
 }
@@ -350,11 +389,12 @@ void *server_child(void *arg)
 	return (NULL);
 }
 
-//Garbage collecition function
+//Garbage collection function
 void release(int signo)
 {
 	//Cleanup procedures
 	logging(LOG_DEBUG, __FILE__, __LINE__, "Catched signal %d\n", signo);
+
 	free(cliaddr);
 	oph_metadb_unload_schema(db_table);
 	oph_unload_plugins(&plugin_table, &oph_function_table);
@@ -362,6 +402,10 @@ void release(int signo)
 
 #ifdef OPH_IO_SERVER_ESDM
 	esdm_finalize();
+#endif
+
+#ifdef OPH_IO_PMEM
+	memkind_destroy_kind(pmem_kind);
 #endif
 
 	exit(0);

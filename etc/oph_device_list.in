@@ -1,3 +1,6 @@
 [MEMORY]
 @DEVICE_PATH@/libmemory_device.so
 TRANSIENT
+[PMEMORY]
+@DEVICE_PATH@/libpmemory_device.so
+PERSISTENT

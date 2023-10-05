@@ -45,6 +45,11 @@ additional_LIBS += -L${prefix}/lib -lesdm_kernels
 endif
 endif
 
+if HAVE_MEMKIND
+additional_CFLAGS += $(MEMKIND_INCLUDE) -DOPH_IO_PMEM
+additional_LIBS += $(MEMKIND_LIB)
+endif
+
 bin_PROGRAMS= oph_io_server 
 if PAR_NC4
 bin_PROGRAMS+= oph_io_server_nc_load
