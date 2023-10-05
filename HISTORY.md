@@ -1,4 +1,10 @@
 
+## Next release
+
+### Added:
+
+- Allow S3 data sources
+
 ## v1.8.0 - 2023-07-31
 
 ### Fixed:
