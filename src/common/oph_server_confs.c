@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2022 CMCC Foundation
+    Copyright (C) 2014-2023 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 extern int msglevel;
 extern char *oph_server_conf_file;
 
-int oph_server_conf_load(short unsigned int instance, HASHTBL **hashtbl)
+int oph_server_conf_load(short unsigned int instance, HASHTBL ** hashtbl)
 {
 	if (!hashtbl) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
@@ -176,7 +176,7 @@ int oph_server_conf_load(short unsigned int instance, HASHTBL **hashtbl)
 	return OPH_SERVER_CONF_SUCCESS;
 }
 
-int oph_server_conf_get_param(HASHTBL *hashtbl, const char *param, char **value)
+int oph_server_conf_get_param(HASHTBL * hashtbl, const char *param, char **value)
 {
 	if (!hashtbl || !param) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Null input parameter\n");
@@ -190,7 +190,7 @@ int oph_server_conf_get_param(HASHTBL *hashtbl, const char *param, char **value)
 	return OPH_SERVER_CONF_SUCCESS;
 }
 
-int oph_server_conf_unload(HASHTBL **hashtbl)
+int oph_server_conf_unload(HASHTBL ** hashtbl)
 {
 	if (hashtbl && *hashtbl) {
 		hashtbl_destroy(*hashtbl);

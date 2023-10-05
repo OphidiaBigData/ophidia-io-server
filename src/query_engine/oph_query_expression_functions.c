@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2022 CMCC Foundation
+    Copyright (C) 2014-2023 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <math.h>
 
-oph_query_expr_value oph_id(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_id(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(num_args);
 	UNUSED(name);
@@ -47,7 +47,7 @@ oph_query_expr_value oph_id(oph_query_expr_value *args, int num_args, char *name
 	return res;
 }
 
-oph_query_expr_value oph_id2(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_id2(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(num_args);
 	UNUSED(name);
@@ -68,7 +68,7 @@ oph_query_expr_value oph_id2(oph_query_expr_value *args, int num_args, char *nam
 	return res;
 }
 
-oph_query_expr_value oph_id3(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_id3(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(num_args);
 	UNUSED(name);
@@ -125,7 +125,7 @@ oph_query_expr_value oph_id3(oph_query_expr_value *args, int num_args, char *nam
 	return res;		// Non 'C'-like indexing
 }
 
-oph_query_expr_value oph_id_to_index(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_id_to_index(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(name);
 	UNUSED(destroy);
@@ -155,7 +155,7 @@ oph_query_expr_value oph_id_to_index(oph_query_expr_value *args, int num_args, c
 	return res;
 }
 
-oph_query_expr_value oph_id_to_index2(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_id_to_index2(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(num_args);
 	UNUSED(name);
@@ -176,7 +176,7 @@ oph_query_expr_value oph_id_to_index2(oph_query_expr_value *args, int num_args, 
 	return res;
 }
 
-oph_query_expr_value oph_is_in_subset(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_is_in_subset(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(num_args);
 	UNUSED(name);
@@ -199,7 +199,7 @@ oph_query_expr_value oph_is_in_subset(oph_query_expr_value *args, int num_args, 
 	return res;
 }
 
-oph_query_expr_value oph_query_generic_long(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_query_generic_long(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	oph_query_expr_value res;
 	res.free_flag = 0;
@@ -265,7 +265,7 @@ oph_query_expr_value oph_query_generic_long(oph_query_expr_value *args, int num_
 	}
 }
 
-oph_query_expr_value oph_query_generic_double(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_query_generic_double(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	oph_query_expr_value res;
 	res.free_flag = 0;
@@ -330,7 +330,7 @@ oph_query_expr_value oph_query_generic_double(oph_query_expr_value *args, int nu
 	}
 }
 
-oph_query_expr_value oph_query_generic_binary(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_query_generic_binary(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	oph_query_expr_value res;
 	res.free_flag = 0;
@@ -397,7 +397,7 @@ oph_query_expr_value oph_query_generic_binary(oph_query_expr_value *args, int nu
 	}
 }
 
-oph_query_expr_value oph_query_generic_string(oph_query_expr_value *args, int num_args, char *name, oph_query_expr_udf_descriptor *descriptor, int destroy, int *er)
+oph_query_expr_value oph_query_generic_string(oph_query_expr_value * args, int num_args, char *name, oph_query_expr_udf_descriptor * descriptor, int destroy, int *er)
 {
 	UNUSED(num_args);
 	UNUSED(name);

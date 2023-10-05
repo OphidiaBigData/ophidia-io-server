@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2022 CMCC Foundation
+    Copyright (C) 2014-2023 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 //UDF interfaces. UDF_ARGS and UDF_INIT are defined in mysql_com.h
 
 //UDF fixed interface
-extern void (*_oph_plugin_reset)(UDF_INIT *, UDF_ARGS *, char *, char *);
+extern void (*_oph_plugin_reset) (UDF_INIT *, UDF_ARGS *, char *, char *);
 
 /**
  * \brief               Function used to free UDF_ARG argument

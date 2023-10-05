@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2022 CMCC Foundation
+    Copyright (C) 2014-2023 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@
 #define INT_LEN 13
 #define MSG_LEN 4096
 
-int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t **id, int i, int n)
+int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t ** id, int i, int n)
 {
 	if (i < n - 1) {
 		unsigned long tmp;
@@ -51,7 +51,7 @@ int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long tota
 	return 0;
 }
 
-int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t **id)
+int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t ** id)
 {
 	if (n > 0) {
 		int i;
