@@ -35,7 +35,7 @@ RECORD_LENGTH - ACTIVE FLAG - PERSISTENT FLAG - SERIALIZED RECORD
 extern char tmp_file[OPH_SERVER_CONF_LINE_LEN];
 
 //SERIALIZE STRUCTURES
-int _oph_metadb_serialize_db_row(oph_metadb_db_row * row, char **line, unsigned int *line_length)
+int _oph_metadb_serialize_db_row(oph_metadb_db_row *row, char **line, unsigned int *line_length)
 {
 	if (!row || !line || !line_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -95,7 +95,7 @@ int _oph_metadb_serialize_db_row(oph_metadb_db_row * row, char **line, unsigned 
 	return OPH_METADB_OK;
 }
 
-int _oph_metadb_serialize_frag_row(oph_metadb_frag_row * row, char **line, unsigned int *line_length)
+int _oph_metadb_serialize_frag_row(oph_metadb_frag_row *row, char **line, unsigned int *line_length)
 {
 	if (!row || !line || !line_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -163,7 +163,7 @@ int _oph_metadb_serialize_frag_row(oph_metadb_frag_row * row, char **line, unsig
 }
 
 //DESERIALIZE BUFFER
-int _oph_metadb_deserialize_db_row(char *line, oph_metadb_db_row ** row)
+int _oph_metadb_deserialize_db_row(char *line, oph_metadb_db_row **row)
 {
 	if (!row || !line) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -242,7 +242,7 @@ int _oph_metadb_deserialize_db_row(char *line, oph_metadb_db_row ** row)
 	return OPH_METADB_OK;
 }
 
-int _oph_metadb_deserialize_frag_row(char *line, oph_metadb_frag_row ** row)
+int _oph_metadb_deserialize_frag_row(char *line, oph_metadb_frag_row **row)
 {
 	if (!row || !line) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);

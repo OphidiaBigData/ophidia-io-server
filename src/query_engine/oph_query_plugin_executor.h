@@ -33,7 +33,7 @@
 //UDF interfaces. UDF_ARGS and UDF_INIT are defined in mysql_com.h
 
 //UDF fixed interface
-extern void (*_oph_plugin_reset) (UDF_INIT *, UDF_ARGS *, char *, char *);
+extern void (*_oph_plugin_reset)(UDF_INIT *, UDF_ARGS *, char *, char *);
 
 /**
  * \brief               Function used to free UDF_ARG argument

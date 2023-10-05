@@ -84,7 +84,7 @@ int _oph_query_parser_validate_query(const char *query_string)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int _oph_query_parser_load_query_params(const char *query_string, HASHTBL * hashtbl)
+int _oph_query_parser_load_query_params(const char *query_string, HASHTBL *hashtbl)
 {
 	if (!query_string || !hashtbl) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -263,7 +263,7 @@ int oph_query_parse_hierarchical_args(char *values, char ***value_list, int *val
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int _oph_query_check_query_params(HASHTBL * hashtbl)
+int _oph_query_check_query_params(HASHTBL *hashtbl)
 {
 	if (!hashtbl) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -305,7 +305,7 @@ int _oph_query_parser_remove_query_tokens(char *query_string)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_parser(char *query_string, HASHTBL ** query_args)
+int oph_query_parser(char *query_string, HASHTBL **query_args)
 {
 	if (!query_string || !query_args) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
@@ -366,7 +366,7 @@ int oph_query_parser(char *query_string, HASHTBL ** query_args)
 	return OPH_QUERY_ENGINE_SUCCESS;
 }
 
-int oph_query_field_type(const char *field, oph_query_field_types * field_type)
+int oph_query_field_type(const char *field, oph_query_field_types *field_type)
 {
 	if (!field || !field_type) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_QUERY_ENGINE_LOG_NULL_INPUT_PARAM);
