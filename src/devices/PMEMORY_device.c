@@ -65,7 +65,7 @@ int _pmemory_get_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id
 	;
 
 	//Get in-memory copy of DB
-	*db_record = (oph_iostore_db_record_set *) memkind_malloc(pmem_kind, 1 * sizeof(oph_iostore_db_record_set));
+	*db_record = (oph_iostore_db_record_set *) malloc(sizeof(oph_iostore_db_record_set));
 	if (*db_record == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
@@ -73,15 +73,15 @@ int _pmemory_get_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id
 	}
 
 	size_t length = res_id->id_length - strlen(handle->device);
-	(*db_record)->db_name = (char *) memkind_malloc(pmem_kind, length);
+	(*db_record)->db_name = (char *) malloc(length);
 	if ((*db_record)->db_name == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
-		memkind_free(pmem_kind, *db_record);
+		free(*db_record);
 		*db_record = NULL;
 		return PMEMORY_DEV_ERROR;
 	}
-	snprintf((*db_record)->db_name, length, "%s", res_id->id);
+	snprintf((*db_record)->db_name, length, "%s", (char *) res_id->id);
 
 	return PMEMORY_DEV_SUCCESS;
 }
@@ -100,7 +100,7 @@ int _pmemory_put_db(oph_iostore_handler *handle, oph_iostore_db_record_set *db_r
 	;
 
 	//Get resource id
-	*res_id = (oph_iostore_resource_id *) memkind_malloc(pmem_kind, 1 * sizeof(oph_iostore_resource_id));
+	*res_id = (oph_iostore_resource_id *) malloc(sizeof(oph_iostore_resource_id));
 	if (*res_id == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
@@ -108,11 +108,11 @@ int _pmemory_put_db(oph_iostore_handler *handle, oph_iostore_db_record_set *db_r
 	}
 
 	(*res_id)->id_length = strlen(db_record->db_name) + strlen(handle->device) + 1;
-	(*res_id)->id = (void *) memkind_calloc(pmem_kind, (*res_id)->id_length, sizeof(char));
+	(*res_id)->id = (void *) calloc((*res_id)->id_length, sizeof(char));
 	if ((*res_id)->id == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
-		memkind_free(pmem_kind, *res_id);
+		free(*res_id);
 		*res_id = NULL;
 		return PMEMORY_DEV_ERROR;
 	}
@@ -151,11 +151,8 @@ int _pmemory_get_frag(oph_iostore_handler *handle, oph_iostore_resource_id *res_
 	oph_iostore_frag_record_set *internal_record = *((oph_iostore_frag_record_set **) res_id->id);
 
 	//Get in-memory copy of frag
-/*  if(_pmemory_copy_frag_record_set(internal_record, frag_record) || frag_record == NULL){
-    pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
-    logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);        
-    return PMEMORY_DEV_ERROR;
-  }*/
+	// In the original implementation the internal_record was copied and the new copy was assigned to *frag_record
+	// This behavior is skipped even for memkind
 	*frag_record = internal_record;
 
 	return PMEMORY_DEV_SUCCESS;
@@ -173,26 +170,27 @@ int _pmemory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *
 
 	//Create in-memory copy of Fragment
 	oph_iostore_frag_record_set *internal_record = NULL;
-/*  if(_pmemory_copy_frag_record_set(frag_record, &internal_record) || internal_record == NULL){
-    pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
-    logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);        
-    return PMEMORY_DEV_ERROR;
-  }*/
-	internal_record = frag_record;
+	// In the original implementation the frag_record was copied and the new copy was assigned to internal_record
+	//internal_record = frag_record;
+	// This behavior is applied for memkind
+	internal_record = (oph_iostore_frag_record_set *) memkind_malloc(pmem_kind, sizeof(oph_iostore_frag_record_set));
+	memcpy(internal_record, frag_record, sizeof(oph_iostore_frag_record_set));	// Transfer data from MEM to PMEM
+	internal_record->is_pmem = 1;
+	free(frag_record);	// Free the MEM
 
 	//Get resource id
-	*res_id = (oph_iostore_resource_id *) memkind_malloc(pmem_kind, 1 * sizeof(oph_iostore_resource_id));
+	*res_id = (oph_iostore_resource_id *) malloc(sizeof(oph_iostore_resource_id));
 	if (*res_id == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		return PMEMORY_DEV_ERROR;
 	}
 
-	(*res_id)->id = (void *) memkind_malloc(pmem_kind, sizeof(unsigned long long));
+	(*res_id)->id = (void *) malloc(sizeof(unsigned long long));
 	if ((*res_id)->id == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
-		memkind_free(pmem_kind, *res_id);
+		free(*res_id);
 		*res_id = NULL;
 		return PMEMORY_DEV_ERROR;
 	}

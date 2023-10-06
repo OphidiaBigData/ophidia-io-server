@@ -25,10 +25,18 @@ libdir=${prefix}/lib
 
 include_HEADERS=oph_iostorage_interface.h oph_iostorage_data.h
 
+if HAVE_MEMKIND
+ADDITIONAL_CFLAGS=$(MEMKIND_INCLUDE) -DOPH_IO_PMEM
+ADDITIONAL_LIBS=$(MEMKIND_LIB)
+else
+ADDITIONAL_CFLAGS=
+ADDITIONAL_LIBS=
+endif
+
 liboph_iostorage_data_la_SOURCES = oph_iostorage_data.c
-liboph_iostorage_data_la_CFLAGS = $(OPT) -I. -I../common -I.. -I../.. -fPIC @INCLTDL@ 
-liboph_iostorage_data_la_LIBADD = @LIBLTDL@ -L../common -ldebug -loph_server_util
-liboph_iostorage_data_la_LDFLAGS = -module -static 
+liboph_iostorage_data_la_CFLAGS = $(OPT) -I. -I../common -I.. -I../.. -fPIC @INCLTDL@ $(ADDITIONAL_CFLAGS)
+liboph_iostorage_data_la_LIBADD = @LIBLTDL@ -L../common -ldebug -loph_server_util $(ADDITIONAL_LIBS)
+liboph_iostorage_data_la_LDFLAGS = -module -static
 
 liboph_iostorage_interface_la_SOURCES = oph_iostorage_interface.c
 liboph_iostorage_interface_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common  -fPIC @INCLTDL@ -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
@@ -41,7 +49,7 @@ if DEBUG
 bin_PROGRAMS= oph_iostorage_client
 
 oph_iostorage_client_SOURCES = oph_iostorage_client.c
-oph_iostorage_client_CFLAGS = $(OPT)  -I../common  -I. -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+oph_iostorage_client_CFLAGS = $(OPT)  -I../common  -I. -fPIC -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(ADDITIONAL_CFLAGS)
 oph_iostorage_client_LDADD = -L../common -ldebug -loph_server_util -L. -loph_iostorage_interface -loph_iostorage_data
 oph_iostorage_client_LDFLAGS= 
 endif

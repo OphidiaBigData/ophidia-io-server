@@ -28,6 +28,11 @@
 
 #include "oph_server_confs.h"
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+struct memkind *pmem_kind = 0;
+#endif
+
 //Global mutex variable 
 pthread_mutex_t metadb_mutex = PTHREAD_MUTEX_INITIALIZER;
 char *oph_server_conf_file = OPH_SERVER_CONF_FILE_PATH;

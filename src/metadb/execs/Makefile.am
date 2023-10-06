@@ -26,14 +26,20 @@ bin_PROGRAMS+=oph_metadb_client
 endif
 bindir=${prefix}/bin
 
+if HAVE_MEMKIND
+ADDITIONAL_CFLAGS=$(MEMKIND_INCLUDE) -DOPH_IO_PMEM
+else
+ADDITIONAL_CFLAGS=
+endif
+
 if DEBUG
 oph_metadb_client_SOURCES = oph_metadb_client.c
-oph_metadb_client_CFLAGS = $(OPT) -I../../common -I../../iostorage -I../ -fPIC @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+oph_metadb_client_CFLAGS = $(OPT) -I../../common -I../../iostorage -I../ -fPIC @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(ADDITIONAL_CFLAGS)
 oph_metadb_client_LDADD =  -L../  -L../../common -ldebug -lpthread -loph_metadb -loph_server_conf -loph_server_util
 oph_metadb_client_LDFLAGS= -Wl,-R -Wl,. 
 endif
 
 oph_metadb_reader_SOURCES = oph_metadb_reader.c
-oph_metadb_reader_CFLAGS = $(OPT) -I../../common -I../../iostorage -I../ -fPIC @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+oph_metadb_reader_CFLAGS = $(OPT) -I../../common -I../../iostorage -I../ -fPIC @INCLTDL@  -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(ADDITIONAL_CFLAGS)
 oph_metadb_reader_LDADD =  -L../ -L../../common -ldebug -loph_metadb -loph_server_conf -loph_server_util
 oph_metadb_reader_LDFLAGS= -Wl,-R -Wl,. 

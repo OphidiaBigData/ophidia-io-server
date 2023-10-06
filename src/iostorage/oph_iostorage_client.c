@@ -28,6 +28,11 @@
 pthread_mutex_t libtool_lock = PTHREAD_MUTEX_INITIALIZER;
 unsigned short disable_mem_check = 0;
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+struct memkind *pmem_kind = 0;
+#endif
+
 int main()
 {
 

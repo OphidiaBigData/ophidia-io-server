@@ -53,7 +53,7 @@ unsigned short cache_line_size = 0;
 unsigned long long cache_size = 0;
 
 #ifdef OPH_IO_PMEM
-struct memkind *pmem_kind = NULL;
+struct memkind *pmem_kind = 0;
 #endif
 
 pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;

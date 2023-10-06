@@ -28,6 +28,11 @@
 
 #include "oph_license.h"
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+struct memkind *pmem_kind = 0;
+#endif
+
 unsigned short disable_mem_check = 0;
 char *oph_server_conf_file = OPH_SERVER_CONF_FILE_PATH;
 

@@ -35,6 +35,10 @@
 
 extern int msglevel;
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+extern struct memkind *pmem_kind;
+#endif
 
 int oph_iostore_compare_id(oph_iostore_resource_id id1, oph_iostore_resource_id id2)
 {
@@ -171,6 +175,10 @@ int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set *input_rec
 	(*output_record_set)->field_type = NULL;
 	(*output_record_set)->record_set = NULL;
 	(*output_record_set)->field_name = (char **) calloc(input_record_set->field_num, sizeof(char *));
+#ifdef OPH_IO_PMEM
+	(*output_record_set)->is_pmem = 0;
+#endif
+
 	if (!(*output_record_set)->field_name) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
@@ -331,7 +339,12 @@ int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set **record
 	if ((*record_set)->field_type)
 		free((*record_set)->field_type);
 
-	free(*record_set);
+#ifdef OPH_IO_PMEM
+	if ((*record_set)->is_pmem)
+		memkind_free(pmem_kind, *record_set);
+	else
+#endif
+		free(*record_set);
 	*record_set = NULL;
 
 	return OPH_IOSTORAGE_SUCCESS;
@@ -386,6 +399,9 @@ int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set **record_
 	(*record_set)->field_type = NULL;
 	(*record_set)->record_set = NULL;
 	(*record_set)->tmp_flag = 0;
+#ifdef OPH_IO_PMEM
+	(*record_set)->is_pmem = 0;
+#endif
 
 	(*record_set)->field_name = (char **) calloc(field_num, sizeof(char *));
 	if (!(*record_set)->field_name) {
