@@ -58,7 +58,7 @@ int oph_io_server_free_status(oph_io_server_thread_status *status)
 
 	if (status->curr_stmt != NULL) {
 		if (status->curr_stmt->partial_result_set != NULL)
-			oph_iostore_destroy_frag_recordset(&status->curr_stmt->partial_result_set);
+			oph_iostore_destroy_frag_record_set(&status->curr_stmt->partial_result_set);
 		if (status->curr_stmt->device != NULL)
 			free(status->curr_stmt->device);
 		if (status->curr_stmt->frag != NULL)
@@ -72,9 +72,9 @@ int oph_io_server_free_status(oph_io_server_thread_status *status)
 
 	if (status->last_result_set != NULL) {
 		if (status->delete_only_rs)
-			oph_iostore_destroy_frag_recordset_only(&(status->last_result_set));
+			oph_iostore_destroy_frag_record_set_only(&(status->last_result_set));
 		else
-			oph_iostore_destroy_frag_recordset(&(status->last_result_set));
+			oph_iostore_destroy_frag_record_set(&(status->last_result_set));
 	}
 	status->last_result_set = NULL;
 	status->delete_only_rs = 0;

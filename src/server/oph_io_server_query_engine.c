@@ -143,7 +143,7 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 			}
 		}
 		//Create output record set
-		if (oph_iostore_create_frag_recordset(&rs, total_row_number, field_list_num)) {
+		if (oph_iostore_create_frag_record_set2(&rs, total_row_number, field_list_num, dev_handle->is_persistent)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
@@ -163,7 +163,7 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 			if (field_list)
 				free(field_list);
 			if (rs)
-				oph_iostore_destroy_frag_recordset(&rs);
+				oph_iostore_destroy_frag_record_set(&rs);
 			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
@@ -175,7 +175,7 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 			if (field_list)
 				free(field_list);
 			if (rs)
-				oph_iostore_destroy_frag_recordset(&rs);
+				oph_iostore_destroy_frag_record_set(&rs);
 			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
@@ -187,7 +187,7 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 			if (field_list)
 				free(field_list);
 			if (rs)
-				oph_iostore_destroy_frag_recordset(&rs);
+				oph_iostore_destroy_frag_record_set(&rs);
 			free(frag_components);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
@@ -198,7 +198,7 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 		if (field_list)
 			free(field_list);
 		if (rs)
-			oph_iostore_destroy_frag_recordset(&rs);
+			oph_iostore_destroy_frag_record_set(&rs);
 		free(frag_components);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
@@ -225,7 +225,7 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 
 	//Destroy tmp recordset 
 	if (rs)
-		oph_iostore_destroy_frag_recordset(&rs);
+		oph_iostore_destroy_frag_record_set(&rs);
 
 	if (ret) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
@@ -319,7 +319,7 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 			}
 		}
 		//Create output record set
-		if (oph_iostore_create_frag_recordset(&rs, total_row_number, field_list_num)) {
+		if (oph_iostore_create_frag_record_set2(&rs, total_row_number, field_list_num, dev_handle->is_persistent)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			error = OPH_IO_SERVER_MEMORY_ERROR;
@@ -351,7 +351,7 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 		}
 	} else {
 		//Set empty recordset
-		if (oph_iostore_create_frag_recordset(&rs, 0, field_list_num)) {
+		if (oph_iostore_create_frag_record_set2(&rs, 0, field_list_num, dev_handle->is_persistent)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			error = OPH_IO_SERVER_MEMORY_ERROR;
@@ -375,7 +375,7 @@ int oph_io_server_run_select(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 
 	if (error) {
 		if (rs)
-			oph_iostore_destroy_frag_recordset(&rs);
+			oph_iostore_destroy_frag_record_set(&rs);
 		return error;
 	}
 
@@ -628,7 +628,7 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row **meta_db, oph_iostore_
 	if (_oph_io_server_query_load_from_file(meta_db, dev_handle, current_db, query_args, &record_sets, &frag_size)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
@@ -636,7 +636,7 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row **meta_db, oph_iostore_
 
 	//Destroy tmp recordset 
 	if (record_sets)
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 
 	if (ret) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
@@ -663,7 +663,7 @@ int oph_io_server_run_insert_from_esdm(oph_metadb_db_row **meta_db, oph_iostore_
 	if (_oph_io_server_query_load_from_esdm(meta_db, dev_handle, current_db, query_args, &record_sets, &frag_size)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM dataset\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from ESDM dataset\n");
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
@@ -671,7 +671,7 @@ int oph_io_server_run_insert_from_esdm(oph_metadb_db_row **meta_db, oph_iostore_
 
 	//Destroy tmp recordset 
 	if (record_sets)
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 
 	if (ret) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
@@ -703,14 +703,14 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (!mes_type) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_MEASURE_TYPE);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	char *algorithm = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
 	if (!algorithm) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ALGORITHM);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
@@ -719,14 +719,14 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (!nrows) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_NROW);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	} else {
 		row_num = strtoll(nrows, NULL, 10);
 		if (row_num <= 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_NROW);
-			oph_iostore_destroy_frag_recordset(&record_sets);
+			oph_iostore_destroy_frag_record_set(&record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 	}
@@ -736,14 +736,14 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (!row_start) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	} else {
 		frag_start = strtoll(row_start, NULL, 10);
 		if (frag_start <= 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ROW_START);
-			oph_iostore_destroy_frag_recordset(&record_sets);
+			oph_iostore_destroy_frag_record_set(&record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 	}
@@ -753,14 +753,14 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (!arrlen) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	} else {
 		array_length = strtoll(arrlen, NULL, 10);
 		if (array_length <= 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_ARG_NO_LONG, OPH_QUERY_ENGINE_LANG_ARG_ARRAY_LEN);
-			oph_iostore_destroy_frag_recordset(&record_sets);
+			oph_iostore_destroy_frag_record_set(&record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 	}
@@ -769,7 +769,7 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (compression == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_QUERY_ARGUMENT, OPH_QUERY_ENGINE_LANG_ARG_COMPRESSED);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 	//If final statement is set, then activate flag
@@ -779,7 +779,7 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (record_sets->record_set == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Define record struct
@@ -788,7 +788,7 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 	if (_oph_ioserver_rand_data(row_num, frag_start, compressed_flag, array_length, mes_type, algorithm, record_sets, &frag_size)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to create random data\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to create random data\n");
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
 
@@ -796,7 +796,7 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 
 	//Destroy tmp recordset 
 	if (record_sets)
-		oph_iostore_destroy_frag_recordset(&record_sets);
+		oph_iostore_destroy_frag_record_set(&record_sets);
 
 	if (ret) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_FRAG_STORE_ERROR);
@@ -951,7 +951,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore
 	}
 	//Create fragment record_set skeleton
 	oph_iostore_frag_record_set *new_record_set = NULL;
-	if (oph_iostore_create_frag_recordset(&new_record_set, 0, column_name_num)) {
+	if (oph_iostore_create_frag_record_set2(&new_record_set, 0, column_name_num, dev_handle->is_persistent)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		free(frag_components);
@@ -974,7 +974,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore
 				free(column_name_list);
 			if (column_type_list)
 				free(column_type_list);
-			oph_iostore_destroy_frag_recordset(&new_record_set);
+			oph_iostore_destroy_frag_record_set(&new_record_set);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 		//Copy column type
@@ -993,7 +993,7 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore
 				free(column_name_list);
 			if (column_type_list)
 				free(column_type_list);
-			oph_iostore_destroy_frag_recordset(&new_record_set);
+			oph_iostore_destroy_frag_record_set(&new_record_set);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 	}

@@ -93,7 +93,7 @@ int main()
 
 	if (oph_iostore_put_frag(dev_handle, frag_record, &res_id) != 0) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to put new frag into device\n");
-		oph_iostore_destroy_frag_recordset(&frag_record);
+		oph_iostore_destroy_frag_record_set(&frag_record);
 		oph_iostore_cleanup(dev_handle);
 		return 0;
 	}

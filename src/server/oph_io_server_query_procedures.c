@@ -235,9 +235,9 @@ int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_
 	//First delete last result set
 	if (thread_status->last_result_set != NULL) {
 		if (thread_status->delete_only_rs)
-			oph_iostore_destroy_frag_recordset_only(&(thread_status->last_result_set));
+			oph_iostore_destroy_frag_record_set_only(&(thread_status->last_result_set));
 		else
-			oph_iostore_destroy_frag_recordset(&(thread_status->last_result_set));
+			oph_iostore_destroy_frag_record_set(&(thread_status->last_result_set));
 	}
 	thread_status->last_result_set = NULL;
 	thread_status->delete_only_rs = 0;
@@ -308,11 +308,11 @@ int oph_io_server_run_export_procedure(oph_metadb_db_row **meta_db, oph_iostore_
 	}
 
 	if (dev_handle->is_persistent)
-		oph_iostore_destroy_frag_recordset(&(orig_record_sets[0]));
+		oph_iostore_destroy_frag_record_set(&(orig_record_sets[0]));
 	free(orig_record_sets);
 
 	if (error) {
-		oph_iostore_destroy_frag_recordset_only(&(record_sets[0]));
+		oph_iostore_destroy_frag_record_set_only(&(record_sets[0]));
 		free(record_sets);
 		return error;
 	}
@@ -339,9 +339,9 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 	//First delete last result set
 	if (thread_status->last_result_set != NULL) {
 		if (thread_status->delete_only_rs)
-			oph_iostore_destroy_frag_recordset_only(&(thread_status->last_result_set));
+			oph_iostore_destroy_frag_record_set_only(&(thread_status->last_result_set));
 		else
-			oph_iostore_destroy_frag_recordset(&(thread_status->last_result_set));
+			oph_iostore_destroy_frag_record_set(&(thread_status->last_result_set));
 	}
 	thread_status->last_result_set = NULL;
 	thread_status->delete_only_rs = 0;
@@ -436,7 +436,7 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 
 	//Prepare output record set
 	oph_iostore_frag_record_set *rs = NULL;
-	if (oph_iostore_create_frag_recordset(&rs, 0, 1)) {
+	if (oph_iostore_create_frag_record_set2(&rs, 0, 1, dev_handle->is_persistent)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		return OPH_IO_SERVER_MEMORY_ERROR;
@@ -447,7 +447,7 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 	if (rs->field_name[0] == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		oph_iostore_destroy_frag_recordset(&rs);
+		oph_iostore_destroy_frag_record_set(&rs);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//No name required
@@ -457,15 +457,15 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 	if (rs->record_set == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		oph_iostore_destroy_frag_recordset(&rs);
+		oph_iostore_destroy_frag_record_set(&rs);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Created record struct
 	oph_iostore_frag_record *new_record = NULL;
-	if (oph_iostore_create_frag_record(&new_record, 1) == 1) {
+	if (oph_iostore_create_frag_record2(&new_record, 1, dev_handle->is_persistent)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		oph_iostore_destroy_frag_recordset(&rs);
+		oph_iostore_destroy_frag_record_set(&rs);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 	//Add record to record set
@@ -477,7 +477,7 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 	if (new_record->field[0] == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-		oph_iostore_destroy_frag_recordset(&rs);
+		oph_iostore_destroy_frag_record_set(&rs);
 		return OPH_IO_SERVER_MEMORY_ERROR;
 	}
 

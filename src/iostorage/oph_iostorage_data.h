@@ -36,6 +36,9 @@ typedef enum {
 typedef struct {
 	unsigned long long *field_length;
 	void **field;
+#ifdef OPH_IO_PMEM
+	char is_pmem;
+#endif
 } oph_iostore_frag_record;
 
 /**
@@ -122,6 +125,7 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set * input_r
  * \return                  0 if successfull, non-0 otherwise
  */
 int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset);
+int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset, char force_pmem);
 
 /**
  * \brief			        Destroy a record and release resources
@@ -138,20 +142,21 @@ int oph_iostore_destroy_frag_record(oph_iostore_frag_record ** record, short int
  * \return            0 if successfull, non-0 otherwise
  */
 int oph_iostore_create_frag_record(oph_iostore_frag_record ** record, short int field_num);
+int oph_iostore_create_frag_record2(oph_iostore_frag_record ** record, short int field_num, char force_pmem);
 
 /**
  * \brief			        Destroy a record set and release resources
  * \param record_set  Record set to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_destroy_frag_recordset(oph_iostore_frag_record_set ** record_set);
+int oph_iostore_destroy_frag_record_set(oph_iostore_frag_record_set ** record_set);
 
 /**
  * \brief			        Destroy a record set and release resources (it does not destroy internal record set)
  * \param record_set  Record set to be freed
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set ** record_set);
+int oph_iostore_destroy_frag_record_set_only(oph_iostore_frag_record_set ** record_set);
 
 /**
  * \brief			        Create an empty recordset
@@ -160,7 +165,8 @@ int oph_iostore_destroy_frag_recordset_only(oph_iostore_frag_record_set ** recor
  * \param field_num   Number of fields in each record
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num);
+int oph_iostore_create_frag_record_set(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num);
+int oph_iostore_create_frag_record_set2(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num, char force_pmem);
 
 /**
  * \brief             Create an empty recordset. It does not create internal record structures.
@@ -169,7 +175,8 @@ int oph_iostore_create_frag_recordset(oph_iostore_frag_record_set ** record_set,
  * \param field_num   Number of fields in each record
  * \return            0 if successfull, non-0 otherwise
  */
-int oph_iostore_create_frag_recordset_only(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num);
+int oph_iostore_create_frag_record_set_only(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num);
+int oph_iostore_create_frag_record_set_only2(oph_iostore_frag_record_set ** record_set, long long set_size, short int field_num, char force_pmem);
 
 /**
  * \brief			        Create a sample recordset (for test purposes). It does not set the frag_name.

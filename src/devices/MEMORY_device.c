@@ -210,7 +210,7 @@ int _memory_delete_frag(oph_iostore_handler *handle, oph_iostore_resource_id *re
 	oph_iostore_frag_record_set *internal_record = *((oph_iostore_frag_record_set **) res_id->id);
 
 	//Delete in-memory frag
-	if (oph_iostore_destroy_frag_recordset(&internal_record)) {
+	if (oph_iostore_destroy_frag_record_set(&internal_record)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_MEMORY_ERROR);
 		return MEMORY_DEV_ERROR;

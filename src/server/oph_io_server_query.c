@@ -109,9 +109,9 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 		//First delete last result set
 		if (thread_status->last_result_set != NULL) {
 			if (thread_status->delete_only_rs)
-				oph_iostore_destroy_frag_recordset_only(&(thread_status->last_result_set));
+				oph_iostore_destroy_frag_record_set_only(&(thread_status->last_result_set));
 			else
-				oph_iostore_destroy_frag_recordset(&(thread_status->last_result_set));
+				oph_iostore_destroy_frag_record_set(&(thread_status->last_result_set));
 		}
 		thread_status->last_result_set = NULL;
 		thread_status->delete_only_rs = 0;
@@ -216,7 +216,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 
 			//Clean global status 
 			if (thread_status->curr_stmt->partial_result_set != NULL)
-				oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
+				oph_iostore_destroy_frag_record_set(&(thread_status->curr_stmt->partial_result_set));
 			free(thread_status->curr_stmt->device);
 			free(thread_status->curr_stmt->frag);
 			free(thread_status->curr_stmt);
@@ -323,7 +323,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 				//Clean global status 
 				thread_status->curr_stmt->mi_prev_rows = 0;
 				if (thread_status->curr_stmt->partial_result_set != NULL)
-					oph_iostore_destroy_frag_recordset(&(thread_status->curr_stmt->partial_result_set));
+					oph_iostore_destroy_frag_record_set(&(thread_status->curr_stmt->partial_result_set));
 				free(thread_status->curr_stmt->device);
 				free(thread_status->curr_stmt->frag);
 				free(thread_status->curr_stmt);
@@ -403,7 +403,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 			pmesg(LOG_WARNING, __FILE__, __LINE__, OPH_IO_SERVER_LOG_DELETE_OLD_STMT);
 			logging(LOG_WARNING, __FILE__, __LINE__, OPH_IO_SERVER_LOG_DELETE_OLD_STMT);
 			if (thread_status->curr_stmt->partial_result_set != NULL)
-				oph_iostore_destroy_frag_recordset(&thread_status->curr_stmt->partial_result_set);
+				oph_iostore_destroy_frag_record_set(&thread_status->curr_stmt->partial_result_set);
 			if (thread_status->curr_stmt->device != NULL)
 				free(thread_status->curr_stmt->device);
 			if (thread_status->curr_stmt->frag != NULL)

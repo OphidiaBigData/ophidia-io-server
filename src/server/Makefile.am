@@ -48,6 +48,11 @@ additional_LIBS += -L${prefix}/lib -lesdm_kernels
 endif
 endif
 
+if HAVE_MEMKIND
+additional_CFLAGS += $(MEMKIND_INCLUDE) -DOPH_IO_PMEM
+additional_LIBS += $(MEMKIND_LIB)
+endif
+
 liboph_io_server_query_manager_la_SOURCES = oph_io_server_query_blocks.c oph_io_server_query_engine.c oph_io_server_query_procedures.c oph_io_server_query.c ${additional_FILES}
 liboph_io_server_query_manager_la_CFLAGS = ${OPENMP_CFLAGS} $(OPT) -I../metadb -I../common -I../iostorage -I../query_engine -I. -fPIC @INCLTDL@ ${MYSQL_CFLAGS} -DOPH_IO_SERVER_PREFIX=\"${prefix}\" ${additional_CFLAGS}
 liboph_io_server_query_manager_la_LIBADD = @LIBLTDL@ ${additional_LIBS} -L../common -ldebug -lhashtbl -loph_binary_io -loph_server_util -L../metadb -loph_metadb -L../query_engine -loph_query_engine -loph_query_parser -L../iostorage -loph_iostorage_data -loph_iostorage_interface

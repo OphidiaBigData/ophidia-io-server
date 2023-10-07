@@ -173,10 +173,7 @@ int _pmemory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *
 	// In the original implementation the frag_record was copied and the new copy was assigned to internal_record
 	//internal_record = frag_record;
 	// This behavior is applied for memkind
-	internal_record = (oph_iostore_frag_record_set *) memkind_malloc(pmem_kind, sizeof(oph_iostore_frag_record_set));
-	memcpy(internal_record, frag_record, sizeof(oph_iostore_frag_record_set));	// Transfer data from MEM to PMEM
-	internal_record->is_pmem = 1;
-	free(frag_record);	// Free the MEM
+	oph_iostore_copy_frag_record_set_only2(frag_record, &internal_record, 0, 0, 1);
 
 	//Get resource id
 	*res_id = (oph_iostore_resource_id *) malloc(sizeof(oph_iostore_resource_id));
@@ -212,7 +209,7 @@ int _pmemory_delete_frag(oph_iostore_handler *handle, oph_iostore_resource_id *r
 	oph_iostore_frag_record_set *internal_record = *((oph_iostore_frag_record_set **) res_id->id);
 
 	//Delete in-memory frag
-	if (oph_iostore_destroy_frag_recordset(&internal_record)) {
+	if (oph_iostore_destroy_frag_record_set(&internal_record)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, PMEMORY_LOG_MEMORY_ERROR);
 		return PMEMORY_DEV_ERROR;
