@@ -35,6 +35,11 @@
 #include "oph_query_expression_functions.h"
 #include "oph_query_plugin_loader.h"
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+extern struct memkind *pmem_kind;
+#endif
+
 extern int msglevel;
 //extern pthread_mutex_t metadb_mutex;
 extern pthread_rwlock_t rwlock;
@@ -1366,7 +1371,12 @@ int _oph_io_server_query_load_from_file(oph_metadb_db_row **meta_db, oph_iostore
 	}
 	free(dim_end_list);
 
-	record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
+#ifdef OPH_IO_PMEM
+	if (record_sets->is_pmem)
+		record_sets->record_set = (oph_iostore_frag_record **) memkind_calloc(pmem_kind, 1 + row_num, sizeof(oph_iostore_frag_record *));
+	else
+#endif
+		record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
 	if (record_sets->record_set == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -1696,7 +1706,12 @@ int _oph_io_server_query_load_from_esdm(oph_metadb_db_row **meta_db, oph_iostore
 	}
 	free(dim_end_list);
 
-	record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
+#ifdef OPH_IO_PMEM
+	if (record_sets->is_pmem)
+		record_sets->record_set = (oph_iostore_frag_record **) memkind_calloc(pmem_kind, 1 + row_num, sizeof(oph_iostore_frag_record *));
+	else
+#endif
+		record_sets->record_set = (oph_iostore_frag_record **) calloc(1 + row_num, sizeof(oph_iostore_frag_record *));
 	if (record_sets->record_set == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);

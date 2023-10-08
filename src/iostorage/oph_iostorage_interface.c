@@ -425,11 +425,7 @@ static int oph_iostore_find_device(const char *device, char **dyn_lib, unsigned 
 				return -2;
 			}
 			sscanf(line, "%[^\n]", value);
-			if (STRCMP(value, OPH_IOSTORAGE_PERSISTENT_DEV) == 0) {
-				*is_persistent = 1;
-			} else {
-				*is_persistent = 0;
-			}
+			*is_persistent = !STRCMP(value, OPH_IOSTORAGE_PERSISTENT_DEV);
 			fclose(fp);
 			return 0;
 		}
