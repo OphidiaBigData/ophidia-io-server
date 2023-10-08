@@ -408,7 +408,6 @@ static int oph_iostore_find_device(const char *device, char **dyn_lib, unsigned 
 
 		//If value matches device then read library
 		if (!strcasecmp(value, device)) {
-			res_string = NULL;
 			res_string = fgets(line, OPH_IOSTORAGE_BUFLEN, fp);
 			if (!res_string) {
 				fclose(fp);
@@ -423,6 +422,13 @@ static int oph_iostore_find_device(const char *device, char **dyn_lib, unsigned 
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 				return -2;
+			}
+			res_string = fgets(line, OPH_IOSTORAGE_BUFLEN, fp);
+			if (!res_string) {
+				fclose(fp);
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_READ_LINE_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_READ_LINE_ERROR);
+				return -1;
 			}
 			sscanf(line, "%[^\n]", value);
 			*is_persistent = !STRCMP(value, OPH_IOSTORAGE_PERSISTENT_DEV);

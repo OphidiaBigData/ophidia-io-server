@@ -1,6 +1,10 @@
 
 ## Next release
 
+### Fixed:
+
+- Bug in parsing device list
+
 ### Added:
 
 - Support for Ophidia I/O servers with persistent memory
