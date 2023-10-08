@@ -1,6 +1,10 @@
 
 ## Next release
 
+### Fixed:
+
+- Bug in parsing device list
+
 ### Added:
 
 - Allow S3 data sources
