@@ -348,8 +348,14 @@ int oph_iostore_destroy_frag_record(oph_iostore_frag_record **record, short int 
 	long long j = 0;
 
 	for (j = 0; j < field_num; j++) {
-		if ((*record)->field[j])
-			free((*record)->field[j]);
+		if ((*record)->field[j]) {
+#ifdef OPH_IO_PMEM
+			if ((*record)->is_pmem)
+				memkind_free(pmem_kind, (*record)->field[j]);
+			else
+#endif
+				free((*record)->field[j]);
+		}
 	}
 #ifdef OPH_IO_PMEM
 	if ((*record)->is_pmem)
@@ -408,7 +414,7 @@ int oph_iostore_destroy_frag_record_set_only(oph_iostore_frag_record_set **recor
 
 	long long j = 0;
 
-	if ((*record_set)->record_set != NULL) {
+	if ((*record_set)->record_set) {
 #ifdef OPH_IO_PMEM
 		if ((*record_set)->is_pmem)
 			memkind_free(pmem_kind, (*record_set)->record_set);
@@ -494,9 +500,11 @@ int oph_iostore_create_frag_record_set_only2(oph_iostore_frag_record_set **recor
 	(*record_set)->tmp_flag = 0;
 #ifdef OPH_IO_PMEM
 	(*record_set)->is_pmem = is_pmem;
+	if (is_pmem)
+		(*record_set)->field_name = (char **) memkind_calloc(pmem_kind, field_num, sizeof(char *));
+	else
 #endif
-
-	(*record_set)->field_name = (char **) calloc(field_num, sizeof(char *));
+		(*record_set)->field_name = (char **) calloc(field_num, sizeof(char *));
 	if (!(*record_set)->field_name) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);

@@ -29,6 +29,11 @@
 #include "oph_server_utility.h"
 #include "oph_query_engine_language.h"
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+extern struct memkind *pmem_kind;
+#endif
+
 extern int msglevel;
 extern pthread_rwlock_t rwlock;
 
@@ -207,7 +212,13 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 
 	_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 
-	rs->frag_name = strndup(out_frag_name, strlen(out_frag_name));
+#ifdef OPH_IO_PMEM
+	if (rs->is_pmem) {
+		rs->frag_name = (char *) memkind_malloc(pmem_kind, 1 + strlen(out_frag_name));
+		memcpy(rs->frag_name, out_frag_name, 1 + strlen(out_frag_name));
+	} else
+#endif
+		rs->frag_name = strdup(out_frag_name);
 	free(frag_components);
 
 	//TODO manage fragment struct creation
@@ -965,7 +976,13 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore
 	int i = 0;
 	for (i = 0; i < column_name_num; i++) {
 		//Copy column name
-		new_record_set->field_name[i] = (char *) strndup(column_name_list[i], (strlen(column_name_list[i]) + 1) * sizeof(char));
+#ifdef OPH_IO_PMEM
+		if (new_record_set->is_pmem) {
+			new_record_set->field_name[i] = (char *) memkind_malloc(pmem_kind, strlen(column_name_list[i]) + 1);
+			memcpy(new_record_set->field_name[i], column_name_list[i], strlen(column_name_list[i]) + 1);
+		} else
+#endif
+			new_record_set->field_name[i] = strdup(column_name_list[i]);
 		if (new_record_set->field_name[i] == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -997,7 +1014,13 @@ int oph_io_server_run_create_empty_frag(oph_metadb_db_row **meta_db, oph_iostore
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 	}
-	new_record_set->frag_name = strndup(frag_name, strlen(frag_name));
+#ifdef OPH_IO_PMEM
+	if (new_record_set->is_pmem) {
+		new_record_set->frag_name = (char *) memkind_malloc(pmem_kind, 1 + strlen(frag_name));
+		memcpy(new_record_set->frag_name, frag_name, 1 + strlen(frag_name));
+	} else
+#endif
+		new_record_set->frag_name = strdup(frag_name);
 
 	free(frag_components);
 	if (column_name_list)

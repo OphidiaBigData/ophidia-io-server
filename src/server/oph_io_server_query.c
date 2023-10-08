@@ -431,8 +431,7 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 
-		thread_status->curr_stmt->frag =
-		    (char *) strndup(thread_status->curr_stmt->partial_result_set->frag_name, (strlen(thread_status->curr_stmt->partial_result_set->frag_name) + 1) * sizeof(char));
+		thread_status->curr_stmt->frag = (char *) strdup(thread_status->curr_stmt->partial_result_set->frag_name);
 		if (thread_status->curr_stmt->frag == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);

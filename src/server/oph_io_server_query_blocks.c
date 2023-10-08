@@ -2071,7 +2071,17 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 				free(alias_list);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
-
+#ifdef OPH_IO_PMEM
+		if (record_sets[l]->is_pmem) {
+			if (!alias_list) {
+				record_sets[l]->frag_name = (char *) memkind_malloc(pmem_kind, 1 + strlen(orig_record_sets[l]->frag_name));
+				memcpy(record_sets[l]->frag_name, orig_record_sets[l]->frag_name, 1 + strlen(orig_record_sets[l]->frag_name));
+			} else {
+				record_sets[l]->frag_name = (char *) memkind_malloc(pmem_kind, 1 + strlen(alias_list[l]));
+				memcpy(record_sets[l]->frag_name, alias_list[l], 1 + strlen(alias_list[l]));
+			}
+		} else
+#endif
 		if (!alias_list)
 			record_sets[l]->frag_name = (char *) strndup(orig_record_sets[l]->frag_name, strlen(orig_record_sets[l]->frag_name));
 		else
@@ -2217,6 +2227,12 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_GROUP_ERROR);
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
+#ifdef OPH_IO_PMEM
+	if (table_num > 0)
+		output->is_pmem = inputs[0]->is_pmem;
+	else
+		output->is_pmem = 0;	// TODO: this case is not considered yet
+#endif
 
 	for (i = 0; i < field_list_num; ++i) {
 		switch (field_type[i]) {
@@ -2250,8 +2266,14 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 							return OPH_IO_SERVER_MEMORY_ERROR;
 						}
 
-						output->record_set[j]->field[i] = (void *) memdup((const void *) &val_d, sizeof(double));
 						output->record_set[j]->field_length[i] = sizeof(double);
+#if OPH_IO_PMEM
+						if (output->is_pmem) {
+							output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+							memcpy(output->record_set[j]->field[i], (const void *) &val_d, output->record_set[j]->field_length[i]);
+						} else
+#endif
+							output->record_set[j]->field[i] = (void *) memdup((const void *) &val_d, output->record_set[j]->field_length[i]);
 					}
 					output->field_type[i] = OPH_IOSTORE_REAL_TYPE;
 					break;
@@ -2274,8 +2296,14 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 							return OPH_IO_SERVER_MEMORY_ERROR;
 						}
 
-						output->record_set[j]->field[i] = (void *) memdup((const void *) &val_l, sizeof(unsigned long long));
 						output->record_set[j]->field_length[i] = sizeof(unsigned long long);
+#if OPH_IO_PMEM
+						if (output->is_pmem) {
+							output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+							memcpy(output->record_set[j]->field[i], (const void *) &val_l, output->record_set[j]->field_length[i]);
+						} else
+#endif
+							output->record_set[j]->field[i] = (void *) memdup((const void *) &val_l, output->record_set[j]->field_length[i]);
 					}
 					output->field_type[i] = OPH_IOSTORE_LONG_TYPE;
 					break;
@@ -2297,8 +2325,14 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 							return OPH_IO_SERVER_MEMORY_ERROR;
 						}
 
-						output->record_set[j]->field[i] = (void *) memdup((const void *) (field_list[i]), strlen(field_list[i]) + 1);
 						output->record_set[j]->field_length[i] = strlen(field_list[i]) + 1;
+#if OPH_IO_PMEM
+						if (output->is_pmem) {
+							output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+							memcpy(output->record_set[j]->field[i], (const void *) field_list[i], output->record_set[j]->field_length[i]);
+						} else
+#endif
+							output->record_set[j]->field[i] = (void *) memdup((const void *) field_list[i], output->record_set[j]->field_length[i]);
 					}
 					output->field_type[i] = OPH_IOSTORE_REAL_TYPE;
 					break;
@@ -2332,8 +2366,14 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 							return OPH_IO_SERVER_MEMORY_ERROR;
 						}
 
-						output->record_set[j]->field[i] = (void *) memdup((const void *) (args[binary_index]->arg), args[binary_index]->arg_length);
 						output->record_set[j]->field_length[i] = args[binary_index]->arg_length;
+#if OPH_IO_PMEM
+						if (output->is_pmem) {
+							output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+							memcpy(output->record_set[j]->field[i], (const void *) args[binary_index]->arg, output->record_set[j]->field_length[i]);
+						} else
+#endif
+							output->record_set[j]->field[i] = (void *) memdup((const void *) args[binary_index]->arg, output->record_set[j]->field_length[i]);
 					}
 					switch (args[binary_index]->arg_type) {
 						case OPH_QUERY_TYPE_LONG:
@@ -2444,11 +2484,18 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 									}
 									return OPH_IO_SERVER_MEMORY_ERROR;
 								}
-								output->record_set[j]->field[i] =
-								    inputs[frag_index]->record_set[id]->field_length[field_index] ?
-								    memdup(inputs[frag_index]->record_set[id]->field[field_index],
-									   inputs[frag_index]->record_set[id]->field_length[field_index]) : NULL;
+
 								output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
+#if OPH_IO_PMEM
+								if (output->is_pmem && output->record_set[j]->field_length[i]) {
+									output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+									memcpy(output->record_set[j]->field[i], inputs[frag_index]->record_set[id]->field[field_index],
+									       output->record_set[j]->field_length[i]);
+								} else
+#endif
+									output->record_set[j]->field[i] =
+									    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->record_set[id]->field[field_index],
+															    output->record_set[j]->field_length[i]) : NULL;
 							}
 						} else {
 							//Aggregation is used, no offset allowed
@@ -2464,11 +2511,19 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 									}
 									return OPH_IO_SERVER_MEMORY_ERROR;
 								}
-								output->record_set[j]->field[i] =
-								    inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index] ?
-								    memdup(inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field[field_index],
-									   inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index]) : NULL;
+
 								output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index];
+#if OPH_IO_PMEM
+								if (output->is_pmem && output->record_set[j]->field_length[i]) {
+									output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+									memcpy(output->record_set[j]->field[i], inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field[field_index],
+									       output->record_set[j]->field_length[i]);
+								} else
+#endif
+									output->record_set[j]->field[i] =
+									    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->
+															    record_set[group_lists[j]->first->elem_index]->field[field_index],
+															    output->record_set[j]->field_length[i]) : NULL;
 							}
 						}
 					} else {
@@ -2486,8 +2541,14 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 								return OPH_IO_SERVER_MEMORY_ERROR;
 							}
 							val_l = start_id + j;
-							output->record_set[j]->field[i] = memdup(&val_l, sizeof(unsigned long long));
 							output->record_set[j]->field_length[i] = sizeof(unsigned long long);
+#if OPH_IO_PMEM
+							if (output->is_pmem) {
+								output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+								memcpy(output->record_set[j]->field[i], (const void *) &val_l, output->record_set[j]->field_length[i]);
+							} else
+#endif
+								output->record_set[j]->field[i] = memdup((const void *) &val_l, output->record_set[j]->field_length[i]);
 						}
 					}
 					output->field_type[i] = inputs[frag_index]->field_type[field_index];
@@ -2614,9 +2675,20 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 											{
 												if (!function_row_number)
 													output->field_type[i] = OPH_IOSTORE_REAL_TYPE;
-												output->record_set[function_row_number]->field[i] =
-												    (void *) memdup((const void *) &(res->data.double_value), sizeof(double));
 												output->record_set[function_row_number]->field_length[i] = sizeof(double);
+#if OPH_IO_PMEM
+												if (output->is_pmem) {
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memkind_malloc(pmem_kind,
+																    output->record_set[function_row_number]->field_length[i]);
+													memcpy(output->record_set[function_row_number]->field[i],
+													       (const void *) &(res->data.double_value),
+													       output->record_set[function_row_number]->field_length[i]);
+												} else
+#endif
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memdup((const void *) &(res->data.double_value),
+															    output->record_set[function_row_number]->field_length[i]);
 												free(res);
 												break;
 											}
@@ -2624,9 +2696,20 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 											{
 												if (!function_row_number)
 													output->field_type[i] = OPH_IOSTORE_LONG_TYPE;
-												output->record_set[function_row_number]->field[i] =
-												    (void *) memdup((const void *) &(res->data.long_value), sizeof(unsigned long long));
 												output->record_set[function_row_number]->field_length[i] = sizeof(unsigned long long);
+#if OPH_IO_PMEM
+												if (output->is_pmem) {
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memkind_malloc(pmem_kind,
+																    output->record_set[function_row_number]->field_length[i]);
+													memcpy(output->record_set[function_row_number]->field[i],
+													       (const void *) &(res->data.long_value),
+													       output->record_set[function_row_number]->field_length[i]);
+												} else
+#endif
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memdup((const void *) &(res->data.long_value),
+															    output->record_set[function_row_number]->field_length[i]);
 												free(res);
 												break;
 											}
@@ -2634,13 +2717,27 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 											{
 												if (!function_row_number)
 													output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-#ifdef PLUGIN_RES_COPY
-												output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
-#else
-												output->record_set[function_row_number]->field[i] =
-												    (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
-#endif
 												output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
+#if OPH_IO_PMEM
+												if (output->is_pmem) {	// In case of pmemory the data are reallocated anyway
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memkind_malloc(pmem_kind,
+																    output->record_set[function_row_number]->field_length[i]);
+													memcpy(output->record_set[function_row_number]->field[i],
+													       (const void *) &(res->data.string_value),
+													       output->record_set[function_row_number]->field_length[i]);
+#ifdef PLUGIN_RES_COPY
+													free(res->data.string_value);
+#endif
+												} else
+#endif
+#ifdef PLUGIN_RES_COPY
+													output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
+#else
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memdup((const void *) res->data.string_value,
+															    output->record_set[function_row_number]->field_length[i]);
+#endif
 												free(res);
 												break;
 											}
@@ -2648,13 +2745,27 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 											{
 												if (!function_row_number)
 													output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-#ifdef PLUGIN_RES_COPY
-												output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
-#else
-												output->record_set[function_row_number]->field[i] =
-												    (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
-#endif
 												output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
+#if OPH_IO_PMEM
+												if (output->is_pmem) {	// In case of pmemory the data are reallocated anyway
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memkind_malloc(pmem_kind,
+																    output->record_set[function_row_number]->field_length[i]);
+													memcpy(output->record_set[function_row_number]->field[i],
+													       (const void *) &(res->data.binary_value)->arg,
+													       output->record_set[function_row_number]->field_length[i]);
+#ifdef PLUGIN_RES_COPY
+													free(res->data.binary_value->arg);
+#endif
+												} else
+#endif
+#ifdef PLUGIN_RES_COPY
+													output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
+#else
+													output->record_set[function_row_number]->field[i] =
+													    (void *) memdup((const void *) res->data.binary_value->arg,
+															    output->record_set[function_row_number]->field_length[i]);
+#endif
 												free(res->data.binary_value);
 												free(res);
 												break;
@@ -2750,9 +2861,20 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 												{
 													if (!function_row_number)
 														output->field_type[i] = OPH_IOSTORE_REAL_TYPE;
-													output->record_set[function_row_number]->field[i] =
-													    (void *) memdup((const void *) &(res->data.double_value), sizeof(double));
 													output->record_set[function_row_number]->field_length[i] = sizeof(double);
+#if OPH_IO_PMEM
+													if (output->is_pmem) {
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memkind_malloc(pmem_kind,
+																	    output->record_set[function_row_number]->field_length[i]);
+														memcpy(output->record_set[function_row_number]->field[i],
+														       (const void *) &(res->data.double_value),
+														       output->record_set[function_row_number]->field_length[i]);
+													} else
+#endif
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memdup((const void *) &(res->data.double_value),
+																    output->record_set[function_row_number]->field_length[i]);
 													free(res);
 													break;
 												}
@@ -2760,9 +2882,20 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 												{
 													if (!function_row_number)
 														output->field_type[i] = OPH_IOSTORE_LONG_TYPE;
-													output->record_set[function_row_number]->field[i] =
-													    (void *) memdup((const void *) &(res->data.long_value), sizeof(unsigned long long));
 													output->record_set[function_row_number]->field_length[i] = sizeof(unsigned long long);
+#if OPH_IO_PMEM
+													if (output->is_pmem) {
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memkind_malloc(pmem_kind,
+																	    output->record_set[function_row_number]->field_length[i]);
+														memcpy(output->record_set[function_row_number]->field[i],
+														       (const void *) &(res->data.long_value),
+														       output->record_set[function_row_number]->field_length[i]);
+													} else
+#endif
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memdup((const void *) &(res->data.long_value),
+																    output->record_set[function_row_number]->field_length[i]);
 													free(res);
 													break;
 												}
@@ -2770,13 +2903,27 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 												{
 													if (!function_row_number)
 														output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-#ifdef PLUGIN_RES_COPY
-													output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
-#else
-													output->record_set[function_row_number]->field[i] =
-													    (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
-#endif
 													output->record_set[function_row_number]->field_length[i] = strlen(res->data.string_value) + 1;
+#if OPH_IO_PMEM
+													if (output->is_pmem) {	// In case of pmemory the data are reallocated anyway
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memkind_malloc(pmem_kind,
+																	    output->record_set[function_row_number]->field_length[i]);
+														memcpy(output->record_set[function_row_number]->field[i],
+														       (const void *) &(res->data.string_value),
+														       output->record_set[function_row_number]->field_length[i]);
+#ifdef PLUGIN_RES_COPY
+														free(res->data.string_value);
+#endif
+													} else
+#endif
+#ifdef PLUGIN_RES_COPY
+														output->record_set[function_row_number]->field[i] = (void *) res->data.string_value;
+#else
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memdup((const void *) res->data.string_value,
+																    output->record_set[function_row_number]->field_length[i]);
+#endif
 													free(res);
 													break;
 												}
@@ -2784,14 +2931,28 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 												{
 													if (!function_row_number)
 														output->field_type[i] = OPH_IOSTORE_STRING_TYPE;
-#ifdef PLUGIN_RES_COPY
-													output->record_set[function_row_number]->field[i] = (void *) res->data.binary_value->arg;
-#else
-													output->record_set[function_row_number]->field[i] =
-													    (void *) memdup((const void *) res->data.binary_value->arg,
-															    res->data.binary_value->arg_length);
-#endif
 													output->record_set[function_row_number]->field_length[i] = res->data.binary_value->arg_length;
+#if OPH_IO_PMEM
+													if (output->is_pmem) {	// In case of pmemory the data are reallocated anyway
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memkind_malloc(pmem_kind,
+																	    output->record_set[function_row_number]->field_length[i]);
+														memcpy(output->record_set[function_row_number]->field[i],
+														       (const void *) &(res->data.binary_value)->arg,
+														       output->record_set[function_row_number]->field_length[i]);
+#ifdef PLUGIN_RES_COPY
+														free(res->data.binary_value->arg);
+#endif
+													} else
+#endif
+#ifdef PLUGIN_RES_COPY
+														output->record_set[function_row_number]->field[i] =
+														    (void *) res->data.binary_value->arg;
+#else
+														output->record_set[function_row_number]->field[i] =
+														    (void *) memdup((const void *) res->data.binary_value->arg,
+																    output->record_set[function_row_number]->field_length[i]);
+#endif
 													free(res->data.binary_value);
 													free(res);
 													break;
@@ -2910,6 +3071,22 @@ int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, 
 		}
 	}
 	//Set alias or input table names
+#ifdef OPH_IO_PMEM
+	if (rs->is_pmem) {
+		if (field_alias_list != NULL) {
+			for (i = 0; i < field_list_num; i++) {
+				rs->field_name[i] = (char *) memkind_malloc(pmem_kind, strlen(field_alias_list[i]) == 0 ? 1 + strlen(field_list[i]) : 1 + strlen(field_alias_list[i]));
+				memcpy(rs->field_name[i], strlen(field_alias_list[i]) == 0 ? strdup(field_list[i]) : strdup(field_alias_list[i]),
+				       strlen(field_alias_list[i]) == 0 ? 1 + strlen(field_list[i]) : 1 + strlen(field_alias_list[i]));
+			}
+		} else {
+			for (i = 0; i < field_list_num; i++) {
+				rs->field_name[i] = (char *) memkind_malloc(pmem_kind, 1 + strlen(field_list[i]));
+				memcpy(rs->field_name[i], field_list[i], 1 + strlen(field_list[i]));
+			}
+		}
+	} else
+#endif
 	if (field_alias_list != NULL) {
 		for (i = 0; i < field_list_num; i++) {
 			rs->field_name[i] = (strlen(field_alias_list[i]) == 0 ? strdup(field_list[i]) : strdup(field_alias_list[i]));
@@ -3035,7 +3212,8 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 	//Created record struct
 	*new_record = NULL;
 #ifdef OPH_IO_PMEM
-	if (oph_iostore_create_frag_record2(new_record, partial_result_set->field_num, partial_result_set->is_pmem)) {
+	char is_pmem = partial_result_set->is_pmem;
+	if (oph_iostore_create_frag_record2(new_record, partial_result_set->field_num, is_pmem)) {
 #else
 	if (oph_iostore_create_frag_record(new_record, partial_result_set->field_num)) {
 #endif
@@ -3103,28 +3281,52 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 					}
 
 					(*new_record)->field_length[i] = args[binary_index]->arg_length;
-					(*new_record)->field[i] = (void *) memdup(args[binary_index]->arg, (*new_record)->field_length[i]);
+#ifdef OPH_IO_PMEM
+					if (is_pmem) {
+						(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+						memcpy((*new_record)->field[i], args[binary_index]->arg, (*new_record)->field_length[i]);
+					} else
+#endif
+						(*new_record)->field[i] = (void *) memdup(args[binary_index]->arg, (*new_record)->field_length[i]);
 					break;
 				}
 				//No substitution occurs, use directly strings
 			case OPH_QUERY_FIELD_TYPE_STRING:
 				{
 					(*new_record)->field_length[i] = strlen(value_list[i]) + 1;
-					(*new_record)->field[i] = (char *) strndup(value_list[i], (*new_record)->field_length[i]);
+#ifdef OPH_IO_PMEM
+					if (is_pmem) {
+						(*new_record)->field[i] = (char *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+						memcpy((*new_record)->field[i], value_list[i], (*new_record)->field_length[i]);
+					} else
+#endif
+						(*new_record)->field[i] = (char *) strndup(value_list[i], (*new_record)->field_length[i]);
 					break;
 				}
 			case OPH_QUERY_FIELD_TYPE_DOUBLE:
 				{
 					tmpD = (double) strtod(value_list[i], NULL);
 					(*new_record)->field_length[i] = sizeof(double);
-					(*new_record)->field[i] = (void *) memdup((const void *) &tmpD, (*new_record)->field_length[i]);
+#ifdef OPH_IO_PMEM
+					if (is_pmem) {
+						(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+						memcpy((*new_record)->field[i], (const void *) &tmpD, (*new_record)->field_length[i]);
+					} else
+#endif
+						(*new_record)->field[i] = (void *) memdup((const void *) &tmpD, (*new_record)->field_length[i]);
 					break;
 				}
 			case OPH_QUERY_FIELD_TYPE_LONG:
 				{
 					tmpL = (long long) strtoll(value_list[i], NULL, 10);
 					(*new_record)->field_length[i] = sizeof(long long);
-					(*new_record)->field[i] = (void *) memdup((const void *) &tmpL, (*new_record)->field_length[i]);
+#ifdef OPH_IO_PMEM
+					if (is_pmem) {
+						(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+						memcpy((*new_record)->field[i], (const void *) &tmpL, (*new_record)->field_length[i]);
+					} else
+#endif
+						(*new_record)->field[i] = (void *) memdup((const void *) &tmpL, (*new_record)->field_length[i]);
 					break;
 				}
 			case OPH_QUERY_FIELD_TYPE_FUNCTION:
@@ -3196,24 +3398,45 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 							case OPH_QUERY_EXPR_TYPE_DOUBLE:
 								{
 									(*new_record)->field_length[i] = sizeof(double);
-									(*new_record)->field[i] = (void *) memdup((const void *) &(res->data.double_value), sizeof(double));
+#ifdef OPH_IO_PMEM
+									if (is_pmem) {
+										(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+										memcpy((*new_record)->field[i], (const void *) &(res->data.double_value), (*new_record)->field_length[i]);
+									} else
+#endif
+										(*new_record)->field[i] = (void *) memdup((const void *) &(res->data.double_value), (*new_record)->field_length[i]);
 									free(res);
 									break;
 								}
 							case OPH_QUERY_EXPR_TYPE_LONG:
 								{
 									(*new_record)->field_length[i] = sizeof(unsigned long long);
-									(*new_record)->field[i] = (void *) memdup((const void *) &(res->data.long_value), sizeof(unsigned long long));
+#ifdef OPH_IO_PMEM
+									if (is_pmem) {
+										(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+										memcpy((*new_record)->field[i], (const void *) &(res->data.double_value), (*new_record)->field_length[i]);
+									} else
+#endif
+										(*new_record)->field[i] = (void *) memdup((const void *) &(res->data.long_value), (*new_record)->field_length[i]);
 									free(res);
 									break;
 								}
 							case OPH_QUERY_EXPR_TYPE_STRING:
 								{
 									(*new_record)->field_length[i] = strlen(res->data.string_value) + 1;
+#ifdef OPH_IO_PMEM
+									if (is_pmem) {	// In case of pmemory the data are reallocated anyway
+										(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+										memcpy((*new_record)->field[i], (const void *) res->data.string_value, (*new_record)->field_length[i]);
 #ifdef PLUGIN_RES_COPY
-									(*new_record)->field[i] = (void *) res->data.string_value;
+										free(res->data.string_value);
+#endif
+									} else
+#endif
+#ifdef PLUGIN_RES_COPY
+										(*new_record)->field[i] = (void *) res->data.string_value;
 #else
-									(*new_record)->field[i] = (void *) memdup((const void *) res->data.string_value, strlen(res->data.string_value) + 1);
+										(*new_record)->field[i] = (void *) memdup((const void *) res->data.string_value, (*new_record)->field_length[i]);
 #endif
 									free(res);
 									break;
@@ -3221,10 +3444,19 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
 							case OPH_QUERY_EXPR_TYPE_BINARY:
 								{
 									(*new_record)->field_length[i] = res->data.binary_value->arg_length;
+#ifdef OPH_IO_PMEM
+									if (is_pmem) {	// In case of pmemory the data are reallocated anyway
+										(*new_record)->field[i] = (void *) memkind_malloc(pmem_kind, (*new_record)->field_length[i]);
+										memcpy((*new_record)->field[i], (const void *) res->data.binary_value->arg, (*new_record)->field_length[i]);
 #ifdef PLUGIN_RES_COPY
-									(*new_record)->field[i] = (void *) res->data.binary_value->arg;
+										free(res->data.binary_value->arg);
+#endif
+									} else
+#endif
+#ifdef PLUGIN_RES_COPY
+										(*new_record)->field[i] = (void *) res->data.binary_value->arg;
 #else
-									(*new_record)->field[i] = (void *) memdup((const void *) res->data.binary_value->arg, res->data.binary_value->arg_length);
+										(*new_record)->field[i] = (void *) memdup((const void *) res->data.binary_value->arg, (*new_record)->field_length[i]);
 #endif
 									free(res->data.binary_value);
 									free(res);

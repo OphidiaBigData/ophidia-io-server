@@ -39,7 +39,7 @@ liboph_iostorage_data_la_LIBADD = @LIBLTDL@ -L../common -ldebug -loph_server_uti
 liboph_iostorage_data_la_LDFLAGS = -module -static
 
 liboph_iostorage_interface_la_SOURCES = oph_iostorage_interface.c
-liboph_iostorage_interface_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common  -fPIC @INCLTDL@ -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
+liboph_iostorage_interface_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common  -fPIC @INCLTDL@ -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(ADDITIONAL_CFLAGS)
 liboph_iostorage_interface_la_LIBADD= @LIBLTDL@ -L../common -ldebug -loph_server_util -lpthread
 liboph_iostorage_interface_la_LDFLAGS = -module -static
 

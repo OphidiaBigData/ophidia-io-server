@@ -443,7 +443,13 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 	}
 
 	rs->field_type[0] = OPH_IOSTORE_LONG_TYPE;
-	rs->field_name[0] = (char *) strndup("frag_size", (strlen("frag_size") + 1) * sizeof(char));
+#ifdef OPH_IO_PMEM
+	if (dev_handle->is_persistent) {
+		rs->field_name[0] = (char *) memkind_malloc("frag_size", strlen("frag_size") + 1);
+		memcpy(rs->field_name[0], "frag_size", strlen("frag_size") + 1);
+	} else
+#endif
+		rs->field_name[0] = (char *) strndup("frag_size", strlen("frag_size") + 1);
 	if (rs->field_name[0] == NULL) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
