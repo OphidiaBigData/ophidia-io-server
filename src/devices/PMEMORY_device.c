@@ -172,7 +172,7 @@ int _pmemory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *
 	oph_iostore_frag_record_set *internal_record = NULL;
 	// In the original implementation the frag_record was copied and the new copy was assigned to internal_record
 	//internal_record = frag_record;
-	// This behavior is applied for memkind
+	// This behavior is applied for memkind: the free of frag_record is performed in calling function
 	oph_iostore_copy_frag_record_set_only2(frag_record, &internal_record, 0, 0, 1);
 
 	//Get resource id

@@ -2026,7 +2026,12 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 	long long j = 0, total_row_number = 0;
 
 	//Prepare input record set
-	record_sets = (oph_iostore_frag_record_set **) calloc((table_list_num + 1), sizeof(oph_iostore_frag_record_set *));
+#ifdef OPH_IO_PMEM
+	if (dev_handle->is_persistent)
+		record_sets = (oph_iostore_frag_record_set **) memkind_calloc(pmem_kind, (table_list_num + 1), sizeof(oph_iostore_frag_record_set *));
+	else
+#endif
+		record_sets = (oph_iostore_frag_record_set **) calloc((table_list_num + 1), sizeof(oph_iostore_frag_record_set *));
 	if (!record_sets) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2083,9 +2088,9 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 		} else
 #endif
 		if (!alias_list)
-			record_sets[l]->frag_name = (char *) strndup(orig_record_sets[l]->frag_name, strlen(orig_record_sets[l]->frag_name));
+			record_sets[l]->frag_name = (char *) strdup(orig_record_sets[l]->frag_name);
 		else
-			record_sets[l]->frag_name = (char *) strndup(alias_list[l], strlen(alias_list[l]));
+			record_sets[l]->frag_name = (char *) strdup(alias_list[l]);
 		if (record_sets[l]->frag_name == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);

@@ -30,6 +30,11 @@
 #include "oph_server_utility.h"
 #include "oph_query_engine_language.h"
 
+#ifdef OPH_IO_PMEM
+#include <memkind.h>
+extern struct memkind *pmem_kind;
+#endif
+
 extern int msglevel;
 extern pthread_rwlock_t rwlock;
 
@@ -445,7 +450,7 @@ int oph_io_server_run_size_procedure(oph_metadb_db_row **meta_db, oph_iostore_ha
 	rs->field_type[0] = OPH_IOSTORE_LONG_TYPE;
 #ifdef OPH_IO_PMEM
 	if (dev_handle->is_persistent) {
-		rs->field_name[0] = (char *) memkind_malloc("frag_size", strlen("frag_size") + 1);
+		rs->field_name[0] = (char *) memkind_malloc(pmem_kind, strlen("frag_size") + 1);
 		memcpy(rs->field_name[0], "frag_size", strlen("frag_size") + 1);
 	} else
 #endif
