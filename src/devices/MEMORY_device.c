@@ -175,6 +175,9 @@ int _memory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *f
     return MEMORY_DEV_ERROR;
   }*/
 	internal_record = frag_record;
+#ifdef OPH_IO_PMEM
+	internal_record->is_pmem = 0;
+#endif
 
 	//Get resource id
 	*res_id = (oph_iostore_resource_id *) malloc(1 * sizeof(oph_iostore_resource_id));

@@ -115,6 +115,7 @@ int oph_iostore_copy_frag_record_set(oph_iostore_frag_record_set * input_record_
  * \return                  0 if successfull, non-0 otherwise
  */
 int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset);
+int oph_iostore_copy_frag_record_set_limit2(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset, char force_pmem);
 
 /**
  * \brief			              Copy a fragment record_set structure only by specifying a limit (it does not copy the frag_name and the internal record set)

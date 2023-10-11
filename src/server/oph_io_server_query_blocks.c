@@ -833,7 +833,7 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler *dev_handle
 	int l = 0;
 	if (stored_rs) {
 		for (l = 0; stored_rs[l]; l++) {
-			if (dev_handle->is_persistent || stored_rs[l]->tmp_flag != 0)
+			if (stored_rs[l]->tmp_flag != 0)
 				oph_iostore_destroy_frag_record_set(&(stored_rs[l]));
 		}
 		free(stored_rs);
@@ -842,7 +842,12 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler *dev_handle
 		for (l = 0; input_rs[l]; l++) {
 			oph_iostore_destroy_frag_record_set_only(&(input_rs[l]));
 		}
-		free(input_rs);
+#ifdef OPH_IO_PMEM
+		if (dev_handle->is_persistent)
+			memkind_free(pmem_kind, input_rs);
+		else
+#endif
+			free(input_rs);
 	}
 	return OPH_IO_SERVER_SUCCESS;
 }
@@ -2067,7 +2072,18 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			partial_tot_row_number++;
 		if (partial_tot_row_number > total_row_number)
 			total_row_number = partial_tot_row_number;
-
+#ifdef OPH_IO_PMEM
+		if (dev_handle->is_persistent) {
+			if ((oph_iostore_copy_frag_record_set_limit2(orig_record_sets[l], &(record_sets[l]), 0, 0, 1) != 0)) {
+				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
+				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
+				if (alias_list)
+					free(alias_list);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+		} else
+#endif
 		if ((oph_iostore_copy_frag_record_set_only(orig_record_sets[l], &(record_sets[l]), 0, 0) != 0)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2077,7 +2093,8 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 #ifdef OPH_IO_PMEM
-		if (record_sets[l]->is_pmem) {
+		record_sets[l]->is_pmem = dev_handle->is_persistent;
+		if (dev_handle->is_persistent) {
 			if (!alias_list) {
 				record_sets[l]->frag_name = (char *) memkind_malloc(pmem_kind, 1 + strlen(orig_record_sets[l]->frag_name));
 				memcpy(record_sets[l]->frag_name, orig_record_sets[l]->frag_name, 1 + strlen(orig_record_sets[l]->frag_name));
@@ -2117,7 +2134,13 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 		} else {
 			//Get all rows
 			for (j = 0; j < total_row_number; j++) {
-				record_sets[0]->record_set[j] = orig_record_sets[0]->record_set[j];
+#ifdef OPH_IO_PMEM
+				if (record_sets[0]->is_pmem) {
+					record_sets[0]->record_set[j] = (oph_iostore_frag_record *) memkind_malloc(pmem_kind, sizeof(oph_iostore_frag_record));
+					memcpy(record_sets[0]->record_set[j], orig_record_sets[0]->record_set[j], sizeof(oph_iostore_frag_record));
+				} else
+#endif
+					record_sets[0]->record_set[j] = orig_record_sets[0]->record_set[j];
 			}
 		}
 	} else {
@@ -2491,16 +2514,17 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 								}
 
 								output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[id]->field_length[field_index];
+								if (output->record_set[j]->field_length[i])
 #if OPH_IO_PMEM
-								if (output->is_pmem && output->record_set[j]->field_length[i]) {
-									output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
-									memcpy(output->record_set[j]->field[i], inputs[frag_index]->record_set[id]->field[field_index],
-									       output->record_set[j]->field_length[i]);
-								} else
+									if (output->is_pmem) {
+										output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+										memcpy(output->record_set[j]->field[i], inputs[frag_index]->record_set[id]->field[field_index],
+										       output->record_set[j]->field_length[i]);
+									} else
 #endif
-									output->record_set[j]->field[i] =
-									    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->record_set[id]->field[field_index],
-															    output->record_set[j]->field_length[i]) : NULL;
+										output->record_set[j]->field[i] =
+										    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->record_set[id]->field[field_index],
+																    output->record_set[j]->field_length[i]) : NULL;
 							}
 						} else {
 							//Aggregation is used, no offset allowed
@@ -2518,17 +2542,19 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 								}
 
 								output->record_set[j]->field_length[i] = inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field_length[field_index];
+								if (output->record_set[j]->field_length[i])
 #if OPH_IO_PMEM
-								if (output->is_pmem && output->record_set[j]->field_length[i]) {
-									output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
-									memcpy(output->record_set[j]->field[i], inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field[field_index],
-									       output->record_set[j]->field_length[i]);
-								} else
+									if (output->is_pmem) {
+										output->record_set[j]->field[i] = (void *) memkind_malloc(pmem_kind, output->record_set[j]->field_length[i]);
+										memcpy(output->record_set[j]->field[i],
+										       inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->field[field_index],
+										       output->record_set[j]->field_length[i]);
+									} else
 #endif
-									output->record_set[j]->field[i] =
-									    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->
-															    record_set[group_lists[j]->first->elem_index]->field[field_index],
-															    output->record_set[j]->field_length[i]) : NULL;
+										output->record_set[j]->field[i] =
+										    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->
+																    record_set[group_lists[j]->first->elem_index]->field[field_index],
+																    output->record_set[j]->field_length[i]) : NULL;
 							}
 						}
 					} else {
@@ -2757,7 +2783,7 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 													    (void *) memkind_malloc(pmem_kind,
 																    output->record_set[function_row_number]->field_length[i]);
 													memcpy(output->record_set[function_row_number]->field[i],
-													       (const void *) &(res->data.binary_value)->arg,
+													       (const void *) res->data.binary_value->arg,
 													       output->record_set[function_row_number]->field_length[i]);
 #ifdef PLUGIN_RES_COPY
 													free(res->data.binary_value->arg);
@@ -2943,7 +2969,7 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 														    (void *) memkind_malloc(pmem_kind,
 																	    output->record_set[function_row_number]->field_length[i]);
 														memcpy(output->record_set[function_row_number]->field[i],
-														       (const void *) &(res->data.binary_value)->arg,
+														       (const void *) res->data.binary_value->arg,
 														       output->record_set[function_row_number]->field_length[i]);
 #ifdef PLUGIN_RES_COPY
 														free(res->data.binary_value->arg);
@@ -3031,7 +3057,13 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 			oph_iostore_destroy_frag_record(&(output->record_set[j]), output->field_num);
 		}
 		//Realloc record set array
-		oph_iostore_frag_record **tmp = (oph_iostore_frag_record **) realloc(output->record_set, (actual_rows + 1) * sizeof(oph_iostore_frag_record *));
+		oph_iostore_frag_record **tmp = NULL;
+#if OPH_IO_PMEM
+		if (output->is_pmem)
+			tmp = (oph_iostore_frag_record **) memkind_realloc(pmem_kind, output->record_set, (actual_rows + 1) * sizeof(oph_iostore_frag_record *));
+		else
+#endif
+			tmp = (oph_iostore_frag_record **) realloc(output->record_set, (actual_rows + 1) * sizeof(oph_iostore_frag_record *));
 		if (tmp == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);

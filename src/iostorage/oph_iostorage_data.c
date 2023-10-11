@@ -135,7 +135,7 @@ int oph_iostore_copy_frag_record_set(oph_iostore_frag_record_set *input_record_s
 	return oph_iostore_copy_frag_record_set_limit(input_record_set, output_record_set, 0, 0);
 }
 
-int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset)
+int oph_iostore_copy_frag_record_set_limit2(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset, char force_pmem)
 {
 	if (!input_record_set || !output_record_set || (limit < 0) || (offset < 0)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_INPUT_PARAM);
@@ -143,7 +143,7 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_re
 		return OPH_IOSTORAGE_NULL_PARAM;
 	}
 
-	if (oph_iostore_copy_frag_record_set_only(input_record_set, output_record_set, limit, offset)) {
+	if (oph_iostore_copy_frag_record_set_only2(input_record_set, output_record_set, limit, offset, force_pmem)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 		oph_iostore_destroy_frag_record_set(output_record_set);
@@ -178,6 +178,11 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_re
 	return OPH_IOSTORAGE_SUCCESS;
 }
 
+int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset)
+{
+	return oph_iostore_copy_frag_record_set_limit2(input_record_set, output_record_set, limit, offset, 0);
+}
+
 int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset, char force_pmem)
 {
 	if (!input_record_set || !output_record_set || (limit < 0) || (offset < 0)) {
@@ -187,7 +192,7 @@ int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_re
 	}
 	//Copy frag record set content
 #ifdef OPH_IO_PMEM
-	char is_pmem = force_pmem > 0 ? 1 : input_record_set->is_pmem;
+	char is_pmem = force_pmem > 1 ? 1 : input_record_set->is_pmem;
 	if (is_pmem)
 		*output_record_set = (oph_iostore_frag_record_set *) memkind_malloc(pmem_kind, sizeof(oph_iostore_frag_record_set));
 	else
@@ -202,8 +207,16 @@ int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_re
 	(*output_record_set)->field_num = input_record_set->field_num;
 	(*output_record_set)->field_type = NULL;
 	(*output_record_set)->record_set = NULL;
+
 #ifdef OPH_IO_PMEM
 	(*output_record_set)->is_pmem = is_pmem;
+	if (is_pmem) {
+		(*output_record_set)->frag_name = (char *) memkind_calloc(pmem_kind, 1 + strlen(input_record_set->frag_name), sizeof(char));
+		memcpy((*output_record_set)->frag_name, input_record_set->frag_name, strlen(input_record_set->frag_name));
+	}
+#endif
+
+#ifdef OPH_IO_PMEM
 	if (is_pmem)
 		(*output_record_set)->field_name = (char **) memkind_calloc(pmem_kind, input_record_set->field_num, sizeof(char *));
 	else
@@ -279,7 +292,7 @@ int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_re
 
 int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set *input_record_set, oph_iostore_frag_record_set **output_record_set, long long limit, long long offset)
 {
-	return oph_iostore_copy_frag_record_set_only2(input_record_set, output_record_set, limit, offset, -1);
+	return oph_iostore_copy_frag_record_set_only2(input_record_set, output_record_set, limit, offset, 0);
 }
 
 int oph_iostore_create_frag_record2(oph_iostore_frag_record **record, short int field_num, char is_pmem)

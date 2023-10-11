@@ -22,15 +22,23 @@ lib_LTLIBRARIES+=libpmemory_device.la
 endif
 libdir=${DEVICE_PATH}
 
+if HAVE_MEMKIND
+ADDITIONAL_CFLAGS=$(MEMKIND_INCLUDE) -DOPH_IO_PMEM
+ADDITIONAL_LIBS=$(MEMKIND_LIB)
+else
+ADDITIONAL_CFLAGS=
+ADDITIONAL_LIBS=
+endif
+
 libmemory_device_la_SOURCES = MEMORY_device.c
-libmemory_device_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common -I../iostorage -DOPH_IO_SERVER_PREFIX=\"${prefix}\"
-libmemory_device_la_LIBADD= -L../common -ldebug  -loph_server_util -L../iostorage -loph_iostorage_data
+libmemory_device_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common -I../iostorage -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(ADDITIONAL_CFLAGS)
+libmemory_device_la_LIBADD= -L../common -ldebug  -loph_server_util -L../iostorage -loph_iostorage_data $(ADDITIONAL_LIBS)
 libmemory_device_la_LDFLAGS = -module -avoid-version -no-undefined
 
 if HAVE_MEMKIND
 libpmemory_device_la_SOURCES = PMEMORY_device.c
-libpmemory_device_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common -I../iostorage -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(MEMKIND_INCLUDE) -DOPH_IO_PMEM
-libpmemory_device_la_LIBADD= -L../common -ldebug  -loph_server_util -L../iostorage -loph_iostorage_data $(MEMKIND_LIB)
+libpmemory_device_la_CFLAGS = $(OPT) -I. -I.. -I../.. -I../common -I../iostorage -DOPH_IO_SERVER_PREFIX=\"${prefix}\" $(ADDITIONAL_CFLAGS)
+libpmemory_device_la_LIBADD= -L../common -ldebug  -loph_server_util -L../iostorage -loph_iostorage_data $(ADDITIONAL_LIBS)
 libpmemory_device_la_LDFLAGS = -module -avoid-version -no-undefined
 endif
 
