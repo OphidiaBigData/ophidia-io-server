@@ -192,7 +192,7 @@ int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_re
 	}
 	//Copy frag record set content
 #ifdef OPH_IO_PMEM
-	char is_pmem = force_pmem > 1 ? 1 : input_record_set->is_pmem;
+	char is_pmem = force_pmem ? 1 : input_record_set->is_pmem;
 	if (is_pmem)
 		*output_record_set = (oph_iostore_frag_record_set *) memkind_malloc(pmem_kind, sizeof(oph_iostore_frag_record_set));
 	else
@@ -213,8 +213,9 @@ int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_re
 	if (is_pmem) {
 		(*output_record_set)->frag_name = (char *) memkind_calloc(pmem_kind, 1 + strlen(input_record_set->frag_name), sizeof(char));
 		memcpy((*output_record_set)->frag_name, input_record_set->frag_name, strlen(input_record_set->frag_name));
-	}
+	} else
 #endif
+		(*output_record_set)->frag_name = strdup(input_record_set->frag_name);
 
 #ifdef OPH_IO_PMEM
 	if (is_pmem)

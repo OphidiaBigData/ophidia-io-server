@@ -137,6 +137,8 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 	int i = 0;
 	long long j = 0, total_row_number = 0;
 
+	char is_pmem = dev_handle->is_persistent;
+
 	//If recordset is not empty proceed
 	if (record_sets[0]->record_set[0] != NULL) {
 		//Count number of rows to compute
@@ -148,7 +150,16 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 			}
 		}
 		//Create output record set
-		if (oph_iostore_create_frag_record_set2(&rs, total_row_number, field_list_num, dev_handle->is_persistent)) {
+#ifdef OPH_IO_PMEM
+		char *transfer = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_OP_TRANSFER);
+		if (transfer) {
+			if (!STRCMP(transfer, "1"))
+				is_pmem = 0;
+			else if (!STRCMP(transfer, "2"))
+				is_pmem = 1;
+		}
+#endif
+		if (oph_iostore_create_frag_record_set2(&rs, total_row_number, field_list_num, is_pmem)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
@@ -232,6 +243,9 @@ int _oph_io_server_run_create_as_select(oph_metadb_db_row **meta_db, oph_iostore
 		}
 		j++;
 	}
+#ifdef OPH_IO_PMEM
+	rs->store = is_pmem;
+#endif
 	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, tot_size, &rs);
 
 	//Destroy tmp recordset 
@@ -642,7 +656,9 @@ int oph_io_server_run_insert_from_file(oph_metadb_db_row **meta_db, oph_iostore_
 		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-
+#ifdef OPH_IO_PMEM
+	record_sets->store = dev_handle->is_persistent;
+#endif
 	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, frag_size, &record_sets);
 
 	//Destroy tmp recordset 
@@ -677,7 +693,9 @@ int oph_io_server_run_insert_from_esdm(oph_metadb_db_row **meta_db, oph_iostore_
 		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-
+#ifdef OPH_IO_PMEM
+	record_sets->store = dev_handle->is_persistent;
+#endif
 	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, frag_size, &record_sets);
 
 	//Destroy tmp recordset 
@@ -802,7 +820,9 @@ int oph_io_server_run_random_insert(oph_metadb_db_row **meta_db, oph_iostore_han
 		oph_iostore_destroy_frag_record_set(&record_sets);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
-
+#ifdef OPH_IO_PMEM
+	record_sets->store = dev_handle->is_persistent;
+#endif
 	int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, current_db, frag_size, &record_sets);
 
 	//Destroy tmp recordset 

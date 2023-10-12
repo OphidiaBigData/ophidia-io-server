@@ -59,6 +59,7 @@ typedef struct {
 	char tmp_flag;
 #ifdef OPH_IO_PMEM
 	char is_pmem;
+	char store;
 #endif
 } oph_iostore_frag_record_set;
 

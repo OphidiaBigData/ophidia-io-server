@@ -212,6 +212,9 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 		if (thread_status->curr_stmt->curr_run == thread_status->curr_stmt->tot_run) {
 			//THIS BLOCK IS PERFORMED AT THE VERY LAST INSERT
 
+#ifdef OPH_IO_PMEM
+			thread_status->curr_stmt->partial_result_set->store = dev_handle->is_persistent;
+#endif
 			int ret = _oph_ioserver_query_store_fragment(meta_db, dev_handle, thread_status->current_db, thread_status->curr_stmt->size, &(thread_status->curr_stmt->partial_result_set));
 
 			//Clean global status 
@@ -317,6 +320,9 @@ int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *d
 				//Compute size of record_set variable
 				thread_status->curr_stmt->size += (thread_status->curr_stmt->mi_prev_rows + 1) * sizeof(oph_iostore_frag_record *);
 
+#ifdef OPH_IO_PMEM
+				thread_status->curr_stmt->partial_result_set->store = dev_handle->is_persistent;
+#endif
 				int ret =
 				    _oph_ioserver_query_store_fragment(meta_db, dev_handle, thread_status->current_db, thread_status->curr_stmt->size, &(thread_status->curr_stmt->partial_result_set));
 

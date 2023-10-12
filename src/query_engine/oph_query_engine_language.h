@@ -53,6 +53,7 @@
 #define OPH_QUERY_ENGINE_LANG_OP_RAND_IMPORT 		"random_import"
 #define OPH_QUERY_ENGINE_LANG_OP_SELECT             "select"
 #define OPH_QUERY_ENGINE_LANG_OP_FUNCTION           "function"
+#define OPH_QUERY_ENGINE_LANG_OP_TRANSFER           "transfer"
 
 //*****************Query arguments***************//
 

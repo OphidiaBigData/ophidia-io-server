@@ -2082,7 +2082,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			total_row_number = partial_tot_row_number;
 #ifdef OPH_IO_PMEM
 		if (dev_handle->is_persistent) {
-			if ((oph_iostore_copy_frag_record_set_limit2(orig_record_sets[l], &(record_sets[l]), 0, 0, 1) != 0)) {
+			if ((oph_iostore_copy_frag_record_set_limit2(orig_record_sets[l], &(record_sets[l]), 0, 0, 0) != 0)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
@@ -2112,10 +2112,12 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			}
 		} else
 #endif
-		if (!alias_list)
-			record_sets[l]->frag_name = (char *) strdup(orig_record_sets[l]->frag_name);
-		else
-			record_sets[l]->frag_name = (char *) strdup(alias_list[l]);
+		if (!record_sets[l]->frag_name) {
+			if (!alias_list)
+				record_sets[l]->frag_name = (char *) strdup(orig_record_sets[l]->frag_name);
+			else
+				record_sets[l]->frag_name = (char *) strdup(alias_list[l]);
+		}
 		if (record_sets[l]->frag_name == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2263,12 +2265,6 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_GROUP_ERROR);
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
-#ifdef OPH_IO_PMEM
-	if (table_num > 0)
-		output->is_pmem = inputs[0]->is_pmem;
-	else
-		output->is_pmem = 0;	// TODO: this case is not considered yet
-#endif
 
 	for (i = 0; i < field_list_num; ++i) {
 		switch (field_type[i]) {
@@ -3153,7 +3149,7 @@ int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, 
 
 int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set)
 {
-	if (!meta_db || !dev_handle || !current_db || !(*final_result_set)) {
+	if (!meta_db || !dev_handle || !current_db || !final_result_set || !(*final_result_set)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
