@@ -1069,10 +1069,18 @@ int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg **arg
 
 			//Add result to each index table
 			if (result) {
-				for (l = 0; l < table_num; l++) {
-					input_rs[l]->record_set[curr_row] = stored_rs[l]->record_set[start_row_indexes[l] + j];
-				}
+				for (l = 0; l < table_num; l++)
+#ifdef OPH_IO_PMEM
+					if (input_rs[l]->is_pmem) {
+
+						input_rs[l]->record_set[curr_row] = (oph_iostore_frag_record *) memkind_malloc(pmem_kind, sizeof(oph_iostore_frag_record));
+						memcpy(input_rs[l]->record_set[curr_row], stored_rs[l]->record_set[start_row_indexes[l] + j], sizeof(oph_iostore_frag_record));
+					} else
+#endif
+						input_rs[l]->record_set[curr_row] = stored_rs[l]->record_set[start_row_indexes[l] + j];
 				curr_row++;
+				for (l = 0; l < table_num; l++)
+					input_rs[l]->record_set[curr_row] = NULL;
 			}
 		} else {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, where_string);
@@ -2552,9 +2560,8 @@ int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_l
 									} else
 #endif
 										output->record_set[j]->field[i] =
-										    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->
-																    record_set[group_lists[j]->first->elem_index]->field[field_index],
-																    output->record_set[j]->field_length[i]) : NULL;
+										    output->record_set[j]->field_length[i] ? memdup(inputs[frag_index]->record_set[group_lists[j]->first->elem_index]->
+																    field[field_index], output->record_set[j]->field_length[i]) : NULL;
 							}
 						}
 					} else {
@@ -3113,7 +3120,7 @@ int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, 
 		if (field_alias_list != NULL) {
 			for (i = 0; i < field_list_num; i++) {
 				rs->field_name[i] = (char *) memkind_malloc(pmem_kind, strlen(field_alias_list[i]) == 0 ? 1 + strlen(field_list[i]) : 1 + strlen(field_alias_list[i]));
-				memcpy(rs->field_name[i], strlen(field_alias_list[i]) == 0 ? strdup(field_list[i]) : strdup(field_alias_list[i]),
+				memcpy(rs->field_name[i], strlen(field_alias_list[i]) == 0 ? field_list[i] : field_alias_list[i],
 				       strlen(field_alias_list[i]) == 0 ? 1 + strlen(field_list[i]) : 1 + strlen(field_alias_list[i]));
 			}
 		} else {
