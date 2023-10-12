@@ -173,7 +173,10 @@ int _pmemory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *
 	// In the original implementation the frag_record was copied and the new copy was assigned to internal_record
 	//internal_record = frag_record;
 	// This behavior is applied for memkind: the free of frag_record is performed in calling function
-	oph_iostore_copy_frag_record_set_limit2(frag_record, &internal_record, 0, 0, frag_record->store);
+	if (frag_record->store)
+		oph_iostore_copy_frag_record_set_limit2(frag_record, &internal_record, 0, 0, 1);
+	else
+		internal_record = frag_record;
 
 	//Get resource id
 	*res_id = (oph_iostore_resource_id *) malloc(sizeof(oph_iostore_resource_id));

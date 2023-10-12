@@ -833,15 +833,14 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler *dev_handle
 	int l = 0;
 	if (stored_rs) {
 		for (l = 0; stored_rs[l]; l++) {
-			if (stored_rs[l]->tmp_flag != 0)
+			if (stored_rs[l]->tmp_flag)
 				oph_iostore_destroy_frag_record_set(&(stored_rs[l]));
 		}
 		free(stored_rs);
 	}
 	if (input_rs) {
-		for (l = 0; input_rs[l]; l++) {
+		for (l = 0; input_rs[l]; l++)
 			oph_iostore_destroy_frag_record_set_only(&(input_rs[l]));
-		}
 #ifdef OPH_IO_PMEM
 		if (dev_handle->is_persistent)
 			memkind_free(pmem_kind, input_rs);
@@ -1998,6 +1997,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_API_ERROR;
 		}
+		orig_record_sets[l]->tmp_flag = 0;
 	}
 	free(in_db_names);
 	free(in_frag_names);
@@ -2101,8 +2101,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 #ifdef OPH_IO_PMEM
-		record_sets[l]->is_pmem = dev_handle->is_persistent;
-		if (dev_handle->is_persistent) {
+		if (record_sets[l]->is_pmem) {
 			if (!alias_list) {
 				record_sets[l]->frag_name = (char *) memkind_malloc(pmem_kind, 1 + strlen(orig_record_sets[l]->frag_name));
 				memcpy(record_sets[l]->frag_name, orig_record_sets[l]->frag_name, 1 + strlen(orig_record_sets[l]->frag_name));
@@ -3223,10 +3222,12 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_
 		return OPH_IO_SERVER_METADB_ERROR;
 	}
 	//If device is transient then block record from being deleted
-	if (!dev_handle->is_persistent)
-		*final_result_set = NULL;
-	else
+#ifdef OPH_IO_PMEM
+	if ((*final_result_set)->store)
 		oph_iostore_destroy_frag_record_set(final_result_set);
+	else
+#endif
+		*final_result_set = NULL;
 
 	//UNLOCK FROM HERE
 	if (pthread_rwlock_unlock(&rwlock) != 0) {

@@ -149,6 +149,10 @@ int oph_iostore_copy_frag_record_set_limit2(oph_iostore_frag_record_set *input_r
 		oph_iostore_destroy_frag_record_set(output_record_set);
 		return OPH_IOSTORAGE_MEMORY_ERR;
 	}
+#ifdef OPH_IO_PMEM
+	if (!input_record_set->store)
+		return OPH_IOSTORAGE_SUCCESS;
+#endif
 
 	long long j, total_size = 0, set_size = 0;
 	oph_iostore_frag_record *tmp_record = NULL;
@@ -203,6 +207,7 @@ int oph_iostore_copy_frag_record_set_only2(oph_iostore_frag_record_set *input_re
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_MEMORY_ERROR);
 		return OPH_IOSTORAGE_MEMORY_ERR;
 	}
+
 	(*output_record_set)->frag_name = NULL;
 	(*output_record_set)->field_num = input_record_set->field_num;
 	(*output_record_set)->field_type = NULL;
