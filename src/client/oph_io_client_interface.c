@@ -28,7 +28,7 @@
 
 //TODO poll the tcp socket to discover if the connection was lost
 
-int _oph_io_client_ping_connection(oph_io_client_connection *connection)
+int _oph_io_client_ping_connection(oph_io_client_connection * connection)
 {
 	if (!connection) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -72,7 +72,7 @@ int oph_io_client_setup()
 }
 
 //Connect or reconnect
-int oph_io_client_connect(const char *hostname, const char *port, const char *db_name, const char *device, oph_io_client_connection **connection)
+int oph_io_client_connect(const char *hostname, const char *port, const char *db_name, const char *device, oph_io_client_connection ** connection)
 {
 	if (!hostname || !port || !connection) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -134,7 +134,7 @@ int oph_io_client_connect(const char *hostname, const char *port, const char *db
 }
 
 
-int oph_io_client_use_db(const char *db_name, const char *device, oph_io_client_connection *connection)
+int oph_io_client_use_db(const char *db_name, const char *device, oph_io_client_connection * connection)
 {
 	if (!db_name || !connection || !device) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -203,7 +203,8 @@ int oph_io_client_use_db(const char *db_name, const char *device, oph_io_client_
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_setup_query(oph_io_client_connection *connection, const char *operation, const char *device, unsigned long long tot_run, oph_io_client_query_arg **args, oph_io_client_query **query)
+int oph_io_client_setup_query(oph_io_client_connection * connection, const char *operation, const char *device, unsigned long long tot_run, oph_io_client_query_arg ** args,
+			      oph_io_client_query ** query)
 {
 
 	if (!connection || !query || !operation || !device) {
@@ -331,7 +332,7 @@ int oph_io_client_setup_query(oph_io_client_connection *connection, const char *
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_execute_query(oph_io_client_connection *connection, oph_io_client_query *query)
+int oph_io_client_execute_query(oph_io_client_connection * connection, oph_io_client_query * query)
 {
 
 	if (!connection || !query || !query->query) {
@@ -446,7 +447,7 @@ int oph_io_client_execute_query(oph_io_client_connection *connection, oph_io_cli
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_free_query(oph_io_client_query *query)
+int oph_io_client_free_query(oph_io_client_query * query)
 {
 	if (!query) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -460,7 +461,7 @@ int oph_io_client_free_query(oph_io_client_query *query)
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_get_result(oph_io_client_connection *connection, oph_io_client_result **result_set)
+int oph_io_client_get_result(oph_io_client_connection * connection, oph_io_client_result ** result_set)
 {
 	if (!result_set || !connection) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -655,7 +656,7 @@ int oph_io_client_get_result(oph_io_client_connection *connection, oph_io_client
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_fetch_row(oph_io_client_result *result_set, oph_io_client_record **current_row)
+int oph_io_client_fetch_row(oph_io_client_result * result_set, oph_io_client_record ** current_row)
 {
 	if (!result_set || !current_row) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -674,7 +675,7 @@ int oph_io_client_fetch_row(oph_io_client_result *result_set, oph_io_client_reco
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_free_result(oph_io_client_result *result)
+int oph_io_client_free_result(oph_io_client_result * result)
 {
 	if (!result) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");
@@ -708,7 +709,7 @@ int oph_io_client_free_result(oph_io_client_result *result)
 	return OPH_IO_CLIENT_INTERFACE_OK;
 }
 
-int oph_io_client_close(oph_io_client_connection *connection)
+int oph_io_client_close(oph_io_client_connection * connection)
 {
 	if (!connection) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Parameters are not given\n");

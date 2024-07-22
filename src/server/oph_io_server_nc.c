@@ -93,7 +93,7 @@ typedef struct Buffer {
 #define _oph_ioserver_nc_clear_buffer_cache(buff) _oph_ioserver_nc_clear_buffer_(buff, 1, 0)
 #define _oph_ioserver_nc_clear_buffer_insert(buff) _oph_ioserver_nc_clear_buffer_(buff, 0, 0)
 #define _oph_ioserver_nc_clear_buffer(buff) _oph_ioserver_nc_clear_buffer_(buff, 0, 0)
-int _oph_ioserver_nc_clear_buffer_(Buffer *buff, char is_cache, char is_all)
+int _oph_ioserver_nc_clear_buffer_(Buffer * buff, char is_cache, char is_all)
 {
 	if (is_cache || is_all) {
 #ifdef OPH_PAR_NC4
@@ -121,14 +121,14 @@ int _oph_ioserver_nc_clear_buffer_(Buffer *buff, char is_cache, char is_all)
 	}
 }
 
-int _oph_ioserver_nc_init_buffer(Buffer *buff)
+int _oph_ioserver_nc_init_buffer(Buffer * buff)
 {
 	*buff = (Buffer) {
 	NULL, NULL, 0, 0};
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_create_buffer(Buffer *buff, char transpose, char shared, nc_type vartype, long long elems)
+int _oph_ioserver_nc_create_buffer(Buffer * buff, char transpose, char shared, nc_type vartype, long long elems)
 {
 	if (transpose) {
 #ifdef OPH_PAR_NC4
@@ -308,7 +308,7 @@ int _oph_ioserver_nc_create_buffer(Buffer *buff, char transpose, char shared, nc
 }
 
 
-int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count, int ncid,
+int _oph_ioserver_nc_read_data_v0(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count, int ncid,
 				  int varid, unsigned long long tuples, unsigned long long idDim, int nexp, unsigned int *sizemax, short int *dims_type, short int *dims_index, int *dims_start)
 {
 #ifdef OPH_PAR_NC4
@@ -377,8 +377,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 
 			char *exec_path = OPH_NC_LOAD_EXEC;
 			if (execvp(exec_path, (char *[]) {
-				   exec_path, NULL
-				   }) == -1)
+				   exec_path, NULL}) == -1)
 				exit(errno);
 			else
 				exit(0);
@@ -496,14 +495,14 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_data(Buffer *buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count)
+int _oph_ioserver_nc_read_data(Buffer * buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t * start, size_t * count)
 {
 	return _oph_ioserver_nc_read_data_v0(buff, offset, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0, 1, 0, 0, NULL, NULL, NULL, NULL);
 }
 
 #define _oph_ioserver_nc_release_buffer_cache(buff, buffer) _oph_ioserver_nc_release_buffer(buff, buffer, 1)
 #define _oph_ioserver_nc_release_buffer_insert(buff, buffer) _oph_ioserver_nc_release_buffer(buff, buffer, 0)
-int _oph_ioserver_nc_release_buffer(Buffer *buff, char *buffer, char is_cache)
+int _oph_ioserver_nc_release_buffer(Buffer * buff, char *buffer, char is_cache)
 {
 #ifdef OPH_PAR_NC4
 	if (is_cache) {
@@ -519,7 +518,7 @@ int _oph_ioserver_nc_release_buffer(Buffer *buff, char *buffer, char is_cache)
 
 #define _oph_ioserver_nc_get_buffer_cache(buff, buffer) _oph_ioserver_nc_get_buffer(buff, buffer, 1)
 #define _oph_ioserver_nc_get_buffer_insert(buff, buffer) _oph_ioserver_nc_get_buffer(buff, buffer, 0)
-int _oph_ioserver_nc_get_buffer(Buffer *buff, char **buffer, char is_cache)
+int _oph_ioserver_nc_get_buffer(Buffer * buff, char **buffer, char is_cache)
 {
 	if (is_cache) {
 #ifdef OPH_PAR_NC4
@@ -549,7 +548,7 @@ int _oph_ioserver_nc_get_buffer(Buffer *buff, char **buffer, char is_cache)
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t **id, int i, int n)
+int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long total, unsigned int *sizemax, size_t ** id, int i, int n)
 {
 	if (i < n - 1) {
 		unsigned long tmp;
@@ -563,7 +562,7 @@ int _oph_ioserver_nc_get_dimension_id(unsigned long residual, unsigned long tota
 	return 0;
 }
 
-int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t **id)
+int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax, int n, size_t ** id)
 {
 	if (n > 0) {
 		int i;
@@ -755,8 +754,8 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 
 int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
-			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char dimension_ordered)
+			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last, char dimension_ordered)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -1194,8 +1193,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 
 int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
-			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char dimension_ordered)
+			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -1612,8 +1611,8 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 
 int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp,
 				int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number,
-				int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-				unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last)
+				int offset, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
+				unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -2112,8 +2111,8 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 // This version is not optimized in case the unlimited dimension is implicit!!!!! Use another version instead
 int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
-			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last)
+			     oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer * buff, char is_last)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -2715,7 +2714,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 }
 
 int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			  short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size)
+			  short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -3034,7 +3033,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 #endif
 
 int _oph_ioserver_rand_data(long long tuplexfrag_number, long long frag_key_start, char compressed_flag, long long array_length, char *measure_type, char *algorithm,
-			    oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size)
+			    oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size)
 {
 	if (!tuplexfrag_number || !frag_key_start || !array_length || !measure_type || !algorithm || !binary_frag || !frag_size) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);

@@ -29,7 +29,7 @@
 #include <string.h>
 
 
-int _memory_setup(oph_iostore_handler *handle)
+int _memory_setup(oph_iostore_handler * handle)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -39,7 +39,7 @@ int _memory_setup(oph_iostore_handler *handle)
 	return MEMORY_DEV_SUCCESS;
 }
 
-int _memory_cleanup(oph_iostore_handler *handle)
+int _memory_cleanup(oph_iostore_handler * handle)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -49,7 +49,7 @@ int _memory_cleanup(oph_iostore_handler *handle)
 	return MEMORY_DEV_SUCCESS;
 }
 
-int _memory_get_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id, oph_iostore_db_record_set **db_record)
+int _memory_get_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record)
 {
 	if (!handle || !res_id || !res_id->id || !db_record) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -82,7 +82,7 @@ int _memory_get_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id,
 	return MEMORY_DEV_SUCCESS;
 }
 
-int _memory_put_db(oph_iostore_handler *handle, oph_iostore_db_record_set *db_record, oph_iostore_resource_id **res_id)
+int _memory_put_db(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id)
 {
 	if (!res_id || !db_record) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -117,7 +117,7 @@ int _memory_put_db(oph_iostore_handler *handle, oph_iostore_db_record_set *db_re
 	return MEMORY_DEV_SUCCESS;
 }
 
-int _memory_delete_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id)
+int _memory_delete_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id)
 {
 	if (!handle || !res_id || !res_id->id) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -133,7 +133,7 @@ int _memory_delete_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_
 	return MEMORY_DEV_SUCCESS;
 }
 
-int _memory_get_frag(oph_iostore_handler *handle, oph_iostore_resource_id *res_id, oph_iostore_frag_record_set **frag_record)
+int _memory_get_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record)
 {
 	if (!handle || !res_id || !res_id->id || !frag_record) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -157,7 +157,7 @@ int _memory_get_frag(oph_iostore_handler *handle, oph_iostore_resource_id *res_i
 	return MEMORY_DEV_SUCCESS;
 }
 
-int _memory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *frag_record, oph_iostore_resource_id **res_id)
+int _memory_put_frag(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id)
 {
 	if (!handle || !res_id || !frag_record) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
@@ -199,7 +199,7 @@ int _memory_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *f
 }
 
 
-int _memory_delete_frag(oph_iostore_handler *handle, oph_iostore_resource_id *res_id)
+int _memory_delete_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id)
 {
 	if (!handle || !res_id || !res_id->id) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, MEMORY_LOG_NULL_INPUT_PARAM);
