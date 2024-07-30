@@ -2111,12 +2111,10 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			}
 		} else
 #endif
-		if (!record_sets[l]->frag_name) {
-			if (!alias_list)
-				record_sets[l]->frag_name = (char *) strdup(orig_record_sets[l]->frag_name);
-			else
-				record_sets[l]->frag_name = (char *) strdup(alias_list[l]);
-		}
+		if (!alias_list)
+			record_sets[l]->frag_name = (char *) strdup(orig_record_sets[l]->frag_name);
+		else
+			record_sets[l]->frag_name = (char *) strdup(alias_list[l]);
 		if (record_sets[l]->frag_name == NULL) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);

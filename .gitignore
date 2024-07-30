@@ -32,6 +32,7 @@ stamp-h1
 *.gcno
 *.gcda
 *.html
+*.svg
 *~
 etc/oph_primitives_list
 etc/oph_device_list
