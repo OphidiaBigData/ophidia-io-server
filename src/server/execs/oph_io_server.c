@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 	fprintf(stdout, "%s", OPH_VERSION);
 	fprintf(stdout, OPH_DISCLAIMER, "oph_io_server", "oph_io_server");
 
-	while ((ch = getopt(argc, argv, "c:dDhi:mvwxz")) != -1) {
+	while ((ch = getopt(argc, argv, "c:dDhi:j:mvwxz")) != -1) {
 		switch (ch) {
 			case 'c':
 				oph_server_conf_file = optarg;
@@ -99,6 +99,8 @@ int main(int argc, char *argv[])
 				return 0;
 			case 'i':
 				instance = (unsigned short int) strtol(optarg, NULL, 10);
+				break;
+			case 'j':	// Free job name, unused
 				break;
 			case 'm':
 				disable_mem_check = 1;
