@@ -57,7 +57,7 @@ typedef struct oph_ioserver_group {
 	struct oph_ioserver_group *next;
 } oph_ioserver_group;
 
-int _oph_ioserver_query_add_group_elem(oph_ioserver_group_elem_list * list, long long index)
+int _oph_ioserver_query_add_group_elem(oph_ioserver_group_elem_list *list, long long index)
 {
 	if (!list) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -85,7 +85,7 @@ int _oph_ioserver_query_add_group_elem(oph_ioserver_group_elem_list * list, long
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_add_group(oph_ioserver_group ** current, oph_ioserver_group_elem_list * index)
+int _oph_ioserver_query_add_group(oph_ioserver_group **current, oph_ioserver_group_elem_list *index)
 {
 	if (!current || !index) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -110,7 +110,7 @@ int _oph_ioserver_query_add_group(oph_ioserver_group ** current, oph_ioserver_gr
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_delete_group_elem_list(oph_ioserver_group_elem_list * list)
+int _oph_ioserver_query_delete_group_elem_list(oph_ioserver_group_elem_list *list)
 {
 	if (!list) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -130,7 +130,7 @@ int _oph_ioserver_query_delete_group_elem_list(oph_ioserver_group_elem_list * li
 }
 
 
-int _oph_ioserver_query_build_groups(HASHTBL * query_groups, char *group, long long row, oph_ioserver_group ** head_group, oph_ioserver_group ** current_group, long long *group_num)
+int _oph_ioserver_query_build_groups(HASHTBL *query_groups, char *group, long long row, oph_ioserver_group **head_group, oph_ioserver_group **current_group, long long *group_num)
 {
 	if (!query_groups || !group || !head_group || !current_group || !group_num) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -211,8 +211,8 @@ int _oph_ioserver_query_build_groups(HASHTBL * query_groups, char *group, long l
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_get_groups(HASHTBL * query_args, long long total_row_number, oph_query_arg ** args, oph_iostore_frag_record_set ** inputs, int table_num, long long *output_row_num,
-				   oph_ioserver_group_elem_list *** group_lists)
+int _oph_ioserver_query_get_groups(HASHTBL *query_args, long long total_row_number, oph_query_arg **args, oph_iostore_frag_record_set **inputs, int table_num, long long *output_row_num,
+				   oph_ioserver_group_elem_list ***group_lists)
 {
 	if (!query_args || !total_row_number || !table_num || !inputs || !output_row_num || !group_lists) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -438,8 +438,8 @@ int _oph_ioserver_query_get_groups(HASHTBL * query_args, long long total_row_num
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_set_parser_variables(oph_query_arg ** args, char **var_list, unsigned int var_count, oph_iostore_frag_record_set ** inputs, oph_query_expr_symtable * table,
-					     unsigned int *field_indexes, int *frag_indexes, char *field_binary, oph_query_arg * binary_var, char *field, long long row, long long *where_start_id)
+int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, oph_query_expr_symtable *table,
+					     unsigned int *field_indexes, int *frag_indexes, char *field_binary, oph_query_arg *binary_var, char *field, long long row, long long *where_start_id)
 {
 	if (!var_list || !var_count || !inputs || !table || !field_indexes || !frag_indexes || !field_binary || !binary_var || !field) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -508,7 +508,7 @@ int _oph_ioserver_query_set_parser_variables(oph_query_arg ** args, char **var_l
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_list, unsigned int var_count, oph_iostore_frag_record_set ** inputs, unsigned int table_num,
+int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_list, unsigned int var_count, oph_iostore_frag_record_set **inputs, unsigned int table_num,
 					     unsigned int *field_indexes, int *frag_indexes, char *field_binary, char only_id, short int *id_indexes)
 {
 	if (!var_list || !var_count || !inputs || !table_num || !field_indexes || !frag_indexes || !field_binary || (only_id && !id_indexes)) {
@@ -696,7 +696,7 @@ int _oph_ioserver_query_get_variable_indexes(unsigned int arg_count, char **var_
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_io_server_query_compute_limits(HASHTBL * query_args, long long *offset, long long *limit)
+int _oph_io_server_query_compute_limits(HASHTBL *query_args, long long *offset, long long *limit)
 {
 	if (!query_args || !offset || !limit) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -744,7 +744,7 @@ int _oph_io_server_query_compute_limits(HASHTBL * query_args, long long *offset,
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_io_server_query_order_output(HASHTBL * query_args, oph_iostore_frag_record_set * rs)
+int _oph_io_server_query_order_output(HASHTBL *query_args, oph_iostore_frag_record_set *rs)
 {
 	if (!query_args || !rs || !rs->record_set) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -817,7 +817,7 @@ int _oph_io_server_query_order_output(HASHTBL * query_args, oph_iostore_frag_rec
 }
 
 
-int _oph_ioserver_query_release_input_record_set(oph_iostore_handler * dev_handle, oph_iostore_frag_record_set ** stored_rs, oph_iostore_frag_record_set ** input_rs)
+int _oph_ioserver_query_release_input_record_set(oph_iostore_handler *dev_handle, oph_iostore_frag_record_set **stored_rs, oph_iostore_frag_record_set **input_rs)
 {
 	if (!dev_handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -842,7 +842,7 @@ int _oph_ioserver_query_release_input_record_set(oph_iostore_handler * dev_handl
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_multi_table_where_assert(int table_num, short int *id_indexes, long long *start_row_indexes, long long *input_row_num, oph_iostore_frag_record_set ** in_record_set)
+int _oph_ioserver_query_multi_table_where_assert(int table_num, short int *id_indexes, long long *start_row_indexes, long long *input_row_num, oph_iostore_frag_record_set **in_record_set)
 {
 	if (!table_num || !id_indexes || !start_row_indexes || !input_row_num || !in_record_set) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -909,8 +909,8 @@ int _oph_ioserver_query_multi_table_where_assert(int table_num, short int *id_in
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg ** args, int table_num, oph_iostore_frag_record_set ** stored_rs, long long *input_row_num,
-					 oph_iostore_frag_record_set ** input_rs)
+int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg **args, int table_num, oph_iostore_frag_record_set **stored_rs, long long *input_row_num,
+					 oph_iostore_frag_record_set **input_rs)
 {
 	if (!where_string || !table_num || !stored_rs || !input_row_num || !input_rs) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -1082,7 +1082,7 @@ int _oph_ioserver_query_run_where_clause(char *where_string, oph_query_arg ** ar
 }
 
 #ifdef OPH_IO_SERVER_NETCDF
-int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** loaded_record_sets,
+int _oph_io_server_query_load_from_file(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *current_db, HASHTBL *query_args, oph_iostore_frag_record_set **loaded_record_sets,
 					unsigned long long *loaded_frag_size)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
@@ -1411,7 +1411,7 @@ int _oph_io_server_query_load_from_file(oph_metadb_db_row ** meta_db, oph_iostor
 
 
 #ifdef OPH_IO_SERVER_ESDM
-int _oph_io_server_query_load_from_esdm(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, HASHTBL * query_args, oph_iostore_frag_record_set ** loaded_record_sets,
+int _oph_io_server_query_load_from_esdm(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *current_db, HASHTBL *query_args, oph_iostore_frag_record_set **loaded_record_sets,
 					unsigned long long *loaded_frag_size)
 {
 	if (!query_args || !dev_handle || !current_db || !meta_db || !query_args) {
@@ -1741,8 +1741,8 @@ int _oph_io_server_query_load_from_esdm(oph_metadb_db_row ** meta_db, oph_iostor
 #endif
 
 
-int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
-					       oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs, char *out_db_name, char *out_frag_name,
+int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_arg **args, oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *current_db,
+					       oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs, char *out_db_name, char *out_frag_name,
 					       char file_load_flag)
 {
 	if (!dev_handle || !query_args || !stored_rs || !input_row_num || !input_rs || !meta_db || !current_db) {
@@ -2116,21 +2116,21 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL * query_args, oph_query_a
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_build_input_record_set_create(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *out_db_name,
-						      char *out_frag_name, char *current_db, oph_iostore_frag_record_set *** stored_rs, long long *input_row_num,
-						      oph_iostore_frag_record_set *** input_rs, char file_load_flag)
+int _oph_ioserver_query_build_input_record_set_create(HASHTBL *query_args, oph_query_arg **args, oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *out_db_name,
+						      char *out_frag_name, char *current_db, oph_iostore_frag_record_set ***stored_rs, long long *input_row_num,
+						      oph_iostore_frag_record_set ***input_rs, char file_load_flag)
 {
 	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, out_db_name, out_frag_name, file_load_flag);
 }
 
-int _oph_ioserver_query_build_input_record_set_select(HASHTBL * query_args, oph_query_arg ** args, oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db,
-						      oph_iostore_frag_record_set *** stored_rs, long long *input_row_num, oph_iostore_frag_record_set *** input_rs)
+int _oph_ioserver_query_build_input_record_set_select(HASHTBL *query_args, oph_query_arg **args, oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *current_db,
+						      oph_iostore_frag_record_set ***stored_rs, long long *input_row_num, oph_iostore_frag_record_set ***input_rs)
 {
 	return _oph_ioserver_query_build_input_record_set(query_args, args, meta_db, dev_handle, current_db, stored_rs, input_row_num, input_rs, NULL, NULL, 0);
 }
 
-int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg ** args,
-					     oph_iostore_frag_record_set ** inputs, oph_iostore_frag_record_set * output)
+int _oph_ioserver_query_build_select_columns(HASHTBL *query_args, char **field_list, int field_list_num, long long offset, long long total_row_number, oph_query_arg **args,
+					     oph_iostore_frag_record_set **inputs, oph_iostore_frag_record_set *output)
 {
 	if (!query_args || !field_list || !field_list_num || !total_row_number || !inputs || !output) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -2864,7 +2864,7 @@ int _oph_ioserver_query_build_select_columns(HASHTBL * query_args, char **field_
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_set_column_info(HASHTBL * query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set * rs)
+int _oph_ioserver_query_set_column_info(HASHTBL *query_args, char **field_list, int field_list_num, oph_iostore_frag_record_set *rs)
 {
 	if (!query_args || !field_list || !field_list_num || !rs) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -2915,7 +2915,7 @@ int _oph_ioserver_query_set_column_info(HASHTBL * query_args, char **field_list,
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_store_fragment(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set ** final_result_set)
+int _oph_ioserver_query_store_fragment(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, char *current_db, unsigned long long frag_size, oph_iostore_frag_record_set **final_result_set)
 {
 	if (!meta_db || !dev_handle || !current_db || !(*final_result_set)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -3007,8 +3007,8 @@ int _oph_ioserver_query_store_fragment(oph_metadb_db_row ** meta_db, oph_iostore
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *row_size, oph_iostore_frag_record_set * partial_result_set, char **field_list, char **value_list, oph_query_arg ** args,
-				  oph_iostore_frag_record ** new_record)
+int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *row_size, oph_iostore_frag_record_set *partial_result_set, char **field_list, char **value_list, oph_query_arg **args,
+				  oph_iostore_frag_record **new_record)
 {
 	if (!arg_count || !row_size || !partial_result_set || !field_list || !value_list || !new_record) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);

@@ -67,7 +67,7 @@ oph_metadb_frag_table *oph_metadb_frag_table_create(int size)
 	return table;
 }
 
-int oph_metadb_frag_table_destroy(oph_metadb_frag_table * table)
+int oph_metadb_frag_table_destroy(oph_metadb_frag_table *table)
 {
 	if (!table) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -93,7 +93,7 @@ int oph_metadb_frag_table_destroy(oph_metadb_frag_table * table)
 }
 
 
-int oph_metadb_setup_db_struct(char *db_name, char *device, short unsigned int is_persistent, oph_iostore_resource_id * db_id, unsigned long long frag_number, oph_metadb_db_row ** db)
+int oph_metadb_setup_db_struct(char *db_name, char *device, short unsigned int is_persistent, oph_iostore_resource_id *db_id, unsigned long long frag_number, oph_metadb_db_row **db)
 {
 	if (!db || !db_name || !device) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -154,7 +154,7 @@ int oph_metadb_setup_db_struct(char *db_name, char *device, short unsigned int i
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_cleanup_db_struct(oph_metadb_db_row * db)
+int oph_metadb_cleanup_db_struct(oph_metadb_db_row *db)
 {
 	if (db) {
 		if (db->db_name)
@@ -170,8 +170,8 @@ int oph_metadb_cleanup_db_struct(oph_metadb_db_row * db)
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_setup_frag_struct(char *frag_name, char *device, short unsigned int is_persistent, oph_iostore_resource_id * db_id, oph_iostore_resource_id * frag_id, unsigned long long frag_size,
-				 oph_metadb_frag_row ** frag)
+int oph_metadb_setup_frag_struct(char *frag_name, char *device, short unsigned int is_persistent, oph_iostore_resource_id *db_id, oph_iostore_resource_id *frag_id, unsigned long long frag_size,
+				 oph_metadb_frag_row **frag)
 {
 	if (!frag || !frag_name || !device) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -250,7 +250,7 @@ int oph_metadb_setup_frag_struct(char *frag_name, char *device, short unsigned i
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_cleanup_frag_struct(oph_metadb_frag_row * frag)
+int oph_metadb_cleanup_frag_struct(oph_metadb_frag_row *frag)
 {
 	if (frag) {
 		if (frag->frag_name)
@@ -270,7 +270,7 @@ int oph_metadb_cleanup_frag_struct(oph_metadb_frag_row * frag)
 
 //Db schema is the head of the db record linked list (items are added at the head of the stack from below),
 //fragments list are associated to each Db item (even in this case items are added as head on the bottom of the stack)
-int oph_metadb_load_schema(oph_metadb_db_row ** meta_db, short unsigned int cleanup)
+int oph_metadb_load_schema(oph_metadb_db_row **meta_db, short unsigned int cleanup)
 {
 	if (!meta_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -462,7 +462,7 @@ int oph_metadb_load_schema(oph_metadb_db_row ** meta_db, short unsigned int clea
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_unload_schema(oph_metadb_db_row * meta_db)
+int oph_metadb_unload_schema(oph_metadb_db_row *meta_db)
 {
 	oph_metadb_db_row *tmp_db_row = NULL;
 
@@ -481,7 +481,7 @@ int oph_metadb_unload_schema(oph_metadb_db_row * meta_db)
 }
 
 //NOTE: new database are added as head of stack from its lower side
-int oph_metadb_add_db(oph_metadb_db_row ** meta_db, oph_metadb_db_row * db)
+int oph_metadb_add_db(oph_metadb_db_row **meta_db, oph_metadb_db_row *db)
 {
 	if (!meta_db || !db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -551,7 +551,7 @@ int oph_metadb_add_db(oph_metadb_db_row ** meta_db, oph_metadb_db_row * db)
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_update_db(oph_metadb_db_row * meta_db, oph_metadb_db_row * db)
+int oph_metadb_update_db(oph_metadb_db_row *meta_db, oph_metadb_db_row *db)
 {
 	if (!meta_db || !db || !db->db_name) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -603,7 +603,7 @@ int oph_metadb_update_db(oph_metadb_db_row * meta_db, oph_metadb_db_row * db)
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_remove_db(oph_metadb_db_row ** meta_db, char *db_name, char *device)
+int oph_metadb_remove_db(oph_metadb_db_row **meta_db, char *db_name, char *device)
 {
 	if (!meta_db || !*meta_db || !db_name || !device) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -650,7 +650,7 @@ int oph_metadb_remove_db(oph_metadb_db_row ** meta_db, char *db_name, char *devi
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_find_db(oph_metadb_db_row * meta_db, char *db_name, char *device, oph_metadb_db_row ** db)
+int oph_metadb_find_db(oph_metadb_db_row *meta_db, char *db_name, char *device, oph_metadb_db_row **db)
 {
 	if (!meta_db || !db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -689,7 +689,7 @@ int oph_metadb_find_db(oph_metadb_db_row * meta_db, char *db_name, char *device,
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_add_frag(oph_metadb_db_row * db, oph_metadb_frag_row * frag)
+int oph_metadb_add_frag(oph_metadb_db_row *db, oph_metadb_frag_row *frag)
 {
 	if (!db || !frag) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -777,7 +777,7 @@ int oph_metadb_add_frag(oph_metadb_db_row * db, oph_metadb_frag_row * frag)
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_remove_frag(oph_metadb_db_row * db, char *frag_name, oph_iostore_resource_id * frag_id)
+int oph_metadb_remove_frag(oph_metadb_db_row *db, char *frag_name, oph_iostore_resource_id *frag_id)
 {
 	if (!db || !frag_name) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -832,7 +832,7 @@ int oph_metadb_remove_frag(oph_metadb_db_row * db, char *frag_name, oph_iostore_
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_find_frag(oph_metadb_db_row * db, char *frag_name, oph_metadb_frag_row ** frag)
+int oph_metadb_find_frag(oph_metadb_db_row *db, char *frag_name, oph_metadb_frag_row **frag)
 {
 	if (!db || !frag) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);
@@ -881,7 +881,7 @@ int oph_metadb_find_frag(oph_metadb_db_row * db, char *frag_name, oph_metadb_fra
 	return OPH_METADB_OK;
 }
 
-int oph_metadb_update_frag(oph_metadb_db_row * db, oph_metadb_frag_row * frag)
+int oph_metadb_update_frag(oph_metadb_db_row *db, oph_metadb_frag_row *frag)
 {
 	if (!db || !frag->frag_name) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_METADB_LOG_NULL_INPUT_PARAM);

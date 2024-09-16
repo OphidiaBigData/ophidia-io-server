@@ -37,16 +37,16 @@ extern pthread_mutex_t libtool_lock;
 
 static int oph_iostore_find_device(const char *device, char **dyn_lib, unsigned short int *is_persitent);
 
-int (*_DEVICE_setup) (oph_iostore_handler * handle);
-int (*_DEVICE_cleanup) (oph_iostore_handler * handle);
-int (*_DEVICE_get_db) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
-int (*_DEVICE_put_db) (oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
-int (*_DEVICE_delete_db) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
-int (*_DEVICE_get_frag) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
-int (*_DEVICE_put_frag) (oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
-int (*_DEVICE_delete_frag) (oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
+int (*_DEVICE_setup)(oph_iostore_handler * handle);
+int (*_DEVICE_cleanup)(oph_iostore_handler * handle);
+int (*_DEVICE_get_db)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record);
+int (*_DEVICE_put_db)(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id);
+int (*_DEVICE_delete_db)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
+int (*_DEVICE_get_frag)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record);
+int (*_DEVICE_put_frag)(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id);
+int (*_DEVICE_delete_frag)(oph_iostore_handler * handle, oph_iostore_resource_id * res_id);
 
-int oph_iostore_setup(const char *device, oph_iostore_handler ** handle)
+int oph_iostore_setup(const char *device, oph_iostore_handler **handle)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -131,7 +131,7 @@ int oph_iostore_setup(const char *device, oph_iostore_handler ** handle)
 	return _DEVICE_setup(*handle);
 }
 
-int oph_iostore_cleanup(oph_iostore_handler * handle)
+int oph_iostore_cleanup(oph_iostore_handler *handle)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -199,7 +199,7 @@ int oph_iostore_cleanup(oph_iostore_handler * handle)
 	return res;
 }
 
-int oph_iostore_get_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_db_record_set ** db_record)
+int oph_iostore_get_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id, oph_iostore_db_record_set **db_record)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -228,7 +228,7 @@ int oph_iostore_get_db(oph_iostore_handler * handle, oph_iostore_resource_id * r
 	return _DEVICE_get_db(handle, res_id, db_record);
 }
 
-int oph_iostore_put_db(oph_iostore_handler * handle, oph_iostore_db_record_set * db_record, oph_iostore_resource_id ** res_id)
+int oph_iostore_put_db(oph_iostore_handler *handle, oph_iostore_db_record_set *db_record, oph_iostore_resource_id **res_id)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -257,7 +257,7 @@ int oph_iostore_put_db(oph_iostore_handler * handle, oph_iostore_db_record_set *
 	return _DEVICE_put_db(handle, db_record, res_id);
 }
 
-int oph_iostore_delete_db(oph_iostore_handler * handle, oph_iostore_resource_id * res_id)
+int oph_iostore_delete_db(oph_iostore_handler *handle, oph_iostore_resource_id *res_id)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -286,7 +286,7 @@ int oph_iostore_delete_db(oph_iostore_handler * handle, oph_iostore_resource_id 
 	return _DEVICE_delete_db(handle, res_id);
 }
 
-int oph_iostore_get_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id, oph_iostore_frag_record_set ** frag_record)
+int oph_iostore_get_frag(oph_iostore_handler *handle, oph_iostore_resource_id *res_id, oph_iostore_frag_record_set **frag_record)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -315,7 +315,7 @@ int oph_iostore_get_frag(oph_iostore_handler * handle, oph_iostore_resource_id *
 	return _DEVICE_get_frag(handle, res_id, frag_record);
 }
 
-int oph_iostore_put_frag(oph_iostore_handler * handle, oph_iostore_frag_record_set * frag_record, oph_iostore_resource_id ** res_id)
+int oph_iostore_put_frag(oph_iostore_handler *handle, oph_iostore_frag_record_set *frag_record, oph_iostore_resource_id **res_id)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
@@ -344,7 +344,7 @@ int oph_iostore_put_frag(oph_iostore_handler * handle, oph_iostore_frag_record_s
 	return _DEVICE_put_frag(handle, frag_record, res_id);
 }
 
-int oph_iostore_delete_frag(oph_iostore_handler * handle, oph_iostore_resource_id * res_id)
+int oph_iostore_delete_frag(oph_iostore_handler *handle, oph_iostore_resource_id *res_id)
 {
 	if (!handle) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IOSTORAGE_LOG_NULL_HANDLE);
