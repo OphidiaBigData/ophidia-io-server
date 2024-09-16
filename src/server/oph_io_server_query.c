@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2023 CMCC Foundation
+    Copyright (C) 2014-2024 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -34,7 +34,8 @@ extern int msglevel;
 extern unsigned short omp_threads;
 extern HASHTBL *plugin_table;
 
-int oph_io_server_dispatcher(oph_metadb_db_row **meta_db, oph_iostore_handler *dev_handle, oph_io_server_thread_status *thread_status, oph_query_arg **args, HASHTBL *query_args, HASHTBL *plugin_table)
+int oph_io_server_dispatcher(oph_metadb_db_row ** meta_db, oph_iostore_handler * dev_handle, oph_io_server_thread_status * thread_status, oph_query_arg ** args, HASHTBL * query_args,
+			     HASHTBL * plugin_table)
 {
 	if (!query_args || !plugin_table || !thread_status || !meta_db) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);

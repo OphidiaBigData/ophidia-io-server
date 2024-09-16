@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2023 CMCC Foundation
+    Copyright (C) 2014-2024 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ extern oph_metadb_db_row *db_table;
 
 //#define DEBUG
 
-int oph_io_server_free_status(oph_io_server_thread_status *status)
+int oph_io_server_free_status(oph_io_server_thread_status * status)
 {
 
 	if (status->curr_stmt != NULL) {
@@ -98,7 +98,7 @@ int oph_io_server_send_error(int sockfd)
 }
 
 
-int oph_io_server_free_query_args(oph_query_arg **args, unsigned int arg_count)
+int oph_io_server_free_query_args(oph_query_arg ** args, unsigned int arg_count)
 {
 
 	unsigned int n;

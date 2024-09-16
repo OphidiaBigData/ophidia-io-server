@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2023 CMCC Foundation
+    Copyright (C) 2014-2024 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ int oph_net_connect(const char *host, const char *port, int *fd)
 	return OPH_NETWORK_SUCCESS;
 }
 
-int oph_net_accept(int in_fd, struct sockaddr *sa, socklen_t *salenptr, int *out_fd)
+int oph_net_accept(int in_fd, struct sockaddr *sa, socklen_t * salenptr, int *out_fd)
 {
 	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 
@@ -124,7 +124,7 @@ int oph_net_accept(int in_fd, struct sockaddr *sa, socklen_t *salenptr, int *out
 	return OPH_NETWORK_SUCCESS;
 }
 
-int oph_net_listen(const char *host, const char *port, socklen_t *addrlenp, int *out_fd)
+int oph_net_listen(const char *host, const char *port, socklen_t * addrlenp, int *out_fd)
 {
 	/* Adapted from Stevens et al. UNP Vol. 1, 3rd Ed. source code - http://www.unpbook.com/src.html */
 

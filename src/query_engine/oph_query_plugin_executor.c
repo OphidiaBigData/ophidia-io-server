@@ -1,6 +1,6 @@
 /*
     Ophidia IO Server
-    Copyright (C) 2014-2023 CMCC Foundation
+    Copyright (C) 2014-2024 CMCC Foundation
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -50,9 +50,9 @@ extern HASHTBL *plugin_table;
 //TODO - Add debug mesg and logging
 //TODO - Define specific return codes
 
-void (*_oph_plugin_reset)(UDF_INIT *, UDF_ARGS *, char *, char *);
+void (*_oph_plugin_reset) (UDF_INIT *, UDF_ARGS *, char *, char *);
 
-int free_udf_arg(UDF_ARGS *args)
+int free_udf_arg(UDF_ARGS * args)
 {
 	if (!args)
 		return -1;
@@ -73,7 +73,7 @@ int free_udf_arg(UDF_ARGS *args)
 	return 0;
 }
 
-int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *initid, oph_query_expr_value *res, oph_plugin_api *functions)
+int _oph_execute_plugin(const oph_plugin * plugin, UDF_ARGS * args, UDF_INIT * initid, oph_query_expr_value * res, oph_plugin_api * functions)
 {
 	if (!plugin || !args || !initid || !res || !functions)
 		return -1;
@@ -85,9 +85,9 @@ int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *init
 		return -1;
 
 	//UDF depending upon return type (long long, double or char)
-	long long (*_oph_plugin1)(UDF_INIT *, UDF_ARGS *, char *, char *);
-	double (*_oph_plugin2)(UDF_INIT *, UDF_ARGS *, char *, char *);
-	char *(*_oph_plugin3)(UDF_INIT *, UDF_ARGS *, char *, unsigned long *, char *, char *);
+	long long (*_oph_plugin1) (UDF_INIT *, UDF_ARGS *, char *, char *);
+	double (*_oph_plugin2) (UDF_INIT *, UDF_ARGS *, char *, char *);
+	char *(*_oph_plugin3) (UDF_INIT *, UDF_ARGS *, char *, unsigned long *, char *, char *);
 
 	//Execute main function
 	switch (plugin->plugin_return) {
@@ -158,7 +158,7 @@ int _oph_execute_plugin(const oph_plugin *plugin, UDF_ARGS *args, UDF_INIT *init
 	return 0;
 }
 
-int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid)
+int oph_query_plugin_clear(oph_plugin_api * function, void *dlh, UDF_INIT * initid)
 {
 	if (!function || !dlh || !initid)
 		return -1;
@@ -167,7 +167,7 @@ int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid
 
 
 	//Clear function
-	void (*_oph_plugin_clear)(UDF_INIT *, char *, char *);
+	void (*_oph_plugin_clear) (UDF_INIT *, char *, char *);
 	if (!(_oph_plugin_clear = (void (*)(UDF_INIT *, char *, char *)) function->clear_api)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin CLEAR function\n");
 		return -1;
@@ -183,13 +183,13 @@ int oph_query_plugin_clear(oph_plugin_api *function, void *dlh, UDF_INIT *initid
 }
 
 
-int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initid, UDF_ARGS *internal_args)
+int oph_query_plugin_deinit(oph_plugin_api * function, void *dlh, UDF_INIT * initid, UDF_ARGS * internal_args)
 {
 	if (!function || !dlh || !initid || !internal_args)
 		return -1;
 
 	//Deinitialize function
-	void (*_oph_plugin_deinit)(UDF_INIT *);
+	void (*_oph_plugin_deinit) (UDF_INIT *);
 	if (!(_oph_plugin_deinit = (void (*)(UDF_INIT *)) function->deinit_api)) {
 		pthread_mutex_lock(&libtool_lock);
 		lt_dlclose(dlh);
@@ -230,7 +230,7 @@ int oph_query_plugin_deinit(oph_plugin_api *function, void *dlh, UDF_INIT *initi
 	return 0;
 }
 
-int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initid, UDF_ARGS **internal_args, char *plugin_name, int arg_count, oph_query_expr_value *args, char *is_aggregate)
+int oph_query_plugin_init(oph_plugin_api * function, void **dlh, UDF_INIT ** initid, UDF_ARGS ** internal_args, char *plugin_name, int arg_count, oph_query_expr_value * args, char *is_aggregate)
 {
 	if (!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table || !is_aggregate)
 		return -1;
@@ -477,7 +477,7 @@ int oph_query_plugin_init(oph_plugin_api *function, void **dlh, UDF_INIT **initi
 	return 0;
 }
 
-int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, int arg_count, oph_query_expr_value *args)
+int oph_query_plugin_add(oph_plugin_api * function, void **dlh, UDF_INIT * initid, UDF_ARGS * internal_args, int arg_count, oph_query_expr_value * args)
 {
 	if (!function || !dlh || !initid || !internal_args || !arg_count || !args)
 		return -1;
@@ -485,7 +485,7 @@ int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid,
 	char is_null = 0, error = 0;
 
 	//Add function
-	void (*_oph_plugin_add)(UDF_INIT *, UDF_ARGS *, char *, char *);
+	void (*_oph_plugin_add) (UDF_INIT *, UDF_ARGS *, char *, char *);
 	if (!(_oph_plugin_add = (void (*)(UDF_INIT *, UDF_ARGS *, char *, char *)) function->add_api)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while calling plugin ADD function\n");
 		return -1;
@@ -580,7 +580,7 @@ int oph_query_plugin_add(oph_plugin_api *function, void **dlh, UDF_INIT *initid,
 }
 
 
-int oph_query_plugin_exec(oph_plugin_api *function, void **dlh, UDF_INIT *initid, UDF_ARGS *internal_args, char *plugin_name, int arg_count, oph_query_expr_value *args, oph_query_expr_value *res)
+int oph_query_plugin_exec(oph_plugin_api * function, void **dlh, UDF_INIT * initid, UDF_ARGS * internal_args, char *plugin_name, int arg_count, oph_query_expr_value * args, oph_query_expr_value * res)
 {
 	if (!function || !dlh || !initid || !internal_args || !plugin_name || !arg_count || !args || !plugin_table)
 		return -1;
