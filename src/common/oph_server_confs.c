@@ -142,7 +142,7 @@ int oph_server_conf_load(short unsigned int instance, HASHTBL **hashtbl)
 							continue;
 						}
 						//Alloc value to be added to hash table
-						value = strndup(position, OPH_SERVER_CONF_LINE_LEN);
+						value = strdup(position);
 						if (value == NULL) {
 							pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while copying param %s\n", buffer);
 							fclose(file);
