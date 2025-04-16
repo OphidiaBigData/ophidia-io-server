@@ -2994,7 +2994,11 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 #endif
 
+#ifdef OPH_IO_SERVER_FORCE_V0
+		if (0) {
+#else
 		if (dimension_ordered) {
+#endif
 			if (is_netcdf4)
 				return_value =
 				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
