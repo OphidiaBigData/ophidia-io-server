@@ -1,4 +1,10 @@
 
+## Next release
+
+### Added:
+
+- Support for on-load operations
+
 ## v1.9.0 - 2024-10-10
 
 ### Fixed:

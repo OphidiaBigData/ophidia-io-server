@@ -2159,11 +2159,7 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		}
 	}
 
-	if (dimension_ordered
-#ifdef OPH_ESDM_PAV_KERNELS
-	    || esdm_is_a_reduce_func(sub_operation, sub_args)
-#endif
-	    )
+	if (dimension_ordered || check_for_reduce_func)
 		return _oph_ioserver_esdm_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
 						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args);
 	else

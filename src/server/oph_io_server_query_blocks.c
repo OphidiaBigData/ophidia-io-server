@@ -1383,10 +1383,16 @@ int _oph_io_server_query_load_from_file(oph_metadb_db_row **meta_db, oph_iostore
 	if (dim_unlimited)
 		dim_unlim = (int) strtol(dim_unlimited, NULL, 10);
 
+	char *sub_operation = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_OPERATION);
+	if (sub_operation && !strcmp(sub_operation, OPH_QUERY_ENGINE_LANG_VAL_NONE))
+		sub_operation = NULL;
+	char *sub_args = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ARGS);
+
 	//Define record struct
 	unsigned long long frag_size = 0;
 
-	if (_oph_ioserver_nc_read(src_path, measure, row_num, frag_start, compressed_flag, dim_list_num, dims_type, dims_index, dims_start, dims_end, dim_unlim, record_sets, &frag_size)) {
+	if (_oph_ioserver_nc_read
+	    (src_path, measure, row_num, frag_start, compressed_flag, dim_list_num, dims_type, dims_index, dims_start, dims_end, dim_unlim, sub_operation, sub_args, record_sets, &frag_size)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read data from NetCDF file\n");
 		oph_iostore_destroy_frag_recordset(&record_sets);
