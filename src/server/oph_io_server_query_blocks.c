@@ -1387,6 +1387,8 @@ int _oph_io_server_query_load_from_file(oph_metadb_db_row **meta_db, oph_iostore
 	if (sub_operation && !strcmp(sub_operation, OPH_QUERY_ENGINE_LANG_VAL_NONE))
 		sub_operation = NULL;
 	char *sub_args = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ARGS);
+	if (sub_args && !strcmp(sub_args, OPH_QUERY_ENGINE_LANG_VAL_NONE))
+		sub_args = NULL;
 
 	//Define record struct
 	unsigned long long frag_size = 0;
@@ -1718,6 +1720,8 @@ int _oph_io_server_query_load_from_esdm(oph_metadb_db_row **meta_db, oph_iostore
 	if (sub_operation && !strcmp(sub_operation, OPH_QUERY_ENGINE_LANG_VAL_NONE))
 		sub_operation = NULL;
 	char *sub_args = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_ARGS);
+	if (sub_args && !strcmp(sub_args, OPH_QUERY_ENGINE_LANG_VAL_NONE))
+		sub_args = NULL;
 
 	//Define record struct
 	unsigned long long frag_size = 0;

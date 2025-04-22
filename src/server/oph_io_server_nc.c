@@ -307,6 +307,51 @@ int _oph_ioserver_nc_create_buffer(Buffer *buff, char transpose, char shared, nc
 	return OPH_IO_SERVER_SUCCESS;
 }
 
+#define NC_FUNCTION_MAX "max"
+#define NC_FUNCTION_MIN "min"
+#define NC_FUNCTION_AVG "avg"
+#define NC_FUNCTION_SUM "sum"
+#define NC_FUNCTION_STD "std"
+#define NC_FUNCTION_VAR "var"
+#define NC_FUNCTION_STAT "stat"
+#define NC_FUNCTION_OUTLIER "outlier"
+
+#define NC_FUNCTION_OP_N 3
+#define NC_FUNCTION_OP_SET '1'
+
+int _oph_nc_is_a_reduce_func(const char *operation, const char *args)
+{
+	if (!operation)
+		return 0;
+
+	if (!strcmp(operation, NC_FUNCTION_MAX))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_MIN))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_AVG))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_SUM))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_STD))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_VAR))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_OUTLIER))
+		return 1;
+	if (!strcmp(operation, NC_FUNCTION_STAT)) {
+		int i, option = 0;
+		for (i = 0; i < NC_FUNCTION_OP_N; ++i)
+			if (args && args[0]) {
+				if (args[0] == NC_FUNCTION_OP_SET)
+					option++;
+				args++;
+			} else
+				break;
+		return option;
+	}
+
+	return 0;
+}
 
 int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count, int ncid,
 				  int varid, unsigned long long tuples, unsigned long long idDim, int nexp, unsigned int *sizemax, short int *dims_type, short int *dims_index, int *dims_start)
@@ -316,11 +361,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 		pmesg(LOG_DEBUG, __FILE__, __LINE__, "Loading data from binary\n");
 		logging(LOG_DEBUG, __FILE__, __LINE__, "Loading data from binary\n");
 
-		int shm_id = 0;
-		if (transpose)
-			shm_id = buff->cache_sh;
-		else
-			shm_id = buff->insert_sh;
+		int shm_id = transpose ? buff->cache_sh : buff->insert_sh;
 
 		//Setup message for child process
 		char msg[MSG_LEN] = { '\0' };
@@ -417,12 +458,7 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 
 		//Fill binary cache
 		int res = -1;
-		char *buffer = NULL;
-		if (transpose)
-			buffer = buff->cache;
-		else
-			buffer = buff->insert;
-
+		char *buffer = transpose ? buff->cache : buff->insert;
 		int ncid_int = 0, varid_int = 0;
 		if (ncid == 0 || varid == 0) {
 			if (pthread_mutex_lock(&nc_lock) != 0) {
@@ -756,7 +792,8 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char dimension_ordered)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
+			     char check_for_reduce_func, char dimension_ordered)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -924,7 +961,10 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	//Check
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
-		total *= count[i];
+		if (dims_type[i] || !check_for_reduce_func)
+			total *= count[i];
+		else if (check_for_reduce_func > 1)
+			total *= count[i];
 
 	if (total != _array_length * _tuplexfrag_number) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = %d, TOTAL = %d\n", _array_length, _tuplexfrag_number, total);
@@ -1195,7 +1235,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char dimension_ordered)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
+			     char check_for_reduce_func, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -1363,7 +1404,10 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 	//Check
 	unsigned long long total = 1;
 	for (i = 0; i < ndims; i++)
-		total *= count[i];
+		if (dims_type[i] || !check_for_reduce_func)
+			total *= count[i];
+		else if (check_for_reduce_func > 1)
+			total *= count[i];
 
 	if (total != _array_length * _tuplexfrag_number) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = %d, TOTAL = %d\n", _array_length, _tuplexfrag_number, total);
@@ -1613,7 +1657,8 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp,
 				int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number,
 				int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-				unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last)
+				unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
+				char check_for_reduce_func)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -1765,8 +1810,11 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 
 	//Check
 	unsigned long long total = 1;
-	for (i = 0; i < ndims; i++)
-		total *= count[i];
+	if (!check_for_reduce_func) {
+		for (i = 0; i < ndims; i++)
+			total *= count[i];
+	} else
+		total = check_for_reduce_func;
 
 	if (total != _array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = 1 (fixed), TOTAL = %d\n", _array_length, total);
@@ -2113,7 +2161,8 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos, int measure_pos,
-			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last)
+			     unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
+			     char check_for_reduce_func)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -2265,8 +2314,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 	//Check
 	unsigned long long total = 1;
-	for (i = 0; i < ndims; i++)
-		total *= count[i];
+	if (!check_for_reduce_func) {
+		for (i = 0; i < ndims; i++)
+			total *= count[i];
+	} else
+		total = check_for_reduce_func;
 
 	if (total != _array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "ARRAY_LENGTH = %d, TUPLE = 1 (fixed), TOTAL = %d\n", _array_length, total);
@@ -2929,12 +2981,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			_dims_start[dim_unlim] -= offset;
 			_dims_end[dim_unlim] -= offset;
 		}
+
+		int check_for_reduce_func = _oph_nc_is_a_reduce_func(sub_operation, sub_args);
+
 		//Compute array_length from implicit dims
 		unsigned long long array_length = 1, _array_length;
 		short int nimp = 0, nexp = 0;
 		for (i = 0; i < ndims; i++) {
 			if (!dims_type[i]) {
-				array_length *= dims_end[i] - dims_start[i] + 1;
+				if (!check_for_reduce_func)
+					array_length *= dims_end[i] - dims_start[i] + 1;
+				else if (check_for_reduce_func > 1)
+					array_length *= check_for_reduce_func;
 				nimp++;
 			} else {
 				nexp++;
@@ -2998,29 +3056,29 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 #ifdef OPH_IO_SERVER_FORCE_V0
 		if (0) {
 #else
-		if (dimension_ordered) {
+		if (dimension_ordered || check_for_reduce_func) {
 #endif
 			if (is_netcdf4)
 				return_value =
 				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
 								_dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
-								measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num);
+								measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, check_for_reduce_func);
 			else
 				return_value =
 				    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
 							     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
-							     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num);
+							     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, check_for_reduce_func);
 		} else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
 			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
-						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
+						     array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, check_for_reduce_func, dimension_ordered);
 #else
 			return_value =
 			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos, measure_pos,
-						     array_length, _array_length, internal_size, buff, k == src_paths_num, dimension_ordered);
+						     array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, check_for_reduce_func, dimension_ordered);
 #endif
 		if (return_value) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading the file %s\n", src_path);
