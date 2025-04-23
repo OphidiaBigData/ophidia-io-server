@@ -382,6 +382,9 @@ int _oph_ioserver_nc_create_support(Buffer *buff, char shared, unsigned long lon
 #define NC_FUNCTION_OP_LESS_THAN '<'
 #define NC_FUNCTION_OP_MORE_THAN '>'
 
+#define NC_FILL_VALUE "_FillValue"
+#define NC_FILL_VALUE_EPS(x) (0.001 * x)
+
 size_t _oph_nc_sizeof(nc_type vartype)
 {
 	switch (vartype) {
@@ -439,7 +442,7 @@ int _oph_nc_is_a_reduce_func(const char *operation, const char *args)
 
 int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long long n, char *sub_operation, char *sub_args, void *fill_value)
 {
-	if (!buff || !result || !sub_operation)
+	if (!buff || !sub_operation)
 		return OPH_IO_SERVER_NULL_PARAM;
 
 	char *args = sub_args ? strdup(sub_args) : NULL;	// Copy for strtok
@@ -448,7 +451,8 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	if (!strcmp(sub_operation, NC_FUNCTION_NOP) || !strcmp(sub_operation, NC_FUNCTION_STREAM)) {
 
-		memcpy(result, buff, n * _oph_nc_sizeof(type));
+		if (result)
+			memcpy(result, buff, n * _oph_nc_sizeof(type));
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_MAX)) {
 
@@ -460,7 +464,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_SHORT) {
 
@@ -470,7 +474,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT) {
 
@@ -480,7 +484,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT64) {
 
@@ -490,27 +494,27 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_FLOAT) {
 
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
+				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v < a[k]))) {
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_DOUBLE) {
 
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
+				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v < a[k]))) {
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else {
 			if (args)
@@ -528,7 +532,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_SHORT) {
 
@@ -538,7 +542,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT) {
 
@@ -548,7 +552,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT64) {
 
@@ -558,27 +562,27 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_FLOAT) {
 
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
+				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v > a[k]))) {
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_DOUBLE) {
 
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
+				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v > a[k]))) {
 					v = a[k];
 				}
 			}
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else {
 			if (args)
@@ -632,7 +636,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
 					value1 += a[k];
 					number++;
 				}
@@ -642,7 +646,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
 					value1 += a[k];
 					number++;
 				}
@@ -704,7 +708,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
 					value1 += a[k];
 					value2 += a[k] * a[k];
 					number++;
@@ -715,7 +719,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
 					value1 += a[k];
 					value2 += a[k] * a[k];
 					number++;
@@ -816,7 +820,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			float *a = (float *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(float *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
 					if ((option & 1) && (!number || (v1 > a[k])))	// Min
 						v1 = a[k];
 					if ((option & 2) && (!number || (v2 < a[k])))	// Max
@@ -833,7 +837,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			double *a = (double *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(double *) fill_value : 0;
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
 					if ((option & 1) && (!number || (v1 > a[k])))	// Min
 						v1 = a[k];
 					if ((option & 2) && (!number || (v2 < a[k])))	// Max
@@ -941,7 +945,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0, v = strtof(arg, NULL);
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv))
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)))
 					switch (thresh_type) {
 						case NC_FUNCTION_OP_LESS_THAN:
 							if (v > a[k])
@@ -958,7 +962,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 			double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0, v = strtod(arg, NULL);
 			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv))
+				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)))
 					switch (thresh_type) {
 						case NC_FUNCTION_OP_LESS_THAN:
 							if (v > a[k])
@@ -980,10 +984,12 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 	} else if (!strcmp(sub_operation, NC_FUNCTION_SUM_SCALAR)) {
 
 		if (!args) {
-			// TODO: copy only the data related to the dataspace
-			memcpy(result, buff, n * _oph_nc_sizeof(type));
+			if (result)
+				memcpy(result, buff, n * _oph_nc_sizeof(type));
 			return OPH_IO_SERVER_SUCCESS;
 		}
+		if (!result)
+			result = buff;
 
 		char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_SEPARATOR, &save_pointer) : NULL;
 
@@ -1033,7 +1039,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] + scalar : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1043,7 +1049,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] + scalar : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1056,10 +1062,12 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 	} else if (!strcmp(sub_operation, NC_FUNCTION_MUL_SCALAR)) {
 
 		if (!args) {
-			// TODO: copy only the data related to the dataspace
-			memcpy(result, buff, n * _oph_nc_sizeof(type));
+			if (result)
+				memcpy(result, buff, n * _oph_nc_sizeof(type));
 			return OPH_IO_SERVER_SUCCESS;
 		}
+		if (!result)
+			result = buff;
 
 		number = 1;
 
@@ -1111,7 +1119,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * scalar : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1121,7 +1129,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * scalar : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1133,6 +1141,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_ABS)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1176,7 +1187,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? abs(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1185,7 +1196,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? abs(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1197,6 +1208,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_SQRT)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1240,7 +1254,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1249,7 +1263,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1261,6 +1275,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_SQR)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1304,7 +1321,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * a[k] : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1313,7 +1330,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * a[k] : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1326,6 +1343,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 		// TODO: to be optimized for integer values
 	} else if (!strcmp(sub_operation, NC_FUNCTION_CEIL)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1369,7 +1389,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? ceil(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1378,7 +1398,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? ceil(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1391,6 +1411,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 		// TODO: to be optimized for integer values
 	} else if (!strcmp(sub_operation, NC_FUNCTION_FLOOR) || !strcmp(sub_operation, NC_FUNCTION_INT)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1434,7 +1457,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1443,7 +1466,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1456,6 +1479,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 		// TODO: to be optimized for integer values
 	} else if (!strcmp(sub_operation, NC_FUNCTION_ROUND) || !strcmp(sub_operation, NC_FUNCTION_NINT)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1499,7 +1525,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k] + 0.5) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1508,7 +1534,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k] + 0.5) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1520,9 +1546,12 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_POW)) {
 
+		if (!result)
+			result = buff;
+
 		if (!args) {
-			// TODO: copy only the data related to the dataspace
-			memcpy(result, buff, n * _oph_nc_sizeof(type));
+			if (result)
+				memcpy(result, buff, n * _oph_nc_sizeof(type));
 			return OPH_IO_SERVER_SUCCESS;
 		}
 
@@ -1576,7 +1605,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? pow(a[k], scalar) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1586,7 +1615,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? pow(a[k], scalar) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1598,6 +1627,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_EXP)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1641,7 +1673,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? exp(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1650,7 +1682,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? exp(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1662,6 +1694,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_LOG)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1705,7 +1740,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1714,7 +1749,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1726,6 +1761,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_LOG10)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1769,7 +1807,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log10(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1778,7 +1816,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log10(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1790,6 +1828,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_SIN)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1833,7 +1874,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sin(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1843,7 +1884,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sin(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1855,6 +1896,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_COS)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1898,7 +1942,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cos(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1907,7 +1951,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cos(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1919,6 +1963,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_TAN)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -1962,7 +2009,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tan(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1971,7 +2018,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tan(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -1983,6 +2030,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_ASIN)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2026,7 +2076,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2035,7 +2085,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2047,6 +2097,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_ACOS)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2090,7 +2143,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2099,7 +2152,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2111,6 +2164,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_ATAN)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2154,7 +2210,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? atan(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2163,7 +2219,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? atan(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2175,6 +2231,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_SINH)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2218,7 +2277,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sinh(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2227,7 +2286,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sinh(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2239,6 +2298,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_COSH)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2282,7 +2344,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cosh(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2291,7 +2353,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cosh(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2303,6 +2365,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_TANH)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2346,7 +2411,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tanh(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2355,7 +2420,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tanh(a[k]) : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2368,6 +2433,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 		// TODO: to be optimized for integer values
 	} else if (!strcmp(sub_operation, NC_FUNCTION_RECI)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2411,7 +2479,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && a[k]) ? 1.0 / a[k] : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2420,7 +2488,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
+				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && a[k]) ? 1.0 / a[k] : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2432,6 +2500,9 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 
 	} else if (!strcmp(sub_operation, NC_FUNCTION_NOT)) {
 
+		if (!result)
+			result = buff;
+
 		number = 1;
 
 		if ((type == NC_BYTE) || (type == NC_CHAR)) {
@@ -2475,7 +2546,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? !a[k] : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? !a[k] : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2484,7 +2555,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 			size_t step = sizeof(v);
 			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? !a[k] : fv;
+				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? !a[k] : fv;
 				memcpy(result + k * step, &v, step);
 			}
 
@@ -2511,32 +2582,32 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 		if (type == NC_CHAR) {
 
 			char v = (char) (value1 / number);
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_SHORT) {
 
 			short v = (short) (value1 / number);
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT) {
 
 			int v = (int) (value1 / number);
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT64) {
 
 			long long v = (long long) (value1 / number);
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_FLOAT) {
 
 			float v = (float) (value1 / number);
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_DOUBLE) {
 
 			double v = (double) (value1 / number);
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		}
 
@@ -2551,32 +2622,32 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 		if (type == NC_CHAR) {
 
 			char v = (char) value3;
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_SHORT) {
 
 			short v = (short) value3;
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT) {
 
 			int v = (int) value3;
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_INT64) {
 
 			long long v = (long long) value3;
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_FLOAT) {
 
 			float v = (float) value3;
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		} else if (type == NC_DOUBLE) {
 
 			double v = (double) value3;
-			memcpy(result, &v, sizeof(v));
+			memcpy(result ? result : buff, &v, sizeof(v));
 
 		}
 
@@ -2598,7 +2669,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			char v;
 			if (option & 1) {
 				v = (char) value1;
-				memcpy(result, &v, sizeof(v));
+				memcpy(result ? result : buff, &v, sizeof(v));
 				offset += sizeof(v);
 			}
 			if (option & 2) {
@@ -2617,7 +2688,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			short v;
 			if (option & 1) {
 				v = (short) value1;
-				memcpy(result, &v, sizeof(v));
+				memcpy(result ? result : buff, &v, sizeof(v));
 				offset += sizeof(v);
 			}
 			if (option & 2) {
@@ -2636,7 +2707,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			int v;
 			if (option & 1) {
 				v = (int) value1;
-				memcpy(result, &v, sizeof(v));
+				memcpy(result ? result : buff, &v, sizeof(v));
 				offset += sizeof(v);
 			}
 			if (option & 2) {
@@ -2655,7 +2726,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			long long v;
 			if (option & 1) {
 				v = (long long) value1;
-				memcpy(result, &v, sizeof(v));
+				memcpy(result ? result : buff, &v, sizeof(v));
 				offset += sizeof(v);
 			}
 			if (option & 2) {
@@ -2674,7 +2745,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			float v;
 			if (option & 1) {
 				v = (float) value1;
-				memcpy(result, &v, sizeof(v));
+				memcpy(result ? result : buff, &v, sizeof(v));
 				offset += sizeof(v);
 			}
 			if (option & 2) {
@@ -2693,7 +2764,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 			double v;
 			if (option & 1) {
 				v = (double) value1;
-				memcpy(result, &v, sizeof(v));
+				memcpy(result ? result : buff, &v, sizeof(v));
 				offset += sizeof(v);
 			}
 			if (option & 2) {
@@ -2713,7 +2784,8 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 }
 
 int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count, int ncid,
-				  int varid, unsigned long long tuples, unsigned long long idDim, int nexp, unsigned int *sizemax, short int *dims_type, short int *dims_index, int *dims_start)
+				  int varid, unsigned long long tuples, unsigned long long idDim, int nexp, unsigned int *sizemax, short int *dims_type, short int *dims_index, int *dims_start,
+				  char *sub_operation, char *sub_args, void *fill_value, char check_for_reduce_func)
 {
 #ifdef OPH_PAR_NC4
 	if (shared) {
@@ -2877,21 +2949,18 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 			}
 
 			// Evaluate the operation
-			char *result = NULL;
 			size_t value_size = _oph_nc_sizeof(vartype);
-
-			// TODO
-			result = (char *) malloc(value_size);
-			*((float *)) result = 1.0;
-/*
-			if (_oph_nc_reduce_func(buff, result, vartype, n, sub_operation, sub_args, NULL)) {
+			void *result = malloc(value_size * check_for_reduce_func);
+			int i;
+			unsigned long long n = 1;
+			for (i = 0; i < ndims; i++)
+				n *= count[i];
+			if (_oph_nc_reduce_func(buff->support, result, vartype, n, sub_operation, sub_args, fill_value)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to evaluate onload operation\n");
 				logging(LOG_ERROR, __FILE__, __LINE__, "Unable to evaluate onload operation\n");
 				free(result);
 				return OPH_IO_SERVER_EXEC_ERROR;
 			}
-*/
-
 			// Store the result
 			switch (vartype) {
 				case NC_BYTE:
@@ -2919,26 +2988,40 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 
 		} else {
 
+			void *target = NULL;
 			switch (vartype) {
 				case NC_BYTE:
 				case NC_CHAR:
-					res = nc_get_vara_uchar(ncid_int, varid_int, start, count, (unsigned char *) buffer + offset);
+					res = nc_get_vara_uchar(ncid_int, varid_int, start, count, target = (unsigned char *) buffer + offset);
 					break;
 				case NC_SHORT:
-					res = nc_get_vara_short(ncid_int, varid_int, start, count, (short *) buffer + offset);
+					res = nc_get_vara_short(ncid_int, varid_int, start, count, target = (short *) buffer + offset);
 					break;
 				case NC_INT:
-					res = nc_get_vara_int(ncid_int, varid_int, start, count, (int *) buffer + offset);
+					res = nc_get_vara_int(ncid_int, varid_int, start, count, target = (int *) buffer + offset);
 					break;
 				case NC_INT64:
-					res = nc_get_vara_longlong(ncid_int, varid_int, start, count, (long long *) buffer + offset);
+					res = nc_get_vara_longlong(ncid_int, varid_int, start, count, target = (long long *) buffer + offset);
 					break;
 				case NC_FLOAT:
-					res = nc_get_vara_float(ncid_int, varid_int, start, count, (float *) buffer + offset);
+					res = nc_get_vara_float(ncid_int, varid_int, start, count, target = (float *) buffer + offset);
 					break;
 				case NC_DOUBLE:
 				default:
-					res = nc_get_vara_double(ncid_int, varid_int, start, count, (double *) buffer + offset);
+					res = nc_get_vara_double(ncid_int, varid_int, start, count, target = (double *) buffer + offset);
+			}
+
+			if (sub_operation) {
+				// Evaluate the operation
+				int i;
+				unsigned long long n = 1;
+				for (i = 0; i < ndims; i++)
+					n *= count[i];
+				if (_oph_nc_reduce_func(target, NULL, vartype, n, sub_operation, sub_args, fill_value)) {	// In place
+					pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to evaluate onload operation\n");
+					logging(LOG_ERROR, __FILE__, __LINE__, "Unable to evaluate onload operation\n");
+					return OPH_IO_SERVER_EXEC_ERROR;
+				}
 			}
 		}
 
@@ -2958,9 +3041,11 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_data(Buffer *buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count)
+int _oph_ioserver_nc_read_data(Buffer *buff, int offset, char transpose, char shared, nc_type vartype, int ndims, char *src_path, char *measure_name, size_t *start, size_t *count, char *sub_operation,
+			       char *sub_args, void *fill_value, char check_for_reduce_func)
 {
-	return _oph_ioserver_nc_read_data_v0(buff, offset, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0, 1, 0, 0, NULL, NULL, NULL, NULL);
+	return _oph_ioserver_nc_read_data_v0(buff, offset, transpose, shared, vartype, ndims, src_path, measure_name, start, count, 0, 0, 1, 0, 0, NULL, NULL, NULL, NULL, sub_operation, sub_args,
+					     fill_value, check_for_reduce_func);
 }
 
 #define _oph_ioserver_nc_release_buffer_cache(buff, buffer) _oph_ioserver_nc_release_buffer(buff, buffer, 1)
@@ -3219,7 +3304,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, unsigned long long raw_sizeof_var, nc_type vartype, int id_dim_pos,
 			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
-			     char check_for_reduce_func, char dimension_ordered)
+			     void *fill_value, char check_for_reduce_func, char dimension_ordered)
 {
 	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -3424,7 +3509,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
-	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, sub_operation, sub_args, fill_value, check_for_reduce_func)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		_oph_ioserver_nc_clear_buffer(buff);
@@ -3667,7 +3752,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, unsigned long long raw_sizeof_var, nc_type vartype, int id_dim_pos,
 			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
-			     char check_for_reduce_func, char dimension_ordered)
+			     void *fill_value, char check_for_reduce_func, char dimension_ordered)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -3872,7 +3957,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
-	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, sub_operation, sub_args, fill_value, check_for_reduce_func)) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 		_oph_ioserver_nc_clear_buffer(buff);
@@ -4094,7 +4179,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 				int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number,
 				int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, unsigned long long raw_sizeof_var, nc_type vartype,
 				int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation,
-				char *sub_args, char check_for_reduce_func)
+				char *sub_args, void *fill_value, char check_for_reduce_func)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -4445,7 +4530,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 		//Fill binary cache
 		if (!ii
 		    && _oph_ioserver_nc_read_data_v0(buff, 0, transpose, 1, vartype, ndims, src_path, measure_name, start, count, ncid, varid, tuplexfrag_number, idDim, nexp, sizemax, dims_type,
-						     dims_index, dims_start)) {
+						     dims_index, dims_start, sub_operation, sub_args, fill_value, check_for_reduce_func)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			_oph_ioserver_nc_clear_buffer(buff);
@@ -4603,7 +4688,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
 			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, unsigned long long raw_sizeof_var, nc_type vartype, int id_dim_pos,
 			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
-			     char check_for_reduce_func)
+			     void *fill_value, char check_for_reduce_func)
 {
 	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
@@ -5039,7 +5124,8 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		// This version is not optimized in case the unlimited dimension is implicit!!!!! offset is set to 0 for this reason
 		//Fill binary cache
 		if (_oph_ioserver_nc_read_data_v0
-		    (buff, 0, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, ncid, varid, 1, idDim, nexp, sizemax, dims_type, dims_index, dims_start)) {
+		    (buff, 0, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count, ncid, varid, 1, idDim, nexp, sizemax, dims_type, dims_index, dims_start, sub_operation,
+		     sub_args, fill_value, check_for_reduce_func)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			_oph_ioserver_nc_clear_buffer(buff);
@@ -5249,7 +5335,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 
 	int dim_unlim_size = dim_unlim < 0 ? 0 : dims_end[dim_unlim] - dims_start[dim_unlim] + 1;
 	int _dims_start[dim_num], _dims_end[dim_num];
-	size_t lenp = 0;
+	size_t lenp = 0, sizeof_item = 0;
 
 	unsigned long long _tuplexfrag_number;
 	long long _frag_key_start, _f1, _f2;
@@ -5259,6 +5345,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	char src_paths[1 + strlen(src_path)];
 	strcpy(src_paths, src_path);
 	src_path = NULL;
+	void *fill_value = NULL;
+
 	while ((pch = strtok_r(src_path ? NULL : src_paths, OPH_QUERY_ENGINE_LANG_MULTI_VALUE_SEPARATOR2, &save_pointer))) {
 
 		src_path = pch;
@@ -5326,6 +5414,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+		sizeof_item = _oph_nc_sizeof(vartype);
 		//Check ndims value
 		int ndims;
 		if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
@@ -5341,6 +5430,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Dimension in variable not matching those provided in query\n");
 			return OPH_IO_SERVER_EXEC_ERROR;
+		}
+		if (!fill_value) {
+			fill_value = malloc(sizeof_item);
+			if (fill_value)
+				retval = nc_get_att(ncid, varid, NC_FILL_VALUE, fill_value);
+			if (!fill_value || retval && (retval != NC_ENOTATT)) {
+				nc_close(ncid);
+				pthread_mutex_unlock(&nc_lock);
+				pmesg(LOG_ERROR, __FILE__, __LINE__, "Fill value cannot be retrieved\n");
+				logging(LOG_ERROR, __FILE__, __LINE__, "Fill value cannot be retrieved\n");
+				return OPH_IO_SERVER_EXEC_ERROR;
+			}
 		}
 #ifdef OPH_PAR_NC4
 		//Read format metadata
@@ -5450,28 +5551,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		else
 			_array_length = array_length * (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) / dim_unlim_size;
 
-		size_t sizeof_item = 0;
-		switch (vartype) {
-			case NC_BYTE:
-			case NC_CHAR:
-				sizeof_item = sizeof(char);
-				break;
-			case NC_SHORT:
-				sizeof_item = sizeof(short);
-				break;
-			case NC_INT:
-				sizeof_item = sizeof(int);
-				break;
-			case NC_INT64:
-				sizeof_item = sizeof(long long);
-				break;
-			case NC_FLOAT:
-				sizeof_item = sizeof(float);
-				break;
-			case NC_DOUBLE:
-			default:
-				sizeof_item = sizeof(double);
-		}
 		unsigned long long sizeof_var = array_length * sizeof_item;
 		unsigned long long raw_sizeof_var = raw_array_length * sizeof_item;
 
@@ -5510,25 +5589,25 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
 								_dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, raw_sizeof_var,
 								vartype, id_dim_pos, measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args,
-								check_for_reduce_func);
+								fill_value, check_for_reduce_func);
 			else
 				return_value =
 				    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
 							     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, raw_sizeof_var, vartype,
 							     id_dim_pos, measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args,
-							     check_for_reduce_func);
+							     fill_value, check_for_reduce_func);
 		} else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
 			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, raw_sizeof_var, vartype, id_dim_pos,
-						     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, check_for_reduce_func,
+						     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, fill_value, check_for_reduce_func,
 						     dimension_ordered);
 #else
 			return_value =
 			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
 						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, raw_sizeof_var, vartype, id_dim_pos,
-						     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, check_for_reduce_func,
+						     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, fill_value, check_for_reduce_func,
 						     dimension_ordered);
 #endif
 		if (return_value) {
@@ -5542,6 +5621,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	}
 
 	_oph_ioserver_nc_clear_buffer(buff);
+	if (fill_value)
+		free(fill_value);
 
 	return return_value;
 }
