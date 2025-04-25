@@ -300,7 +300,8 @@ int _oph_ioserver_nc_create_buffer(Buffer *buff, char transpose, char shared, nc
 #include <math.h>
 #include <ctype.h>
 
-#define NC_SEPARATOR ","
+#define NC_FUNCTION_SEPARATOR "|"
+#define NC_ARG_SEPARATOR ","
 
 #define NC_FUNCTION_NOP "nop"
 #define NC_FUNCTION_STREAM "stream"
@@ -351,7 +352,7 @@ int _oph_ioserver_nc_create_buffer(Buffer *buff, char transpose, char shared, nc
 #define NC_FUNCTION_OP_MORE_THAN '>'
 
 #define NC_FILL_VALUE "_FillValue"
-#define NC_FILL_VALUE_EPS(x) (0.001 * x)
+#define NC_FILL_VALUE_EPS 0.001
 
 size_t _oph_nc_sizeof(nc_type vartype)
 {
@@ -379,2374 +380,2632 @@ int _oph_nc_is_a_reduce_func(const char *operation, const char *args)
 	if (!operation)
 		return 0;
 
-	if (!strcmp(operation, NC_FUNCTION_MAX))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_MIN))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_AVG))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_SUM))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_STD))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_VAR))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_OUTLIER))
-		return 1;
-	if (!strcmp(operation, NC_FUNCTION_STAT)) {
-		int i, option = 0;
-		for (i = 0; i < NC_FUNCTION_OP_N; ++i)
-			if (args && args[0]) {
-				if (args[0] == NC_FUNCTION_OP_SET)
-					option++;
-				args++;
-			} else
-				break;
-		return option;
-	}
+	char *tmp_operation = strdup(operation);
+	char *op_s = NULL, *sub_operation = strtok_r(tmp_operation, NC_FUNCTION_SEPARATOR, &op_s);
+	if (!sub_operation)
+		return 0;
 
-	return 0;
+	char *tmp_args = args ? strdup(args) : NULL, *tmp_args2 = tmp_args;
+	char *arg_s = NULL, *sub_args = NULL;
+
+	int result = 0;
+
+	do {
+		if (sub_args || tmp_args2)
+			sub_args = strtok_r(tmp_args2, NC_FUNCTION_SEPARATOR, &arg_s);
+		if (tmp_args2)
+			tmp_args2 = NULL;
+
+		if (!strcmp(sub_operation, NC_FUNCTION_MAX)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_MIN)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_AVG)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_SUM)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_STD)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_VAR)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_OUTLIER)) {
+			result = 1;
+			continue;
+		}
+		if (!strcmp(sub_operation, NC_FUNCTION_STAT)) {
+			result = 0;
+			int i;
+			for (i = 0; i < NC_FUNCTION_OP_N; ++i)
+				if (sub_args && sub_args[0]) {
+					if (sub_args[0] == NC_FUNCTION_OP_SET)
+						result++;
+					sub_args++;
+				} else
+					break;
+			continue;
+		}
+
+	} while ((sub_operation = strtok_r(NULL, NC_FUNCTION_SEPARATOR, &op_s)));	// '=' is correct
+
+	if (tmp_operation)
+		free(tmp_operation);
+	if (tmp_args)
+		free(tmp_args);
+
+	return result;
 }
 
-int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long long n, char *sub_operation, char *sub_args, void *fill_value)
+int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long long n, char *operation, char *args, void *fill_value)
 {
-	if (!buff || !sub_operation)
+	if (!buff || !operation)
 		return OPH_IO_SERVER_NULL_PARAM;
 
-	char *args = sub_args ? strdup(sub_args) : NULL;	// Copy for strtok
-	unsigned long long k, number = 0;
-	double value1 = 0.0, value2 = 0.0, value3 = 0.0;
-
-	if (!strcmp(sub_operation, NC_FUNCTION_NOP) || !strcmp(sub_operation, NC_FUNCTION_STREAM)) {
-
-		if (result)
-			memcpy(result, buff, n * _oph_nc_sizeof(type));
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_MAX)) {
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v < a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v < a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_MIN)) {
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v > a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if ((!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) && (!number || (v > a[k]))) {
-					v = a[k];
-				}
-			}
-			memcpy(result ? result : buff, &v, sizeof(v));
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_AVG) || !strcmp(sub_operation, NC_FUNCTION_SUM)) {
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, fv = fill_value ? *(char *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, fv = fill_value ? *(short *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, fv = fill_value ? *(int *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, fv = fill_value ? *(long long *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
-					value1 += a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
-					value1 += a[k];
-					number++;
-				}
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_STD) || !strcmp(sub_operation, NC_FUNCTION_VAR)) {
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, fv = fill_value ? *(char *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					value2 += a[k] * a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, fv = fill_value ? *(short *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					value2 += a[k] * a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, fv = fill_value ? *(int *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					value2 += a[k] * a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, fv = fill_value ? *(long long *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					value1 += a[k];
-					value2 += a[k] * a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
-					value1 += a[k];
-					value2 += a[k] * a[k];
-					number++;
-				}
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
-					value1 += a[k];
-					value2 += a[k] * a[k];
-					number++;
-				}
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_STAT)) {
-
-		char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_SEPARATOR, &save_pointer) : NULL;
-		char i, option = 0, tbyte = 1;
-		for (i = 0; i < NC_FUNCTION_OP_N; ++i)
-			if (arg && arg[0]) {
-				if (arg[0] == NC_FUNCTION_OP_SET)
-					option |= tbyte;
-				arg++;
-				tbyte <<= 1;
-			} else
-				break;
-		if (!option) {
-
-			// No operation is executed in this case
-
-		} else if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(char *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					if ((option & 1) && (!number || (v1 > a[k])))	// Min
-						v1 = a[k];
-					if ((option & 2) && (!number || (v2 < a[k])))	// Max
-						v2 = a[k];
-					if (option & 4)	// Avg
-						value3 += a[k];
-					number++;
-				}
-			}
-			value1 = v1;
-			value2 = v2;
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(short *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					if ((option & 1) && (!number || (v1 > a[k])))	// Min
-						v1 = a[k];
-					if ((option & 2) && (!number || (v2 < a[k])))	// Max
-						v2 = a[k];
-					if (option & 4)	// Avg
-						value3 += a[k];
-					number++;
-				}
-			}
-			value1 = v1;
-			value2 = v2;
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(int *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					if ((option & 1) && (!number || (v1 > a[k])))	// Min
-						v1 = a[k];
-					if ((option & 2) && (!number || (v2 < a[k])))	// Max
-						v2 = a[k];
-					if (option & 4)	// Avg
-						value3 += a[k];
-					number++;
-				}
-			}
-			value1 = v1;
-			value2 = v2;
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv)) {
-					if ((option & 1) && (!number || (v1 > a[k])))	// Min
-						v1 = a[k];
-					if ((option & 2) && (!number || (v2 < a[k])))	// Max
-						v2 = a[k];
-					if (option & 4)	// Avg
-						value3 += a[k];
-					number++;
-				}
-			}
-			value1 = v1;
-			value2 = v2;
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(float *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
-					if ((option & 1) && (!number || (v1 > a[k])))	// Min
-						v1 = a[k];
-					if ((option & 2) && (!number || (v2 < a[k])))	// Max
-						v2 = a[k];
-					if (option & 4)	// Avg
-						value3 += a[k];
-					number++;
-				}
-			}
-			value1 = v1;
-			value2 = v2;
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(double *) fill_value : 0;
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv))) {
-					if ((option & 1) && (!number || (v1 > a[k])))	// Min
-						v1 = a[k];
-					if ((option & 2) && (!number || (v2 < a[k])))	// Max
-						v2 = a[k];
-					if (option & 4)	// Avg
-						value3 += a[k];
-					number++;
-				}
-			}
-			value1 = v1;
-			value2 = v2;
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_OUTLIER)) {
-
-		number = 1;	// Use only to avoid errors during the reduction phase
-
-		char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_SEPARATOR, &save_pointer) : NULL;
-		char thresh_type = NC_FUNCTION_OP_MORE_THAN;
-		if (arg) {
-			if (!isdigit(arg[0])) {
-				if (arg[0] == NC_FUNCTION_OP_LESS_THAN)
-					thresh_type = NC_FUNCTION_OP_LESS_THAN;
-				arg++;
-			}
-		}
-		if (!arg || !arg[0]) {
-
-			// No element is considered outlier in case the threshold is not given
-
-		} else if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, fv = fill_value ? *(char *) fill_value : 0, v = strtol(arg, NULL, 10);
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv))
-					switch (thresh_type) {
-						case NC_FUNCTION_OP_LESS_THAN:
-							if (v > a[k])
-								value1++;
-							break;
-						case NC_FUNCTION_OP_MORE_THAN:
-						default:
-							if (v < a[k])
-								value1++;
-					}
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, fv = fill_value ? *(short *) fill_value : 0, v = strtol(arg, NULL, 10);
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv))
-					switch (thresh_type) {
-						case NC_FUNCTION_OP_LESS_THAN:
-							if (v > a[k])
-								value1++;
-							break;
-						case NC_FUNCTION_OP_MORE_THAN:
-						default:
-							if (v < a[k])
-								value1++;
-					}
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, fv = fill_value ? *(int *) fill_value : 0, v = strtol(arg, NULL, 10);
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv))
-					switch (thresh_type) {
-						case NC_FUNCTION_OP_LESS_THAN:
-							if (v > a[k])
-								value1++;
-							break;
-						case NC_FUNCTION_OP_MORE_THAN:
-						default:
-							if (v < a[k])
-								value1++;
-					}
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, fv = fill_value ? *(long long *) fill_value : 0, v = strtoll(arg, NULL, 10);
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (a[k] != fv))
-					switch (thresh_type) {
-						case NC_FUNCTION_OP_LESS_THAN:
-							if (v > a[k])
-								value1++;
-							break;
-						case NC_FUNCTION_OP_MORE_THAN:
-						default:
-							if (v < a[k])
-								value1++;
-					}
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0, v = strtof(arg, NULL);
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)))
-					switch (thresh_type) {
-						case NC_FUNCTION_OP_LESS_THAN:
-							if (v > a[k])
-								value1++;
-							break;
-						case NC_FUNCTION_OP_MORE_THAN:
-						default:
-							if (v < a[k])
-								value1++;
-					}
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0, v = strtod(arg, NULL);
-			for (k = 0; k < n; k++) {
-				if (!fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)))
-					switch (thresh_type) {
-						case NC_FUNCTION_OP_LESS_THAN:
-							if (v > a[k])
-								value1++;
-							break;
-						case NC_FUNCTION_OP_MORE_THAN:
-						default:
-							if (v < a[k])
-								value1++;
-					}
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_SUM_SCALAR)) {
-
-		if (!args) {
-			if (result)
-				memcpy(result, buff, n * _oph_nc_sizeof(type));
-			return OPH_IO_SERVER_SUCCESS;
-		}
-		if (!result)
-			result = buff;
-
-		char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_SEPARATOR, &save_pointer) : NULL;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char scalar = arg ? strtol(arg, NULL, 10) : 0;
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short scalar = arg ? strtol(arg, NULL, 10) : 0;
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int scalar = arg ? strtol(arg, NULL, 10) : 0;
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long scalar = arg ? strtoll(arg, NULL, 10) : 0;
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float scalar = arg ? strtof(arg, NULL) : 0;
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] + scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double scalar = arg ? strtod(arg, NULL) : 0;
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] + scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_MUL_SCALAR)) {
-
-		if (!args) {
-			if (result)
-				memcpy(result, buff, n * _oph_nc_sizeof(type));
-			return OPH_IO_SERVER_SUCCESS;
-		}
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_SEPARATOR, &save_pointer) : NULL;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char scalar = arg ? strtol(arg, NULL, 10) : 1;
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short scalar = arg ? strtol(arg, NULL, 10) : 1;
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int scalar = arg ? strtol(arg, NULL, 10) : 1;
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long scalar = arg ? strtoll(arg, NULL, 10) : 1;
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float scalar = arg ? strtof(arg, NULL) : 1;
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double scalar = arg ? strtod(arg, NULL) : 1;
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * scalar : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_ABS)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? abs(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? abs(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_SQRT)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_SQR)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? a[k] * a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-		// TODO: to be optimized for integer values
-	} else if (!strcmp(sub_operation, NC_FUNCTION_CEIL)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? ceil(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? ceil(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-		// TODO: to be optimized for integer values
-	} else if (!strcmp(sub_operation, NC_FUNCTION_FLOOR) || !strcmp(sub_operation, NC_FUNCTION_INT)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-		// TODO: to be optimized for integer values
-	} else if (!strcmp(sub_operation, NC_FUNCTION_ROUND) || !strcmp(sub_operation, NC_FUNCTION_NINT)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k] + 0.5) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? floor(a[k] + 0.5) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_POW)) {
-
-		if (!result)
-			result = buff;
-
-		if (!args) {
-			if (result)
-				memcpy(result, buff, n * _oph_nc_sizeof(type));
-			return OPH_IO_SERVER_SUCCESS;
-		}
-
-		number = 1;
-
-		char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_SEPARATOR, &save_pointer) : NULL;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char scalar = arg ? strtol(arg, NULL, 10) : 1;
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short scalar = arg ? strtol(arg, NULL, 10) : 1;
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int scalar = arg ? strtol(arg, NULL, 10) : 1;
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long scalar = arg ? strtoll(arg, NULL, 10) : 1;
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float scalar = arg ? strtof(arg, NULL) : 1;
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? pow(a[k], scalar) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double scalar = arg ? strtod(arg, NULL) : 1;
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? pow(a[k], scalar) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_EXP)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? exp(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? exp(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_LOG)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_LOG10)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log10(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] > 0)) ? log10(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_SIN)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_COS)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_TAN)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_ASIN)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_ACOS)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_ATAN)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? atan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? atan(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_SINH)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sinh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? sinh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_COSH)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cosh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? cosh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_TANH)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tanh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? tanh(a[k]) : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-		// TODO: to be optimized for integer values
-	} else if (!strcmp(sub_operation, NC_FUNCTION_RECI)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && a[k]) ? 1.0 / a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || ((abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) && a[k]) ? 1.0 / a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
-	} else if (!strcmp(sub_operation, NC_FUNCTION_NOT)) {
-
-		if (!result)
-			result = buff;
-
-		number = 1;
-
-		if ((type == NC_BYTE) || (type == NC_CHAR)) {
-
-			char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? !a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? !a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT) {
-
-			int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? !a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (a[k] != fv) ? !a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? !a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
-			size_t step = sizeof(v);
-			for (k = 0; k < n; k++) {
-				v = !fill_value || (abs(a[k] - fv) < NC_FILL_VALUE_EPS(fv)) ? !a[k] : fv;
-				memcpy(result + k * step, &v, step);
-			}
-
-		} else {
-			if (args)
-				free(args);
-			return OPH_IO_SERVER_MEMORY_ERROR;
-		}
-
+	char *tmp_operation = strdup(operation);
+	char *op_s = NULL, *sub_operation = strtok_r(tmp_operation, NC_FUNCTION_SEPARATOR, &op_s);
+	if (!sub_operation) {
+		if (tmp_operation)
+			free(tmp_operation);
+		return OPH_IO_SERVER_NULL_PARAM;
 	}
 
-	if (args)
-		free(args);
+	char *tmp_args = args ? strdup(args) : NULL, *tmp_args2 = tmp_args;
+	char *arg_s = NULL, *sub_args = NULL;
 
-	if (!number)
-		return OPH_IO_SERVER_SUCCESS;
+	char *tmp = NULL, next = 0;
+	unsigned long long buff_size = 0;
+	if (result && strchr(operation, NC_FUNCTION_SEPARATOR[0])) {
+		// Save result to store the final output
+		tmp = result;
+		// Allocate space for intermediate results
+		result = malloc(buff_size = n * _oph_nc_sizeof(type));
+	}
 
-	// Final reduction
-	if (!strcmp(sub_operation, NC_FUNCTION_AVG) || !strcmp(sub_operation, NC_FUNCTION_SUM) || !strcmp(sub_operation, NC_FUNCTION_OUTLIER)) {
+	do {
+		if (result) {
+			if (next)
+				memcpy(buff, result, buff_size);
+			else
+				next = 1;
+		}
 
-		if (strcmp(sub_operation, NC_FUNCTION_AVG))
+		if (sub_args || tmp_args2)
+			sub_args = strtok_r(tmp_args2, NC_FUNCTION_SEPARATOR, &arg_s);
+		if (tmp_args2)
+			tmp_args2 = NULL;
+
+		char *args = sub_args ? strdup(sub_args) : NULL;	// Copy for strtok
+		unsigned long long k, number = 0;
+		double value1 = 0.0, value2 = 0.0, value3 = 0.0;
+
+		if (!strcmp(sub_operation, NC_FUNCTION_NOP) || !strcmp(sub_operation, NC_FUNCTION_STREAM)) {
+
+			if (result)
+				memcpy(result, buff, buff_size ? buff_size : (buff_size = n * _oph_nc_sizeof(type)));
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_MAX)) {
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v < a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) && (!number || (v < a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) && (!number || (v < a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_MIN)) {
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (a[k] != fv)) && (!number || (v > a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) && (!number || (v > a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if ((!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) && (!number || (v > a[k]))) {
+						v = a[k];
+					}
+				}
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_AVG) || !strcmp(sub_operation, NC_FUNCTION_SUM)) {
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, fv = fill_value ? *(char *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, fv = fill_value ? *(short *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, fv = fill_value ? *(int *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, fv = fill_value ? *(long long *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) {
+						value1 += a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) {
+						value1 += a[k];
+						number++;
+					}
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_STD) || !strcmp(sub_operation, NC_FUNCTION_VAR)) {
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, fv = fill_value ? *(char *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						value2 += a[k] * a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, fv = fill_value ? *(short *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						value2 += a[k] * a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, fv = fill_value ? *(int *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						value2 += a[k] * a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, fv = fill_value ? *(long long *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						value1 += a[k];
+						value2 += a[k] * a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) {
+						value1 += a[k];
+						value2 += a[k] * a[k];
+						number++;
+					}
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) {
+						value1 += a[k];
+						value2 += a[k] * a[k];
+						number++;
+					}
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_STAT)) {
+
+			char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_ARG_SEPARATOR, &save_pointer) : NULL;
+			char i, option = 0, tbyte = 1;
+			for (i = 0; i < NC_FUNCTION_OP_N; ++i)
+				if (arg && arg[0]) {
+					if (arg[0] == NC_FUNCTION_OP_SET)
+						option |= tbyte;
+					arg++;
+					tbyte <<= 1;
+				} else
+					break;
+			if (!option) {
+
+				// No operation is executed in this case
+
+			} else if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(char *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						if ((option & 1) && (!number || (v1 > a[k])))	// Min
+							v1 = a[k];
+						if ((option & 2) && (!number || (v2 < a[k])))	// Max
+							v2 = a[k];
+						if (option & 4)	// Avg
+							value3 += a[k];
+						number++;
+					}
+				}
+				value1 = v1;
+				value2 = v2;
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(short *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						if ((option & 1) && (!number || (v1 > a[k])))	// Min
+							v1 = a[k];
+						if ((option & 2) && (!number || (v2 < a[k])))	// Max
+							v2 = a[k];
+						if (option & 4)	// Avg
+							value3 += a[k];
+						number++;
+					}
+				}
+				value1 = v1;
+				value2 = v2;
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(int *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						if ((option & 1) && (!number || (v1 > a[k])))	// Min
+							v1 = a[k];
+						if ((option & 2) && (!number || (v2 < a[k])))	// Max
+							v2 = a[k];
+						if (option & 4)	// Avg
+							value3 += a[k];
+						number++;
+					}
+				}
+				value1 = v1;
+				value2 = v2;
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv)) {
+						if ((option & 1) && (!number || (v1 > a[k])))	// Min
+							v1 = a[k];
+						if ((option & 2) && (!number || (v2 < a[k])))	// Max
+							v2 = a[k];
+						if (option & 4)	// Avg
+							value3 += a[k];
+						number++;
+					}
+				}
+				value1 = v1;
+				value2 = v2;
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(float *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) {
+						if ((option & 1) && (!number || (v1 > a[k])))	// Min
+							v1 = a[k];
+						if ((option & 2) && (!number || (v2 < a[k])))	// Max
+							v2 = a[k];
+						if (option & 4)	// Avg
+							value3 += a[k];
+						number++;
+					}
+				}
+				value1 = v1;
+				value2 = v2;
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v1 = 0, v2 = 0, fv = fill_value ? *(double *) fill_value : 0;
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS)) {
+						if ((option & 1) && (!number || (v1 > a[k])))	// Min
+							v1 = a[k];
+						if ((option & 2) && (!number || (v2 < a[k])))	// Max
+							v2 = a[k];
+						if (option & 4)	// Avg
+							value3 += a[k];
+						number++;
+					}
+				}
+				value1 = v1;
+				value2 = v2;
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_OUTLIER)) {
+
+			number = 1;	// Use only to avoid errors during the reduction phase
+
+			char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_ARG_SEPARATOR, &save_pointer) : NULL;
+			char thresh_type = NC_FUNCTION_OP_MORE_THAN;
+			if (arg) {
+				if (!isdigit(arg[0])) {
+					if (arg[0] == NC_FUNCTION_OP_LESS_THAN)
+						thresh_type = NC_FUNCTION_OP_LESS_THAN;
+					arg++;
+				}
+			}
+			if (!arg || !arg[0]) {
+
+				// No element is considered outlier in case the threshold is not given
+
+			} else if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, fv = fill_value ? *(char *) fill_value : 0, v = strtol(arg, NULL, 10);
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv))
+						switch (thresh_type) {
+							case NC_FUNCTION_OP_LESS_THAN:
+								if (v > a[k])
+									value1++;
+								break;
+							case NC_FUNCTION_OP_MORE_THAN:
+							default:
+								if (v < a[k])
+									value1++;
+						}
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, fv = fill_value ? *(short *) fill_value : 0, v = strtol(arg, NULL, 10);
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv))
+						switch (thresh_type) {
+							case NC_FUNCTION_OP_LESS_THAN:
+								if (v > a[k])
+									value1++;
+								break;
+							case NC_FUNCTION_OP_MORE_THAN:
+							default:
+								if (v < a[k])
+									value1++;
+						}
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, fv = fill_value ? *(int *) fill_value : 0, v = strtol(arg, NULL, 10);
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv))
+						switch (thresh_type) {
+							case NC_FUNCTION_OP_LESS_THAN:
+								if (v > a[k])
+									value1++;
+								break;
+							case NC_FUNCTION_OP_MORE_THAN:
+							default:
+								if (v < a[k])
+									value1++;
+						}
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, fv = fill_value ? *(long long *) fill_value : 0, v = strtoll(arg, NULL, 10);
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (a[k] != fv))
+						switch (thresh_type) {
+							case NC_FUNCTION_OP_LESS_THAN:
+								if (v > a[k])
+									value1++;
+								break;
+							case NC_FUNCTION_OP_MORE_THAN:
+							default:
+								if (v < a[k])
+									value1++;
+						}
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, fv = fill_value ? *(float *) fill_value : 0, v = strtof(arg, NULL);
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS))
+						switch (thresh_type) {
+							case NC_FUNCTION_OP_LESS_THAN:
+								if (v > a[k])
+									value1++;
+								break;
+							case NC_FUNCTION_OP_MORE_THAN:
+							default:
+								if (v < a[k])
+									value1++;
+						}
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, fv = fill_value ? *(double *) fill_value : 0, v = strtod(arg, NULL);
+				for (k = 0; k < n; k++) {
+					if (!fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS))
+						switch (thresh_type) {
+							case NC_FUNCTION_OP_LESS_THAN:
+								if (v > a[k])
+									value1++;
+								break;
+							case NC_FUNCTION_OP_MORE_THAN:
+							default:
+								if (v < a[k])
+									value1++;
+						}
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_SUM_SCALAR)) {
+
+			if (!args) {
+				if (result)
+					memcpy(result, buff, buff_size ? buff_size : (buff_size = n * _oph_nc_sizeof(type)));
+				return OPH_IO_SERVER_SUCCESS;
+			}
+			if (!result)
+				result = buff;
+
+			char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_ARG_SEPARATOR, &save_pointer) : NULL;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char scalar = arg ? strtol(arg, NULL, 10) : 0;
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short scalar = arg ? strtol(arg, NULL, 10) : 0;
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int scalar = arg ? strtol(arg, NULL, 10) : 0;
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long scalar = arg ? strtoll(arg, NULL, 10) : 0;
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] + scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float scalar = arg ? strtof(arg, NULL) : 0;
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? a[k] + scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double scalar = arg ? strtod(arg, NULL) : 0;
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? a[k] + scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_MUL_SCALAR)) {
+
+			if (!args) {
+				if (result)
+					memcpy(result, buff, buff_size ? buff_size : (buff_size = n * _oph_nc_sizeof(type)));
+				return OPH_IO_SERVER_SUCCESS;
+			}
+			if (!result)
+				result = buff;
+
 			number = 1;
 
-		if (type == NC_CHAR) {
+			char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_ARG_SEPARATOR, &save_pointer) : NULL;
 
-			char v = (char) (value1 / number);
-			memcpy(result ? result : buff, &v, sizeof(v));
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
 
-		} else if (type == NC_SHORT) {
+				char scalar = arg ? strtol(arg, NULL, 10) : 1;
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
 
-			short v = (short) (value1 / number);
-			memcpy(result ? result : buff, &v, sizeof(v));
+			} else if (type == NC_SHORT) {
 
-		} else if (type == NC_INT) {
+				short scalar = arg ? strtol(arg, NULL, 10) : 1;
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
 
-			int v = (int) (value1 / number);
-			memcpy(result ? result : buff, &v, sizeof(v));
+			} else if (type == NC_INT) {
 
-		} else if (type == NC_INT64) {
+				int scalar = arg ? strtol(arg, NULL, 10) : 1;
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
 
-			long long v = (long long) (value1 / number);
-			memcpy(result ? result : buff, &v, sizeof(v));
+			} else if (type == NC_INT64) {
 
-		} else if (type == NC_FLOAT) {
+				long long scalar = arg ? strtoll(arg, NULL, 10) : 1;
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
 
-			float v = (float) (value1 / number);
-			memcpy(result ? result : buff, &v, sizeof(v));
+			} else if (type == NC_FLOAT) {
 
-		} else if (type == NC_DOUBLE) {
+				float scalar = arg ? strtof(arg, NULL) : 1;
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? a[k] * scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
 
-			double v = (double) (value1 / number);
-			memcpy(result ? result : buff, &v, sizeof(v));
+			} else if (type == NC_DOUBLE) {
+
+				double scalar = arg ? strtod(arg, NULL) : 1;
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? a[k] * scalar : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_ABS)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? abs(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? abs(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_SQRT)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] >= 0)) ? sqrt(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_SQR)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? a[k] * a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? a[k] * a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? a[k] * a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+			// TODO: to be optimized for integer values
+		} else if (!strcmp(sub_operation, NC_FUNCTION_CEIL)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? ceil(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? ceil(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? ceil(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+			// TODO: to be optimized for integer values
+		} else if (!strcmp(sub_operation, NC_FUNCTION_FLOOR) || !strcmp(sub_operation, NC_FUNCTION_INT)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? floor(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? floor(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+			// TODO: to be optimized for integer values
+		} else if (!strcmp(sub_operation, NC_FUNCTION_ROUND) || !strcmp(sub_operation, NC_FUNCTION_NINT)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? floor(a[k] + 0.5) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? floor(a[k] + 0.5) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? floor(a[k] + 0.5) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_POW)) {
+
+			if (!result)
+				result = buff;
+
+			if (!args) {
+				if (result)
+					memcpy(result, buff, buff_size ? buff_size : (buff_size = n * _oph_nc_sizeof(type)));
+				return OPH_IO_SERVER_SUCCESS;
+			}
+
+			number = 1;
+
+			char *save_pointer = NULL, *arg = args ? strtok_r(args, NC_ARG_SEPARATOR, &save_pointer) : NULL;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char scalar = arg ? strtol(arg, NULL, 10) : 1;
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short scalar = arg ? strtol(arg, NULL, 10) : 1;
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int scalar = arg ? strtol(arg, NULL, 10) : 1;
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long scalar = arg ? strtoll(arg, NULL, 10) : 1;
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? pow(a[k], scalar) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float scalar = arg ? strtof(arg, NULL) : 1;
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? pow(a[k], scalar) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double scalar = arg ? strtod(arg, NULL) : 1;
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? pow(a[k], scalar) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_EXP)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? exp(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? exp(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? exp(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_LOG)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] > 0)) ? log(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] > 0)) ? log(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_LOG10)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] > 0)) ? log10(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] > 0)) ? log10(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] > 0)) ? log10(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_SIN)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? sin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? sin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_COS)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? cos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? cos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_TAN)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? tan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? tan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_ASIN)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] >= -1) && (a[k] <= 1)) ? asin(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_ACOS)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && (a[k] >= -1) && (a[k] <= 1)) ? acos(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_ATAN)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? atan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? atan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? atan(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_SINH)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? sinh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? sinh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? sinh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_COSH)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? cosh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? cosh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? cosh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_TANH)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? tanh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? tanh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? tanh(a[k]) : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+			// TODO: to be optimized for integer values
+		} else if (!strcmp(sub_operation, NC_FUNCTION_RECI)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((a[k] != fv) && a[k]) ? 1.0 / a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && a[k]) ? 1.0 / a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || ((abs(a[k] - fv) > NC_FILL_VALUE_EPS) && a[k]) ? 1.0 / a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_NOT)) {
+
+			if (!result)
+				result = buff;
+
+			number = 1;
+
+			if ((type == NC_BYTE) || (type == NC_CHAR)) {
+
+				char *a = (char *) buff, v = 0, fv = fill_value ? *(char *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? !a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short *a = (short *) buff, v = 0, fv = fill_value ? *(short *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? !a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT) {
+
+				int *a = (int *) buff, v = 0, fv = fill_value ? *(int *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? !a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (a[k] != fv) ? !a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? !a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
+				size_t step = sizeof(v);
+				for (k = 0; k < n; k++) {
+					v = !fill_value || (abs(a[k] - fv) > NC_FILL_VALUE_EPS) ? !a[k] : fv;
+					memcpy(result + k * step, &v, step);
+				}
+
+			} else {
+				if (args)
+					free(args);
+				if (tmp)
+					free(result);
+				if (tmp_operation)
+					free(tmp_operation);
+				if (tmp_args)
+					free(tmp_args);
+				return OPH_IO_SERVER_MEMORY_ERROR;
+			}
 
 		}
 
-	} else if (!strcmp(sub_operation, NC_FUNCTION_STD) || !strcmp(sub_operation, NC_FUNCTION_VAR)) {
+		if (args)
+			free(args);
 
-		value3 = (value2 - value1 * value1 / number) / number;
-		if (number > 1)
-			value3 *= number / (number - 1.0);
-		if (!strcmp(sub_operation, NC_FUNCTION_STD))
-			value3 = sqrt(value3);
+		if (!number)
+			continue;
 
-		if (type == NC_CHAR) {
+		// Final reduction
+		if (!strcmp(sub_operation, NC_FUNCTION_AVG) || !strcmp(sub_operation, NC_FUNCTION_SUM) || !strcmp(sub_operation, NC_FUNCTION_OUTLIER)) {
 
-			char v = (char) value3;
-			memcpy(result ? result : buff, &v, sizeof(v));
+			if (strcmp(sub_operation, NC_FUNCTION_AVG))
+				number = 1;
 
-		} else if (type == NC_SHORT) {
+			if (type == NC_CHAR) {
 
-			short v = (short) value3;
-			memcpy(result ? result : buff, &v, sizeof(v));
+				char v = (char) (value1 / number);
+				memcpy(result ? result : buff, &v, sizeof(v));
 
-		} else if (type == NC_INT) {
+			} else if (type == NC_SHORT) {
 
-			int v = (int) value3;
-			memcpy(result ? result : buff, &v, sizeof(v));
+				short v = (short) (value1 / number);
+				memcpy(result ? result : buff, &v, sizeof(v));
 
-		} else if (type == NC_INT64) {
+			} else if (type == NC_INT) {
 
-			long long v = (long long) value3;
-			memcpy(result ? result : buff, &v, sizeof(v));
+				int v = (int) (value1 / number);
+				memcpy(result ? result : buff, &v, sizeof(v));
 
-		} else if (type == NC_FLOAT) {
+			} else if (type == NC_INT64) {
 
-			float v = (float) value3;
-			memcpy(result ? result : buff, &v, sizeof(v));
+				long long v = (long long) (value1 / number);
+				memcpy(result ? result : buff, &v, sizeof(v));
 
-		} else if (type == NC_DOUBLE) {
+			} else if (type == NC_FLOAT) {
 
-			double v = (double) value3;
-			memcpy(result ? result : buff, &v, sizeof(v));
+				float v = (float) (value1 / number);
+				memcpy(result ? result : buff, &v, sizeof(v));
 
+			} else if (type == NC_DOUBLE) {
+
+				double v = (double) (value1 / number);
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_STD) || !strcmp(sub_operation, NC_FUNCTION_VAR)) {
+
+			value3 = (value2 - value1 * value1 / number) / number;
+			if (number > 1)
+				value3 *= number / (number - 1.0);
+			if (!strcmp(sub_operation, NC_FUNCTION_STD))
+				value3 = sqrt(value3);
+
+			if (type == NC_CHAR) {
+
+				char v = (char) value3;
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_SHORT) {
+
+				short v = (short) value3;
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_INT) {
+
+				int v = (int) value3;
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_INT64) {
+
+				long long v = (long long) value3;
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_FLOAT) {
+
+				float v = (float) value3;
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			} else if (type == NC_DOUBLE) {
+
+				double v = (double) value3;
+				memcpy(result ? result : buff, &v, sizeof(v));
+
+			}
+
+		} else if (!strcmp(sub_operation, NC_FUNCTION_STAT)) {
+
+			char i, option = 0, tbyte = 1, *arg = sub_args;
+			size_t offset = 0;
+			for (i = 0; i < NC_FUNCTION_OP_N; ++i)
+				if (arg && arg[0]) {
+					if (arg[0] == NC_FUNCTION_OP_SET)
+						option |= tbyte;
+					arg++;
+					tbyte <<= 1;
+				} else
+					break;
+
+			if (type == NC_CHAR) {
+
+				char v;
+				if (option & 1) {
+					v = (char) value1;
+					memcpy(result ? result : buff, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 2) {
+					v = (char) value2;
+					memcpy(result + offset, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 4) {
+					v = (char) (value3 / number);
+					memcpy(result + offset, &v, sizeof(v));
+					//offset += sizeof(v);  // Useless
+				}
+
+			} else if (type == NC_SHORT) {
+
+				short v;
+				if (option & 1) {
+					v = (short) value1;
+					memcpy(result ? result : buff, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 2) {
+					v = (short) value2;
+					memcpy(result + offset, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 4) {
+					v = (short) (value3 / number);
+					memcpy(result + offset, &v, sizeof(v));
+					//offset += sizeof(v);  // Useless
+				}
+
+			} else if (type == NC_INT) {
+
+				int v;
+				if (option & 1) {
+					v = (int) value1;
+					memcpy(result ? result : buff, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 2) {
+					v = (int) value2;
+					memcpy(result + offset, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 4) {
+					v = (int) (value3 / number);
+					memcpy(result + offset, &v, sizeof(v));
+					//offset += sizeof(v);  // Useless
+				}
+
+			} else if (type == NC_INT64) {
+
+				long long v;
+				if (option & 1) {
+					v = (long long) value1;
+					memcpy(result ? result : buff, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 2) {
+					v = (long long) value2;
+					memcpy(result + offset, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 4) {
+					v = (long long) (value3 / number);
+					memcpy(result + offset, &v, sizeof(v));
+					//offset += sizeof(v);  // Useless
+				}
+
+			} else if (type == NC_FLOAT) {
+
+				float v;
+				if (option & 1) {
+					v = (float) value1;
+					memcpy(result ? result : buff, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 2) {
+					v = (float) value2;
+					memcpy(result + offset, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 4) {
+					v = (float) (value3 / number);
+					memcpy(result + offset, &v, sizeof(v));
+					//offset += sizeof(v);  // Useless
+				}
+
+			} else if (type == NC_DOUBLE) {
+
+				double v;
+				if (option & 1) {
+					v = (double) value1;
+					memcpy(result ? result : buff, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 2) {
+					v = (double) value2;
+					memcpy(result + offset, &v, sizeof(v));
+					offset += sizeof(v);
+				}
+				if (option & 4) {
+					v = (double) (value3 / number);
+					memcpy(result + offset, &v, sizeof(v));
+					//offset += sizeof(v);  // Useless
+				}
+			}
 		}
 
-	} else if (!strcmp(sub_operation, NC_FUNCTION_STAT)) {
+	} while ((sub_operation = strtok_r(NULL, NC_FUNCTION_SEPARATOR, &op_s)));	// '=' is correct
 
-		char i, option = 0, tbyte = 1, *arg = sub_args;
-		size_t offset = 0;
-		for (i = 0; i < NC_FUNCTION_OP_N; ++i)
-			if (arg && arg[0]) {
-				if (arg[0] == NC_FUNCTION_OP_SET)
-					option |= tbyte;
-				arg++;
-				tbyte <<= 1;
-			} else
-				break;
-
-		if (type == NC_CHAR) {
-
-			char v;
-			if (option & 1) {
-				v = (char) value1;
-				memcpy(result ? result : buff, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 2) {
-				v = (char) value2;
-				memcpy(result + offset, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 4) {
-				v = (char) (value3 / number);
-				memcpy(result + offset, &v, sizeof(v));
-				//offset += sizeof(v);  // Useless
-			}
-
-		} else if (type == NC_SHORT) {
-
-			short v;
-			if (option & 1) {
-				v = (short) value1;
-				memcpy(result ? result : buff, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 2) {
-				v = (short) value2;
-				memcpy(result + offset, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 4) {
-				v = (short) (value3 / number);
-				memcpy(result + offset, &v, sizeof(v));
-				//offset += sizeof(v);  // Useless
-			}
-
-		} else if (type == NC_INT) {
-
-			int v;
-			if (option & 1) {
-				v = (int) value1;
-				memcpy(result ? result : buff, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 2) {
-				v = (int) value2;
-				memcpy(result + offset, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 4) {
-				v = (int) (value3 / number);
-				memcpy(result + offset, &v, sizeof(v));
-				//offset += sizeof(v);  // Useless
-			}
-
-		} else if (type == NC_INT64) {
-
-			long long v;
-			if (option & 1) {
-				v = (long long) value1;
-				memcpy(result ? result : buff, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 2) {
-				v = (long long) value2;
-				memcpy(result + offset, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 4) {
-				v = (long long) (value3 / number);
-				memcpy(result + offset, &v, sizeof(v));
-				//offset += sizeof(v);  // Useless
-			}
-
-		} else if (type == NC_FLOAT) {
-
-			float v;
-			if (option & 1) {
-				v = (float) value1;
-				memcpy(result ? result : buff, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 2) {
-				v = (float) value2;
-				memcpy(result + offset, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 4) {
-				v = (float) (value3 / number);
-				memcpy(result + offset, &v, sizeof(v));
-				//offset += sizeof(v);  // Useless
-			}
-
-		} else if (type == NC_DOUBLE) {
-
-			double v;
-			if (option & 1) {
-				v = (double) value1;
-				memcpy(result ? result : buff, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 2) {
-				v = (double) value2;
-				memcpy(result + offset, &v, sizeof(v));
-				offset += sizeof(v);
-			}
-			if (option & 4) {
-				v = (double) (value3 / number);
-				memcpy(result + offset, &v, sizeof(v));
-				//offset += sizeof(v);  // Useless
-			}
-		}
+	if (tmp) {
+		int elems = _oph_nc_is_a_reduce_func(operation, args);
+		memcpy(tmp, result, elems ? elems * _oph_nc_sizeof(type) : buff_size);
+		free(result);
 	}
+
+	if (tmp_operation)
+		free(tmp_operation);
+	if (tmp_args)
+		free(tmp_args);
 
 	return OPH_IO_SERVER_SUCCESS;
 }
