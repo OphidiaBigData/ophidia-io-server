@@ -222,6 +222,10 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_math.so
 FUN SIMPLE
 RET STRING
+[oph_matheval]
+LIB	@PLUGIN_PATH@/liboph_matheval.so
+FUN SIMPLE
+RET STRING
 [oph_max_array]
 LIB	@PLUGIN_PATH@/liboph_max_array.so
 FUN SIMPLE
@@ -251,7 +255,7 @@ LIB	@PLUGIN_PATH@/liboph_normalize.so
 FUN SIMPLE
 RET STRING
 [oph_operation_array]
-LIB     @PLUGIN_PATH@/liboph_operation_array.so
+LIB	@PLUGIN_PATH@/liboph_operation_array.so
 FUN SIMPLE
 RET STRING
 [oph_operator]
