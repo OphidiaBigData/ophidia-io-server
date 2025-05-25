@@ -2075,37 +2075,23 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 
 	// Check where clause
 	char *where = hashtbl_get(query_args, OPH_QUERY_ENGINE_LANG_ARG_WHERE);
-	if (table_list_num == 1 || file_load_flag != 0) {
-		if (where) {
-			//Apply where condition
-			if (_oph_ioserver_query_run_where_clause(where, args, table_list_num, orig_record_sets, &total_row_number, record_sets)) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
-				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-				return OPH_IO_SERVER_EXEC_ERROR;
-			}
-		} else {
-			//Get all rows
-			for (j = 0; j < total_row_number; j++) {
-				record_sets[0]->record_set[j] = orig_record_sets[0]->record_set[j];
-			}
-		}
-	} else {
-		if (where) {
-			//Apply where condition
-			if (_oph_ioserver_query_run_where_clause(where, args, table_list_num, orig_record_sets, &total_row_number, record_sets)) {
-				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
-				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
-				_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
-				return OPH_IO_SERVER_EXEC_ERROR;
-			}
-		} else {
-			//There should be a where clause in case of multitable query
-			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE);
-			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE);
+	if (where) {
+		//Apply where condition
+		if (_oph_ioserver_query_run_where_clause(where, args, table_list_num, orig_record_sets, &total_row_number, record_sets)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
+			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_ENGINE_ERROR, where);
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
+	} else {
+		if ((table_list_num > 1) && !file_load_flag) {
+			pmesg(LOG_WARNING, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE);
+			logging(LOG_WARNING, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE);
+		}
+		//Get all rows
+		for (l = 0; l < table_list_num; l++)
+			for (j = 0; j < total_row_number; j++)
+				record_sets[l]->record_set[j] = orig_record_sets[l]->record_set[j];
 	}
 
 	//Update output argument with actual value
