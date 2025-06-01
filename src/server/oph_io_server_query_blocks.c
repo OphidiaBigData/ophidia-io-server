@@ -448,6 +448,7 @@ int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_li
 	}
 
 	unsigned int k;
+	long long row_;
 
 	for (k = 0; k < var_count; k++) {
 		if (field_binary[k]) {
@@ -463,13 +464,11 @@ int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_li
 				return OPH_IO_SERVER_EXEC_ERROR;
 			}
 		} else {
+			row_ = where_start_id ? where_start_id[frag_indexes[k]] + row : (inputs[frag_indexes[k]]->record_set[row] ? row : 0);	// Exception for OPH_INTERCUBE
 			switch (inputs[frag_indexes[k]]->field_type[field_indexes[k]]) {
 				case OPH_IOSTORE_LONG_TYPE:
 					{
-						if (oph_query_expr_add_long
-						    (var_list[k],
-						     *((long long *) inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field[field_indexes[k]]),
-						     table)) {
+						if (oph_query_expr_add_long(var_list[k], *((long long *) inputs[frag_indexes[k]]->record_set[row_]->field[field_indexes[k]]), table)) {
 							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
 							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
 							return OPH_IO_SERVER_EXEC_ERROR;
@@ -478,10 +477,7 @@ int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_li
 					}
 				case OPH_IOSTORE_REAL_TYPE:
 					{
-						if (oph_query_expr_add_double
-						    (var_list[k],
-						     *((double *) inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field[field_indexes[k]]),
-						     table)) {
+						if (oph_query_expr_add_double(var_list[k], *((double *) inputs[frag_indexes[k]]->record_set[row_]->field[field_indexes[k]]), table)) {
 							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
 							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
 							return OPH_IO_SERVER_EXEC_ERROR;
@@ -491,9 +487,8 @@ int _oph_ioserver_query_set_parser_variables(oph_query_arg **args, char **var_li
 					//TODO Check if string and binary can be treated separately
 				case OPH_IOSTORE_STRING_TYPE:
 					{
-						binary_var[k].arg = inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field[field_indexes[k]];
-						binary_var[k].arg_length =
-						    inputs[frag_indexes[k]]->record_set[(where_start_id ? where_start_id[frag_indexes[k]] + row : row)]->field_length[field_indexes[k]];
+						binary_var[k].arg = inputs[frag_indexes[k]]->record_set[row_]->field[field_indexes[k]];
+						binary_var[k].arg_length = inputs[frag_indexes[k]]->record_set[row_]->field_length[field_indexes[k]];
 						if (oph_query_expr_add_binary(var_list[k], &(binary_var[k]), table)) {
 							pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
 							logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_QUERY_PARSING_ERROR, field);
