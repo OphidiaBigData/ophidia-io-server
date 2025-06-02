@@ -21,7 +21,7 @@
 #include <string.h>
 #include <time.h>
 
-#define LOGGING_MAX_STRING 100
+#define LOGGING_MAX_STRING 1000
 #define CTIME_BUF 32
 
 int msglevel;			/* the higher, the more messages... */
