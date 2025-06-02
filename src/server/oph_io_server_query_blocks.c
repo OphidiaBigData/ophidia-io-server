@@ -2077,14 +2077,16 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 	} else {
+		char warning = 0;
 		if ((table_list_num > 1) && !file_load_flag) {
 			pmesg(LOG_WARNING, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE);
 			logging(LOG_WARNING, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MISSING_WHERE_MULTITABLE);
+			warning = 1;
 		}
 		//Get all rows
 		for (l = 0; l < table_list_num; l++)
 			for (j = 0; j < total_row_number; j++)
-				record_sets[l]->record_set[j] = orig_record_sets[l]->record_set[j];
+				record_sets[l]->record_set[j] = orig_record_sets[l]->record_set[l && warning ? 0 : j];
 	}
 
 	//Update output argument with actual value
