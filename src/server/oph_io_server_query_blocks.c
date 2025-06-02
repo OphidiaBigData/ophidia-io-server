@@ -157,7 +157,6 @@ int _oph_ioserver_query_build_groups(HASHTBL *query_groups, char *group, long lo
 		if (_oph_ioserver_query_add_group(head_group, list)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-			free(list);
 			_oph_ioserver_query_delete_group_elem_list(list);
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
@@ -191,7 +190,6 @@ int _oph_ioserver_query_build_groups(HASHTBL *query_groups, char *group, long lo
 			if (_oph_ioserver_query_add_group(current_group, list)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 				logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
-				free(list);
 				_oph_ioserver_query_delete_group_elem_list(list);
 				return OPH_IO_SERVER_MEMORY_ERROR;
 			}
