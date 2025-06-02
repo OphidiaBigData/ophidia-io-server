@@ -65,6 +65,7 @@ int oph_ioserver_nc_compute_dimension_id(unsigned long ID, unsigned int *sizemax
 
 int main(int argc, char *argv[])
 {
+	UNUSED(argv);
 #ifdef DEBUG
 	int msglevel = LOG_DEBUG_T;
 #else
