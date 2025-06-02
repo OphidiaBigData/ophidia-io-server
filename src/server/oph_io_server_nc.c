@@ -1267,7 +1267,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 				long long *a = (long long *) buff, v = 0, fv = fill_value ? *(long long *) fill_value : 0;
 				size_t step = sizeof(v);
 				for (k = 0; k < n; k++) {
-					v = !fill_value || (a[k] != fv) ? abs(a[k]) : fv;
+					v = !fill_value || (a[k] != fv) ? labs(a[k]) : fv;
 					memcpy(result + k * step, &v, step);
 				}
 
@@ -1276,7 +1276,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 				float *a = (float *) buff, v = 0, fv = fill_value ? *(float *) fill_value : 0;
 				size_t step = sizeof(v);
 				for (k = 0; k < n; k++) {
-					v = !fill_value || (fabs(a[k] - fv) > NC_FILL_VALUE_EPS) ? abs(a[k]) : fv;
+					v = !fill_value || (fabs(a[k] - fv) > NC_FILL_VALUE_EPS) ? fabs(a[k]) : fv;
 					memcpy(result + k * step, &v, step);
 				}
 
@@ -1285,7 +1285,7 @@ int _oph_nc_reduce_func(void *buff, void *result, nc_type type, unsigned long lo
 				double *a = (double *) buff, v = 0, fv = fill_value ? *(double *) fill_value : 0;
 				size_t step = sizeof(v);
 				for (k = 0; k < n; k++) {
-					v = !fill_value || (fabs(a[k] - fv) > NC_FILL_VALUE_EPS) ? abs(a[k]) : fv;
+					v = !fill_value || (fabs(a[k] - fv) > NC_FILL_VALUE_EPS) ? fabs(a[k]) : fv;
 					memcpy(result + k * step, &v, step);
 				}
 
