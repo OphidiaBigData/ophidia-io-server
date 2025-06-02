@@ -119,6 +119,7 @@ int _oph_ioserver_nc_clear_buffer_(Buffer *buff, char is_cache, char is_all)
 			buff->insert = NULL;
 		}
 	}
+	return OPH_IO_SERVER_SUCCESS;
 }
 
 int _oph_ioserver_nc_init_buffer(Buffer *buff)
@@ -333,10 +334,10 @@ int _oph_ioserver_nc_read_data_v0(Buffer *buff, int offset, char transpose, char
 		int c = snprintf(msg, MSG_LEN, "%d|%s|%s|", shm_id, src_path, measure_name);
 		int i = 0, index = 0;
 		for (i = 0; i < ndims; i++)
-			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", (size_t *) start[i]);
+			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", start[i]);
 		msg[c + index++] = '|';
 		for (i = 0; i < ndims; i++)
-			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", (size_t *) count[i]);
+			index += snprintf(&msg[c + index], INT_LEN + 1, "%d;", count[i]);
 		msg[c + index++] = '|';
 		index += snprintf(&msg[c + index], INT_LEN + 1, "%d", offset);
 		msg[c + index++] = '|';
@@ -1054,7 +1055,6 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			_oph_ioserver_nc_clear_buffer(buff);
 			free(count);
-			free(file_indexes);
 			free(counters);
 			free(src_products);
 			free(limits);
@@ -1476,7 +1476,6 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			_oph_ioserver_nc_clear_buffer(buff);
 			free(count);
-			free(file_indexes);
 			free(counters);
 			free(src_products);
 			free(limits);
@@ -1624,6 +1623,9 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 #ifdef DEBUG
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v0.1\n");
 #endif
+	UNUSED(is_netcdf4);
+	UNUSED(internal_size);
+	UNUSED(is_last);
 
 	int i = 0, j = 0;
 
@@ -2124,6 +2126,8 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 #ifdef DEBUG
 	pmesg(LOG_INFO, __FILE__, __LINE__, "Using IMPORT algorithm v0.0\n");
 #endif
+	UNUSED(internal_size);
+	UNUSED(is_last);
 
 	int i = 0, j = 0;
 
@@ -2796,7 +2800,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 		//Open netcdf file
 		int ncid = 0;
-		int retval, j = 0;
+		int retval;
 
 		if (pthread_mutex_lock(&nc_lock) != 0) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to lock mutex\n");
