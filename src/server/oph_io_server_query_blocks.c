@@ -2041,7 +2041,7 @@ int _oph_ioserver_query_build_input_record_set(HASHTBL *query_args, oph_query_ar
 		if (partial_tot_row_number > total_row_number)
 			total_row_number = partial_tot_row_number;
 
-		if ((oph_iostore_copy_frag_record_set_only(orig_record_sets[l], &(record_sets[l]), 0, 0) != 0)) {
+		if (oph_iostore_copy_frag_record_set_only_with_ext(orig_record_sets[l], record_sets + l, 0, 0, &total_row_number)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 			_oph_ioserver_query_release_input_record_set(dev_handle, orig_record_sets, record_sets);

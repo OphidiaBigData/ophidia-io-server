@@ -119,6 +119,8 @@ int oph_iostore_copy_frag_record_set_limit(oph_iostore_frag_record_set * input_r
  * \return                  0 if successfull, non-0 otherwise
  */
 int oph_iostore_copy_frag_record_set_only(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset);
+int oph_iostore_copy_frag_record_set_only_with_ext(oph_iostore_frag_record_set * input_record_set, oph_iostore_frag_record_set ** output_record_set, long long limit, long long offset,
+						   long long *extend);
 
 /**
  * \brief			        Destroy a record and release resources
