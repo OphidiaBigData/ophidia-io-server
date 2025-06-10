@@ -2939,14 +2939,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			if (!dims_type[i]) {
 				array_length *= dims_end[i] - dims_start[i] + 1;
 				nimp++;
-			} else {
+			} else
 				nexp++;
-			}
 		}
 		if ((dim_unlim < 0) || dims_type[dim_unlim])
 			_array_length = array_length;
 		else
 			_array_length = array_length * (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) / dim_unlim_size;
+		if (!_array_length) {
+			offset += lenp;
+			k++;
+			continue;
+		}
 
 		unsigned long long sizeof_var = 0;
 		switch (vartype) {
