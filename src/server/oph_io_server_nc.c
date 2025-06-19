@@ -3043,7 +3043,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 		// Update offset for the next loop
 		offset_dim += lenp;
-		offset += (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) * internal_size;	// Real data in the buffer
+		offset += _dims_end[dim_unlim] - _dims_start[dim_unlim] + 1;	// Real data in the buffer
 		k++;
 	}
 
