@@ -5631,7 +5631,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
 	// Parse for multiple files
-	int k = 1, src_paths_num = *src_path ? 1 : 0, return_value = OPH_IO_SERVER_SUCCESS, offset = 0;	// Used to understand the real index of unlimited dimension
+	int k = 1, src_paths_num = *src_path ? 1 : 0, return_value = OPH_IO_SERVER_SUCCESS;
+	int offset = 0, offset_dim = 0;	// Used to understand the real index of unlimited dimension
 
 	char *pch = src_path, *save_pointer = NULL;
 	while (pch && *pch) {
@@ -5797,10 +5798,16 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		int internal_size = 1;
 		if (src_paths_num > 1) {
 			// Reduce subset to current file range
-			if (_dims_start[dim_unlim] < offset)
-				_dims_start[dim_unlim] = offset;
-			if (_dims_end[dim_unlim] >= lenp + offset)
-				_dims_end[dim_unlim] = lenp + offset - 1;
+			if (_dims_start[dim_unlim] < offset_dim)
+				_dims_start[dim_unlim] = offset_dim;
+			if (_dims_end[dim_unlim] >= lenp + offset_dim)
+				_dims_end[dim_unlim] = lenp + offset_dim - 1;
+			if (_dims_start[dim_unlim] > _dims_end[dim_unlim]) {
+				offset_dim += lenp;
+				k++;
+				continue;
+			}
+
 			char first = 1;
 			for (i = dim_unlim + 1; i < ndims; ++i)
 				if (dims_type[i] == dims_type[dim_unlim]) {
@@ -5831,14 +5838,14 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 					_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
-					offset += lenp;
+					offset_dim += lenp;
 					k++;
 					continue;
 				}
 			}
 			// Rescaling
-			_dims_start[dim_unlim] -= offset;
-			_dims_end[dim_unlim] -= offset;
+			_dims_start[dim_unlim] -= offset_dim;
+			_dims_end[dim_unlim] -= offset_dim;
 		}
 		//Compute array_length from implicit dims
 		unsigned long long array_length = 1, _array_length;
@@ -5847,14 +5854,18 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			if (!dims_type[i]) {
 				array_length *= dims_end[i] - dims_start[i] + 1;
 				nimp++;
-			} else {
+			} else
 				nexp++;
-			}
 		}
 		if ((dim_unlim < 0) || dims_type[dim_unlim])
 			_array_length = array_length;
 		else
 			_array_length = array_length * (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) / dim_unlim_size;
+		if (!_array_length) {
+			offset_dim += lenp;
+			k++;
+			continue;
+		}
 
 		unsigned long long sizeof_var = array_length * sizeof_item;
 
@@ -5917,7 +5928,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			break;
 		}
 		// Update offset for the next loop
-		offset += lenp;
+		offset_dim += lenp;
+		offset += _dims_end[dim_unlim] - _dims_start[dim_unlim] + 1;	// Real data in the buffer
 		k++;
 	}
 
