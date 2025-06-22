@@ -3,7 +3,7 @@
 
 ### Added:
 
-- Support for on-load operations
+- Improvement to OPH_INTERCUBE [#28](https://github.com/OphidiaBigData/ophidia-io-server/pull/28)
 
 ## v1.9.0 - 2024-10-10
 

@@ -3450,7 +3450,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
 			     void *fill_value, char dimension_ordered)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -3538,11 +3538,11 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 
 	//start and count array must be sorted based on the actual order of dimensions in the nc file
 	//sizemax must be sorted based on the actual oph_level value
-	unsigned int *sizemax = (unsigned int *) malloc(nexp * sizeof(unsigned int));
+	unsigned int *sizemax = (unsigned int *) malloc((nexp ? nexp : 1) * sizeof(unsigned int));
 	size_t *start = (size_t *) malloc(ndims * sizeof(size_t));
 	size_t *count = (size_t *) malloc(ndims * sizeof(size_t));
 	//Sort start in base of oph_level of explicit dimension
-	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
+	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
 	char flag = 0;
@@ -3929,7 +3929,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
 			     void *fill_value, char dimension_ordered)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -4017,11 +4017,11 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 
 	//start and count array must be sorted based on the actual order of dimensions in the nc file
 	//sizemax must be sorted based on the actual oph_level value
-	unsigned int *sizemax = (unsigned int *) malloc(nexp * sizeof(unsigned int));
+	unsigned int *sizemax = (unsigned int *) malloc((nexp ? nexp : 1) * sizeof(unsigned int));
 	size_t *start = (size_t *) malloc(ndims * sizeof(size_t));
 	size_t *count = (size_t *) malloc(ndims * sizeof(size_t));
 	//Sort start in base of oph_level of explicit dimension
-	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
+	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
 	char flag = 0;
@@ -4387,7 +4387,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 				int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation,
 				char *sub_args, void *fill_value)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -4481,11 +4481,11 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 
 	//start and count array must be sorted based on the actual order of dimensions in the nc file
 	//sizemax must be sorted based on the actual oph_level value
-	unsigned int *sizemax = (unsigned int *) malloc(nexp * sizeof(unsigned int));
+	unsigned int *sizemax = (unsigned int *) malloc((nexp ? nexp : 1) * sizeof(unsigned int));
 	size_t *start = (size_t *) malloc(ndims * sizeof(size_t));
 	size_t *count = (size_t *) malloc(ndims * sizeof(size_t));
 	//Sort start in base of oph_level of explicit dimension
-	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
+	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
 	char flag = 0;
@@ -4945,7 +4945,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
 			     void *fill_value)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -5038,11 +5038,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 	//start and count array must be sorted based on the actual order of dimensions in the nc file
 	//sizemax must be sorted based on the actual oph_level value
-	unsigned int *sizemax = (unsigned int *) malloc(nexp * sizeof(unsigned int));
+	unsigned int *sizemax = (unsigned int *) malloc((nexp ? nexp : 1) * sizeof(unsigned int));
 	size_t *start = (size_t *) malloc(ndims * sizeof(size_t));
 	size_t *count = (size_t *) malloc(ndims * sizeof(size_t));
 	//Sort start in base of oph_level of explicit dimension
-	size_t **start_pointer = (size_t **) malloc(nexp * sizeof(size_t *));
+	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
 	char flag = 0;
@@ -5631,7 +5631,7 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		return OPH_IO_SERVER_PARSE_ERROR;
 	}
 	// Parse for multiple files
-	int k = 1, src_paths_num = *src_path ? 1 : 0, return_value = OPH_IO_SERVER_SUCCESS;
+	int k = 1, src_paths_num = *src_path ? 1 : 0, return_value = OPH_IO_SERVER_SUCCESS, last_src_paths_num = k;
 	int offset = 0, offset_dim = 0;	// Used to understand the real index of unlimited dimension
 
 	char *pch = src_path, *save_pointer = NULL;
@@ -5647,22 +5647,57 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 	}
 
 	int dim_unlim_size = dim_unlim < 0 ? 0 : dims_end[dim_unlim] - dims_start[dim_unlim] + 1;
-	int _dims_start[dim_num], _dims_end[dim_num];
+	int _dims_start_stored[1 + src_paths_num][dim_num];
+	int _dims_end_stored[1 + src_paths_num][dim_num];
+	int *_dims_start, *_dims_end;
 	size_t lenp = 0, sizeof_item = 0;
+	nc_type vartype;
 
-	unsigned long long _tuplexfrag_number;
-	long long _frag_key_start, _f1, _f2;
+	unsigned long long _tuplexfrag_number, _tuplexfrag_number_stored[1 + src_paths_num];
+	long long _frag_key_start, _f1, _f2, _frag_key_start_stored[1 + src_paths_num];
+	int internal_size_stored[1 + src_paths_num];
 	Buffer buff_, *buff = &buff_;
 	_oph_ioserver_nc_init_buffer(buff);
 
-	char src_paths[1 + strlen(src_path)];
+	//Compute array_length from implicit dims
+	unsigned long long array_length = 1, _array_length_stored[1 + src_paths_num];
+	short int nimp = 0, nexp = 0;
+	int i = 0;
+	for (i = 0; i < dim_num; i++) {
+		if (!dims_type[i]) {
+			array_length *= dims_end[i] - dims_start[i] + 1;
+			nimp++;
+		} else
+			nexp++;
+	}
+
+	//Check the order and field list values
+	int measure_pos = -1, id_dim_pos = -1, format = 0;
+	for (i = 0; i < binary_frag->field_num; i++) {
+		if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
+			measure_pos = i;
+		} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
+			id_dim_pos = i;
+		}
+	}
+	if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
+		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
+		return OPH_IO_SERVER_EXEC_ERROR;
+	}
+
+	char src_paths[1 + strlen(src_path)], src_paths2[1 + strlen(src_path)];
 	strcpy(src_paths, src_path);
+	strcpy(src_paths2, src_path);
 	src_path = NULL;
 	void *fill_value = NULL;
 
 	while ((pch = strtok_r(src_path ? NULL : src_paths, OPH_QUERY_ENGINE_LANG_MULTI_VALUE_SEPARATOR2, &save_pointer))) {
 
 		src_path = pch;
+
+		_dims_start = &_dims_start_stored[k][0];
+		_dims_end = &_dims_end_stored[k][0];
 
 		memcpy(_dims_start, dims_start, dim_num * sizeof(int));
 		memcpy(_dims_end, dims_end, dim_num * sizeof(int));
@@ -5678,21 +5713,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 					return OPH_IO_SERVER_PARSE_ERROR;
 				}
 			}
-		}
-		//Check the order and field list values
-		int measure_pos = -1, id_dim_pos = -1;
-		int i = 0;
-		for (i = 0; i < binary_frag->field_num; i++) {
-			if (binary_frag->field_type[i] == OPH_IOSTORE_STRING_TYPE) {
-				measure_pos = i;
-			} else if (binary_frag->field_type[i] == OPH_IOSTORE_LONG_TYPE) {
-				id_dim_pos = i;
-			}
-		}
-		if (measure_pos == id_dim_pos || measure_pos == -1 || id_dim_pos == -1) {
-			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-			logging(LOG_ERROR, __FILE__, __LINE__, "Error while matching fields to fragment\n");
-			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 		//Open netcdf file
 		int ncid = 0;
@@ -5719,7 +5739,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
 		//Get information from id
-		nc_type vartype;
 		if ((retval = nc_inq_vartype(ncid, varid, &vartype))) {
 			nc_close(ncid);
 			pthread_mutex_unlock(&nc_lock);
@@ -5727,7 +5746,8 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			logging(LOG_ERROR, __FILE__, __LINE__, "Unable to read variable information: %s\n", nc_strerror(retval));
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
-		sizeof_item = _oph_nc_sizeof(vartype);
+		if (!sizeof_item)
+			sizeof_item = _oph_nc_sizeof(vartype);
 		//Check ndims value
 		int ndims;
 		if ((retval = nc_inq_varndims(ncid, varid, &ndims))) {
@@ -5758,7 +5778,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		}
 #ifdef OPH_PAR_NC4
 		//Read format metadata
-		int format = 0;
 		if ((retval = nc_inq_format(ncid, &format))) {
 			nc_close(ncid);
 			pthread_mutex_unlock(&nc_lock);
@@ -5803,6 +5822,12 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			if (_dims_end[dim_unlim] >= lenp + offset_dim)
 				_dims_end[dim_unlim] = lenp + offset_dim - 1;
 			if (_dims_start[dim_unlim] > _dims_end[dim_unlim]) {
+
+				_tuplexfrag_number_stored[k] = _tuplexfrag_number;
+				_frag_key_start_stored[k] = _frag_key_start;
+				_array_length_stored[k] = 0;
+				internal_size_stored[k] = internal_size;
+
 				offset_dim += lenp;
 				k++;
 				continue;
@@ -5838,6 +5863,12 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 					_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
+
+					_tuplexfrag_number_stored[k] = _tuplexfrag_number;
+					_frag_key_start_stored[k] = _frag_key_start;
+					_array_length_stored[k] = 0;
+					internal_size_stored[k] = internal_size;
+
 					offset_dim += lenp;
 					k++;
 					continue;
@@ -5848,51 +5879,65 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			_dims_end[dim_unlim] -= offset_dim;
 		}
 		//Compute array_length from implicit dims
-		unsigned long long array_length = 1, _array_length;
-		short int nimp = 0, nexp = 0;
-		for (i = 0; i < ndims; i++) {
-			if (!dims_type[i]) {
-				array_length *= dims_end[i] - dims_start[i] + 1;
-				nimp++;
-			} else
-				nexp++;
-		}
+		unsigned long long _array_length;
 		if ((dim_unlim < 0) || dims_type[dim_unlim])
 			_array_length = array_length;
 		else
 			_array_length = array_length * (_dims_end[dim_unlim] - _dims_start[dim_unlim] + 1) / dim_unlim_size;
-		if (!_array_length) {
-			offset_dim += lenp;
+		if (_array_length)
+			last_src_paths_num = k;	// It is correct
+
+		_tuplexfrag_number_stored[k] = _tuplexfrag_number;
+		_frag_key_start_stored[k] = _frag_key_start;
+		_array_length_stored[k] = _array_length;
+		internal_size_stored[k] = internal_size;
+
+		offset_dim += lenp;
+		k++;
+	}
+
+	unsigned long long sizeof_var = array_length * sizeof_item;
+
+	//Flag set to 1 if dimension are in the order specified in the file
+	char dimension_ordered = 1;
+	for (i = 0; i < dim_num; i++) {
+		if (dims_index[i] != i) {
+			dimension_ordered = 0;
+			break;
+		}
+	}
+
+	//Apply proper format management
+	char is_netcdf4 = 0;
+#ifdef OPH_PAR_NC4
+	switch (format) {
+		case NC_FORMAT_CDF5:
+		case NC_FORMAT_NETCDF4:
+		case NC_FORMAT_NETCDF4_CLASSIC:
+			is_netcdf4 = 1;
+			break;
+		case NC_FORMAT_CLASSIC:
+		case NC_FORMAT_64BIT_OFFSET:
+		default:
+			is_netcdf4 = 0;
+	}
+#endif
+
+	k = 1;
+	src_paths_num = last_src_paths_num;	// To avoid to consider empty files at the end of a file list
+
+	src_path = save_pointer = NULL;
+	while ((pch = strtok_r(src_path ? NULL : src_paths2, OPH_QUERY_ENGINE_LANG_MULTI_VALUE_SEPARATOR2, &save_pointer))) {
+
+		src_path = pch;
+
+		if (!_array_length_stored[k]) {
 			k++;
 			continue;
 		}
 
-		unsigned long long sizeof_var = array_length * sizeof_item;
-
-		//Flag set to 1 if dimension are in the order specified in the file
-		char dimension_ordered = 1;
-		for (i = 0; i < ndims; i++) {
-			if (dims_index[i] != i) {
-				dimension_ordered = 0;
-				break;
-			}
-		}
-
-		//Apply proper format management
-		char is_netcdf4 = 0;
-#ifdef OPH_PAR_NC4
-		switch (format) {
-			case NC_FORMAT_CDF5:
-			case NC_FORMAT_NETCDF4:
-			case NC_FORMAT_NETCDF4_CLASSIC:
-				is_netcdf4 = 1;
-				break;
-			case NC_FORMAT_CLASSIC:
-			case NC_FORMAT_64BIT_OFFSET:
-			default:
-				is_netcdf4 = 0;
-		}
-#endif
+		_dims_start = &_dims_start_stored[k][0];
+		_dims_end = &_dims_end_stored[k][0];
 
 #ifdef OPH_IO_SERVER_FORCE_V0
 		if (0) {
@@ -5901,26 +5946,29 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 #endif
 			if (is_netcdf4)
 				return_value =
-				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
-								_dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var,
-								vartype, id_dim_pos, measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args,
-								fill_value);
+				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type,
+								dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var,
+								vartype, id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num,
+								sub_operation, sub_args, fill_value);
 			else
 				return_value =
-				    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index,
-							     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype,
-							     id_dim_pos, measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, fill_value);
+				    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type,
+							     dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var,
+							     vartype, id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation,
+							     sub_args, fill_value);
 		} else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
-			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
-						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
-						     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, fill_value, dimension_ordered);
+			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type, dims_index,
+						     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
+						     measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation, sub_args,
+						     fill_value, dimension_ordered);
 #else
 			return_value =
-			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start, compressed_flag, ndims, nimp, nexp, dims_type, dims_index, _dims_start,
-						     _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number, offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
-						     measure_pos, array_length, _array_length, internal_size, buff, k == src_paths_num, sub_operation, sub_args, fill_value, dimension_ordered);
+			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type, dims_index,
+						     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
+						     measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation, sub_args,
+						     fill_value, dimension_ordered);
 #endif
 		if (return_value) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error while loading the file %s\n", src_path);
@@ -5928,7 +5976,6 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 			break;
 		}
 		// Update offset for the next loop
-		offset_dim += lenp;
 		offset += _dims_end[dim_unlim] - _dims_start[dim_unlim] + 1;	// Real data in the buffer
 		k++;
 	}
