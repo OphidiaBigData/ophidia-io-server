@@ -90,6 +90,22 @@ RET STRING
 LIB	@PLUGIN_PATH@/liboph_extract.so
 FUN SIMPLE
 RET STRING
+[oph_fdi_ffwi]
+LIB	@PLUGIN_PATH@/liboph_fdi_ffwi.so
+FUN SIMPLE
+RET STRING
+[oph_fdi_fwi]
+LIB	@PLUGIN_PATH@/liboph_fdi_fwi.so
+FUN SIMPLE
+RET STRING
+[oph_fdi_ifi]
+LIB	@PLUGIN_PATH@/liboph_fdi_ifi.so
+FUN SIMPLE
+RET STRING
+[oph_filter]
+LIB	@PLUGIN_PATH@/liboph_filter.so
+FUN SIMPLE
+RET STRING
 [oph_find]
 LIB	@PLUGIN_PATH@/liboph_find.so
 FUN SIMPLE
@@ -148,10 +164,6 @@ FUN SIMPLE
 RET STRING
 [oph_gsl_fft]
 LIB	@PLUGIN_PATH@/liboph_gsl_fft.so
-FUN SIMPLE
-RET STRING
-[oph_filter]
-LIB	@PLUGIN_PATH@/liboph_filter.so
 FUN SIMPLE
 RET STRING
 [oph_gsl_fit_linear]
