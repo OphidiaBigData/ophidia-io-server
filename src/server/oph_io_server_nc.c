@@ -2945,12 +2945,12 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				if ((_dims_start[dim_unlim] >= _f2) || (_dims_end[dim_unlim] < _f1))
 					_tuplexfrag_number = 0;
 				while (_tuplexfrag_number && (_dims_end[dim_unlim] < _f2 - 1)) {	// It is ok
-					_tuplexfrag_number--;
+					_tuplexfrag_number -= internal_size2;
 					_f2 = _f1 + _tuplexfrag_number / internal_size2;
 				}
 				while (_tuplexfrag_number && (_dims_start[dim_unlim] > _f1)) {
-					_frag_key_start++;
-					_tuplexfrag_number--;
+					_frag_key_start += internal_size2;
+					_tuplexfrag_number -= internal_size2;
 					_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
