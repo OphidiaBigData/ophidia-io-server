@@ -631,6 +631,10 @@ int oph_io_client_get_result(oph_io_client_connection *connection, oph_io_client
 				string_head += sizeof(unsigned long);
 				pmesg(LOG_DEBUG, __FILE__, __LINE__, "Field %llu, row %llu length is: %lu\n", j, i, (*result_set)->result_set[i]->field_length[j]);
 
+				// TODO: due to internal errors, to be fixed, field_length[j] could be 0
+				if (!(*result_set)->result_set[i]->field_length[j])
+					continue;
+
 				(*result_set)->result_set[i]->field[j] = (char *) calloc((*result_set)->result_set[i]->field_length[j], sizeof(char));
 				if (!((*result_set)->result_set[i]->field[j])) {
 					pmesg(LOG_ERROR, __FILE__, __LINE__, "Unable to alloc memory\n");

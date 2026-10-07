@@ -3444,14 +3444,14 @@ int oph_ioserver_nc_cache_to_buffer(short int tot_dim_number, unsigned int *coun
 	return 0;
 }
 
-int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
-			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
-			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos,
-			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
-			     void *fill_value, char dimension_ordered)
+int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start,
+			     char compressed_flag, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size,
+			     unsigned long long _tuplexfrag_number, int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype,
+			     int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation,
+			     char *sub_args, void *fill_value, char dimension_ordered)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
-	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
+	if (!src_path || !measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
+	    || !frag_size || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -3476,7 +3476,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	char transpose = !dimension_ordered;
 
 	//Find most external dimension with size bigger than 1
-	int most_extern_id = 0;
+	int most_extern_id = 0, extern_ids[ndims], k, kk = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -3484,18 +3485,20 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 				break;
 			}
 		}
-
 		//External explicit
 		if (dims_type[j]) {
-			if ((dims_end[j] - dims_start[j]) > 0) {
+			if (dims_end[j] - dims_start[j] > 0) {
 				most_extern_id = i;
-				break;
+				extern_ids[kk++] = i;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -3509,8 +3512,8 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		//External explicit
 		if (dims_type[j]) {
 			relative_rows = (int) (_tuplexfrag_number / curr_rows);
-			curr_rows *= (dims_end[j] - dims_start[j] + 1);
-			if (relative_rows < (dims_end[j] - dims_start[j] + 1)) {
+			curr_rows *= dims_end[j] - dims_start[j] + 1;
+			if (relative_rows < dims_end[j] - dims_start[j] + 1) {
 				whole_explicit = 0;
 				break;
 			}
@@ -3543,6 +3546,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	size_t *count = (size_t *) malloc(ndims * sizeof(size_t));
 	//Sort start in base of oph_level of explicit dimension
 	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
+	size_t **count_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 
 	//idDim controls the start array for the fragment
 	char flag = 0;
@@ -3557,6 +3561,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 				else
 					sizemax[j] = dim_unlim_size;
 				start_pointer[j] = &(start[i]);
+				count_pointer[j] = &(count[i]);
 				flag = 1;
 				break;
 			}
@@ -3568,6 +3573,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			free(start);
 			free(count);
 			free(start_pointer);
+			free(count_pointer);
 			free(sizemax);
 			return OPH_IO_SERVER_EXEC_ERROR;
 		}
@@ -3579,10 +3585,10 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		*(start_pointer[i]) -= 1;
 		for (j = 0; j < ndims; j++) {
 			if (start_pointer[i] == &(start[j])) {
-				*(start_pointer[i]) += dims_start[j];
+				*start_pointer[i] += dims_start[j];
 				// Correction due to multiple files
 				if (j == dim_unlim)
-					*(start_pointer[i]) -= offset;
+					*start_pointer[i] -= offset;
 			}
 		}
 	}
@@ -3596,14 +3602,12 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 				break;
 			}
 		}
-
 		//Explicit
 		if (dims_type[j]) {
-			if (dims_index[j] != most_extern_id)
-				count[j] = dims_end[j] - dims_start[j] + 1;
-			else {
-				count[j] = (int) (_tuplexfrag_number / curr_rows);
-			}
+			for (flag = k = 0; k < kk; ++k)
+				if ((flag = dims_index[j] == extern_ids[k]))
+					break;
+			count[j] = flag ? (int) (_tuplexfrag_number / curr_rows) : dims_end[j] - dims_start[j] + 1;
 			curr_rows *= count[j];
 		} else {
 			//Implicit
@@ -3624,6 +3628,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		free(start);
 		free(count);
 		free(start_pointer);
+		free(count_pointer);
 		free(sizemax);
 		return OPH_IO_SERVER_EXEC_ERROR;
 	}
@@ -3632,7 +3637,6 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	struct timeval start_transpose_time, end_transpose_time, intermediate_transpose_time, total_transpose_time;
 	total_transpose_time.tv_usec = 0;
 	total_transpose_time.tv_sec = 0;
-
 	gettimeofday(&start_read_time, NULL);
 #endif
 
@@ -3644,16 +3648,38 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
-	if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
-		pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
-		logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
-		_oph_ioserver_nc_clear_buffer(buff);
-		free(count);
-		free(start);
-		free(start_pointer);
-		free(sizemax);
-		return OPH_IO_SERVER_MEMORY_ERROR;
-	}
+	int residual = 0;
+	do {
+
+		// Check for fragmented explicit dimensions
+		for (j = 1; j < nexp; j++) {
+			residual = *start_pointer[j] + *count_pointer[j] - sizemax[j];
+			if (sizemax[j] && (residual > 0))
+				break;
+		}
+		if (residual > 0)
+			*count_pointer[j] -= residual;
+
+		if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
+			_oph_ioserver_nc_clear_buffer(buff);
+			free(count);
+			free(start);
+			free(start_pointer);
+			free(count_pointer);
+			free(sizemax);
+			return OPH_IO_SERVER_MEMORY_ERROR;
+		}
+
+		if (residual > 0) {
+			*start_pointer[j - 1] += 1;
+			*start_pointer[j] = 0;
+			*count_pointer[j] = residual;
+		}
+
+	} while (residual > 0);
+
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
 	timeval_subtract(&total_read_time, &end_read_time, &start_read_time);
@@ -3662,6 +3688,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 
 	free(start);
 	free(start_pointer);
+	free(count_pointer);
 	free(sizemax);
 
 	if (!is_last) {
@@ -3923,13 +3950,13 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
-			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
-			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos,
-			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
-			     void *fill_value, char dimension_ordered)
+int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start,
+			     char compressed_flag, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size,
+			     unsigned long long _tuplexfrag_number, int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype,
+			     int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation,
+			     char *sub_args, void *fill_value, char dimension_ordered)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -3956,6 +3983,7 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -3968,13 +3996,15 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				break;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -4381,13 +4411,13 @@ int _oph_ioserver_nc_read_v1(char is_netcdf4, char *src_path, char *measure_name
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp,
-				int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number,
-				int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype,
-				int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation,
-				char *sub_args, void *fill_value)
+int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start,
+				char compressed_flag, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size,
+				unsigned long long _tuplexfrag_number, int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var,
+				nc_type vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last,
+				char *sub_operation, char *sub_args, void *fill_value)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -4420,6 +4450,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -4432,13 +4463,15 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				break;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -4939,13 +4972,13 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 }
 
 // This version is not optimized in case the unlimited dimension is implicit!!!!! Use another version instead
-int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int ndims, int nimp, int nexp,
-			     short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size, unsigned long long _tuplexfrag_number, int offset,
-			     oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype, int id_dim_pos,
-			     int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation, char *sub_args,
-			     void *fill_value)
+int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start,
+			     char compressed_flag, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, int dim_unlim_size,
+			     unsigned long long _tuplexfrag_number, int offset, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, nc_type vartype,
+			     int id_dim_pos, int measure_pos, unsigned long long array_length, unsigned long long _array_length, int internal_size, Buffer *buff, char is_last, char *sub_operation,
+			     char *sub_args, void *fill_value)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
+	if (!measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !ndims || !nimp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size
 	    || !sizeof_var || !array_length || !_tuplexfrag_number || !_array_length || !buff) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
@@ -4977,6 +5010,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -4989,13 +5023,15 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				break;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -5610,11 +5646,11 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			  short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, char *sub_operation, char *sub_args, oph_iostore_frag_record_set *binary_frag,
+int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num,
+			  short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, char *sub_operation, char *sub_args, oph_iostore_frag_record_set *binary_frag,
 			  unsigned long long *frag_size)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
+	if (!src_path || !measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -5854,12 +5890,12 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 				if ((_dims_start[dim_unlim] >= _f2) || (_dims_end[dim_unlim] < _f1))
 					_tuplexfrag_number = 0;
 				while (_tuplexfrag_number && (_dims_end[dim_unlim] < _f2 - 1)) {	// It is ok
-					_tuplexfrag_number--;
+					_tuplexfrag_number -= internal_size2;
 					_f2 = _f1 + _tuplexfrag_number / internal_size2;
 				}
 				while (_tuplexfrag_number && (_dims_start[dim_unlim] > _f1)) {
-					_frag_key_start++;
-					_tuplexfrag_number--;
+					_frag_key_start += internal_size2;
+					_tuplexfrag_number -= internal_size2;
 					_f1 = (_frag_key_start - 1) / internal_size2 % dim_unlim_size;
 				}
 				if (!_tuplexfrag_number) {
@@ -5946,28 +5982,28 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 #endif
 			if (is_netcdf4)
 				return_value =
-				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type,
-								dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var,
-								vartype, id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num,
+				    _oph_ioserver_nc_read_v0_n4(is_netcdf4, src_path, measure_name, fragxdb_number, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp,
+								dims_type, dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size,
+								sizeof_var, vartype, id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num,
 								sub_operation, sub_args, fill_value);
 			else
 				return_value =
-				    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type,
-							     dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var,
-							     vartype, id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation,
-							     sub_args, fill_value);
+				    _oph_ioserver_nc_read_v0(is_netcdf4, src_path, measure_name, fragxdb_number, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp,
+							     dims_type, dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size,
+							     sizeof_var, vartype, id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num,
+							     sub_operation, sub_args, fill_value);
 		} else
 #ifdef OPH_IO_SERVER_NETCDF_BLOCK
 			return_value =
-			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type, dims_index,
-						     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
-						     measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation, sub_args,
+			    _oph_ioserver_nc_read_v1(is_netcdf4, src_path, measure_name, fragxdb_number, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type,
+						     dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var, vartype,
+						     id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation, sub_args,
 						     fill_value, dimension_ordered);
 #else
 			return_value =
-			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type, dims_index,
-						     _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var, vartype, id_dim_pos,
-						     measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation, sub_args,
+			    _oph_ioserver_nc_read_v2(is_netcdf4, src_path, measure_name, fragxdb_number, tuplexfrag_number, _frag_key_start_stored[k], compressed_flag, dim_num, nimp, nexp, dims_type,
+						     dims_index, _dims_start, _dims_end, dim_unlim, dim_unlim_size, _tuplexfrag_number_stored[k], offset, binary_frag, frag_size, sizeof_var, vartype,
+						     id_dim_pos, measure_pos, array_length, _array_length_stored[k], internal_size_stored[k], buff, k == src_paths_num, sub_operation, sub_args,
 						     fill_value, dimension_ordered);
 #endif
 		if (return_value) {

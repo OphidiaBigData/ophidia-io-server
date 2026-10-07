@@ -328,8 +328,8 @@ int _oph_ioserver_query_build_row(unsigned int arg_count, unsigned long long *ro
  * \param frag_size Size of fragment being created
  * \return 0 if successfull
  */
-int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			  short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, char *sub_operation, char *sub_args, oph_iostore_frag_record_set * binary_frag,
+int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num,
+			  short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, int dim_unlim, char *sub_operation, char *sub_args, oph_iostore_frag_record_set * binary_frag,
 			  unsigned long long *frag_size);
 #endif
 
@@ -352,8 +352,9 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
  * \param frag_size Size of fragment being created
  * \return 0 if successfull
  */
-int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			    short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set * binary_frag, unsigned long long *frag_size);
+int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num,
+			    short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set * binary_frag,
+			    unsigned long long *frag_size);
 #endif
 
 /**
