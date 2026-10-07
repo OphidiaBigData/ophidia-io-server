@@ -281,13 +281,13 @@ int oph_ioserver_esdm_cache_to_buffer(short int tot_dim_number, unsigned int *co
 	return 0;
 }
 
-int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container, esdm_dataset_t *dataset,
-			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag,
-			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
-			       char *sub_args, char dimension_ordered)
+int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container,
+			       esdm_dataset_t *dataset, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end,
+			       oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos,
+			       unsigned long long array_length, char *sub_operation, char *sub_args, char dimension_ordered)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
-	    || !frag_size || !sizeof_var || !array_length) {
+	if (!measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end
+	    || !binary_frag || !frag_size || !sizeof_var || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -317,6 +317,7 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -329,13 +330,15 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				break;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -846,13 +849,13 @@ int _oph_ioserver_esdm_read_v2(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container, esdm_dataset_t *dataset,
-			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag,
-			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
-			       char *sub_args, char dimension_ordered)
+int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container,
+			       esdm_dataset_t *dataset, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end,
+			       oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos,
+			       unsigned long long array_length, char *sub_operation, char *sub_args, char dimension_ordered)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
-	    || !frag_size || !sizeof_var || !array_length) {
+	if (!measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end
+	    || !binary_frag || !frag_size || !sizeof_var || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -882,6 +885,7 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -889,18 +893,19 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 				break;
 			}
 		}
-
 		//External explicit
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				break;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -1390,13 +1395,13 @@ int _oph_ioserver_esdm_read_v1(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container, esdm_dataset_t *dataset,
-			       int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, oph_iostore_frag_record_set *binary_frag,
-			       unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos, unsigned long long array_length, char *sub_operation,
-			       char *sub_args)
+int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, esdm_container_t *container,
+			       esdm_dataset_t *dataset, int ndims, int nimp, int nexp, short int *dims_type, short int *dims_index, int *dims_start, int *dims_end,
+			       oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size, unsigned long long sizeof_var, esdm_type_t vartype, int id_dim_pos, int measure_pos,
+			       unsigned long long array_length, char *sub_operation, char *sub_args)
 {
-	if (!measure_name || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag
-	    || !frag_size || !sizeof_var || !array_length) {
+	if (!measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !container || !dataset || !ndims || !nimp || !nexp || !dims_type || !dims_index || !dims_start || !dims_end
+	    || !binary_frag || !frag_size || !sizeof_var || !array_length) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -1426,6 +1431,7 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 
 	//Find most external dimension with size bigger than 1
 	int most_extern_id = 0;
+	long long curr_rows = 1;
 	for (i = 0; i < nexp; i++) {
 		//Find dimension related to index
 		for (j = 0; j < ndims; j++) {
@@ -1438,13 +1444,13 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				break;
+				long long curr_rows = 1;
 			}
 		}
 	}
 
 	//Check if only most external dimension (bigger than 1) is splitted
-	long long curr_rows = 1;
+	curr_rows = 1;
 	long long relative_rows = 0;
 	char whole_explicit = 1;
 	for (i = ndims - 1; i > most_extern_id; i--) {
@@ -2026,10 +2032,11 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long tuplexfrag
 	return OPH_IO_SERVER_SUCCESS;
 }
 
-int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num, short int *dims_type,
-			    short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set *binary_frag, unsigned long long *frag_size)
+int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long long fragxdb_number, unsigned long long tuplexfrag_number, long long frag_key_start, char compressed_flag, int dim_num,
+			    short int *dims_type, short int *dims_index, int *dims_start, int *dims_end, char *sub_operation, char *sub_args, oph_iostore_frag_record_set *binary_frag,
+			    unsigned long long *frag_size)
 {
-	if (!src_path || !measure_name || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
+	if (!src_path || !measure_name || !fragxdb_number || !tuplexfrag_number || !frag_key_start || !dim_num || !dims_type || !dims_index || !dims_start || !dims_end || !binary_frag || !frag_size) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_NULL_INPUT_PARAM);
 		return OPH_IO_SERVER_NULL_PARAM;
@@ -2164,15 +2171,17 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 	    || esdm_is_a_reduce_func(sub_operation, sub_args)
 #endif
 	    )
-		return _oph_ioserver_esdm_read_v0(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
-						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args);
+		return _oph_ioserver_esdm_read_v0(measure_name, fragxdb_number, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index,
+						  dims_start, dims_end, binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args);
 	else
 #ifdef OPH_IO_SERVER_ESDM_BLOCK
-		return _oph_ioserver_esdm_read_v1(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
-						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args, dimension_ordered);
+		return _oph_ioserver_esdm_read_v1(measure_name, fragxdb_number, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index,
+						  dims_start, dims_end, binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args,
+						  dimension_ordered);
 #else
-		return _oph_ioserver_esdm_read_v2(measure_name, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index, dims_start, dims_end,
-						  binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args, dimension_ordered);
+		return _oph_ioserver_esdm_read_v2(measure_name, fragxdb_number, tuplexfrag_number, frag_key_start, compressed_flag, container, dataset, ndims, nimp, nexp, dims_type, dims_index,
+						  dims_start, dims_end, binary_frag, frag_size, sizeof_var, dspace->type, id_dim_pos, measure_pos, array_length, sub_operation, sub_args,
+						  dimension_ordered);
 #endif
 
 }
