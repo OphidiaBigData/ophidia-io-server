@@ -853,6 +853,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	unsigned int *sizemax = (unsigned int *) malloc((nexp ? nexp : 1) * sizeof(unsigned int));
 	size_t *start = (size_t *) malloc(ndims * sizeof(size_t));
 	size_t *count = (size_t *) malloc(ndims * sizeof(size_t));
+	size_t *count2 = (size_t *) malloc(ndims * sizeof(size_t));
 	//Sort start in base of oph_level of explicit dimension
 	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 	size_t **count_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
@@ -870,7 +871,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 				else
 					sizemax[j] = dim_unlim_size;
 				start_pointer[j] = &(start[i]);
-				count_pointer[j] = &(count[i]);
+				count_pointer[j] = &(count2[i]);
 				flag = 1;
 				break;
 			}
@@ -881,6 +882,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			_oph_ioserver_nc_clear_buffer(buff);
 			free(start);
 			free(count);
+			free(count2);
 			free(start_pointer);
 			free(count_pointer);
 			free(sizemax);
@@ -916,12 +918,12 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			for (flag = k = 0; k < kk; ++k)
 				if ((flag = dims_index[j] == extern_ids[k]))
 					break;
-			count[j] = flag ? (int) (_tuplexfrag_number / curr_rows) : dims_end[j] - dims_start[j] + 1;
+			count[j] = count2[j] = flag ? (int) (_tuplexfrag_number / curr_rows) : dims_end[j] - dims_start[j] + 1;
 			curr_rows *= count[j];
 		} else {
 			//Implicit
 			//Modified to allow subsetting
-			count[j] = dims_end[j] - dims_start[j] + 1;
+			count[j] = count2[j] = dims_end[j] - dims_start[j] + 1;
 			start[j] = dims_start[j];
 		}
 	}
@@ -937,6 +939,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		_oph_ioserver_nc_clear_buffer(buff);
 		free(start);
 		free(count);
+		free(count2);
 		free(start_pointer);
 		free(count_pointer);
 		free(sizemax);
@@ -958,7 +961,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		dim_unlim_whole = 0;
 	}
 	//Fill binary cache
-	int residual = 0;
+	int residual = 0, nblocks = 0, lblocks[2 * nexp];	// TODO: size of this array is quite low, but the product of exp dim sizes could be too high
 	do {
 
 		// Check for fragmented explicit dimensions
@@ -970,11 +973,17 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		if (residual > 0)
 			*count_pointer[j] -= residual;
 
-		if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count)) {
+		total = 1;
+		for (i = 0; i < nexp; ++i)
+			total *= *count_pointer[i];
+		lblocks[nblocks] = internal_size * total;
+
+		if (_oph_ioserver_nc_read_data(buff, offset, transpose, is_netcdf4, vartype, ndims, src_path, measure_name, start, count2)) {
 			pmesg(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			logging(LOG_ERROR, __FILE__, __LINE__, "Error in binary array filling\n");
 			_oph_ioserver_nc_clear_buffer(buff);
 			free(count);
+			free(count2);
 			free(start);
 			free(start_pointer);
 			free(count_pointer);
@@ -983,13 +992,34 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 		}
 
 		if (residual > 0) {
+			if (!dims_type[dim_unlim])
+				offset += lblocks[nblocks] * array_length;
 			*start_pointer[j - 1] += 1;
 			*start_pointer[j] = 0;
 			*count_pointer[j] = residual;
 		}
 
+		nblocks++;
 	} while (residual > 0);
 
+	// Reforming
+	if (nblocks > 1) {
+		size_t sizeof_type = (int) sizeof_var / array_length, block_size;
+		char *buffer = transpose ? buff->cache : buff->insert, *buffer2 = transpose ? buff->insert : buff->cache;
+		for (elems = 0; elems < array_length; ++elems) {
+			total = 0;
+			for (kk = 0; kk < nblocks; ++kk) {
+				block_size = lblocks[kk] * sizeof_type;
+				memcpy(buffer2, buffer + total + elems * lblocks[kk] * sizeof_type, block_size);
+				total += lblocks[kk] * sizeof_var;
+				buffer2 += block_size;
+			}
+		}
+		// Swap
+		buffer = buff->cache;
+		buff->cache = buff->insert;
+		buff->insert = buffer;
+	}
 #ifdef DEBUG
 	gettimeofday(&end_read_time, NULL);
 	timeval_subtract(&total_read_time, &end_read_time, &start_read_time);
@@ -997,6 +1027,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 #endif
 
 	free(start);
+	free(count2);
 	free(start_pointer);
 	free(count_pointer);
 	free(sizemax);
