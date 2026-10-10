@@ -1444,7 +1444,9 @@ int _oph_ioserver_esdm_read_v0(char *measure_name, unsigned long long fragxdb_nu
 		if (dims_type[j]) {
 			if ((dims_end[j] - dims_start[j]) > 0) {
 				most_extern_id = i;
-				long long curr_rows = 1;
+				curr_rows *= dims_end[j] - dims_start[j] + 1;
+				if (fragxdb_number <= curr_rows)
+					break;
 			}
 		}
 	}
