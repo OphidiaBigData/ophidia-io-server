@@ -230,7 +230,6 @@ int _oph_ioserver_nc_create_buffer(Buffer *buff, char transpose, char shared, nc
 		}
 	}
 
-
 	if (memory_check()) {
 		pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
 		logging(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2016,7 +2015,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 		}
 
 #ifdef DEBUG
-		//gettimeofday(&start_read_time, NULL);
+		gettimeofday(&start_read_time, NULL);
 #endif
 		// This version is not optimized in case the unlimited dimension is implicit!!!!! offset is set to 0 for this reason
 		//Fill binary cache
@@ -2043,9 +2042,9 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 #ifdef DEBUG
-		//gettimeofday(&end_read_time, NULL);
-		//timeval_subtract(&intermediate_read_time, &end_transpose_time, &start_transpose_time);
-		//timeval_add(&total_read_time, &total_read_time, &intermediate_read_time);
+		gettimeofday(&end_read_time, NULL);
+		timeval_subtract(&intermediate_read_time, &end_transpose_time, &start_transpose_time);
+		timeval_add(&total_read_time, &total_read_time, &intermediate_read_time);
 #endif
 		//Attach shared memory segment to process
 		if (!ii && _oph_ioserver_nc_get_buffer_insert(buff, &buffer_out)) {
@@ -2075,7 +2074,7 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 
 		if (transpose) {
 #ifdef DEBUG
-			//gettimeofday(&start_transpose_time, NULL);
+			gettimeofday(&start_transpose_time, NULL);
 #endif
 			if (_oph_ioserver_nc_get_buffer_cache(buff, &buffer_in)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2103,9 +2102,9 @@ int _oph_ioserver_nc_read_v0_n4(char is_netcdf4, char *src_path, char *measure_n
 			//Detach shared memory segment
 			_oph_ioserver_nc_release_buffer_cache(buff, buffer_in);
 #ifdef DEBUG
-			//gettimeofday(&end_transpose_time, NULL);
-			//timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
-			//timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
+			gettimeofday(&end_transpose_time, NULL);
+			timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
+			timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
 #endif
 		}
 
@@ -2607,7 +2606,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 		}
 
 #ifdef DEBUG
-		//gettimeofday(&start_read_time, NULL);
+		gettimeofday(&start_read_time, NULL);
 #endif
 		// This version is not optimized in case the unlimited dimension is implicit!!!!! offset is set to 0 for this reason
 		//Fill binary cache
@@ -2638,9 +2637,9 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			return OPH_IO_SERVER_MEMORY_ERROR;
 		}
 #ifdef DEBUG
-		//gettimeofday(&end_read_time, NULL);
-		//timeval_subtract(&intermediate_read_time, &end_transpose_time, &start_transpose_time);
-		//timeval_add(&total_read_time, &total_read_time, &intermediate_read_time);
+		gettimeofday(&end_read_time, NULL);
+		timeval_subtract(&intermediate_read_time, &end_transpose_time, &start_transpose_time);
+		timeval_add(&total_read_time, &total_read_time, &intermediate_read_time);
 #endif
 		//Attach shared memory segment to process
 		char *buffer_in = NULL, *buffer_out = NULL;
@@ -2672,7 +2671,7 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 
 		if (transpose) {
 #ifdef DEBUG
-			//gettimeofday(&start_transpose_time, NULL);
+			gettimeofday(&start_transpose_time, NULL);
 #endif
 			if (_oph_ioserver_nc_get_buffer_cache(buff, &buffer_in)) {
 				pmesg(LOG_ERROR, __FILE__, __LINE__, OPH_IO_SERVER_LOG_MEMORY_ALLOC_ERROR);
@@ -2705,9 +2704,9 @@ int _oph_ioserver_nc_read_v0(char is_netcdf4, char *src_path, char *measure_name
 			//Detach shared memory segment
 			_oph_ioserver_nc_release_buffer_cache(buff, buffer_in);
 #ifdef DEBUG
-			//gettimeofday(&end_transpose_time, NULL);
-			//timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
-			//timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
+			gettimeofday(&end_transpose_time, NULL);
+			timeval_subtract(&intermediate_transpose_time, &end_transpose_time, &start_transpose_time);
+			timeval_add(&total_transpose_time, &total_transpose_time, &intermediate_transpose_time);
 #endif
 		}
 
