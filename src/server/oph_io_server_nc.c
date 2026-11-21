@@ -856,6 +856,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 	//Sort start in base of oph_level of explicit dimension
 	size_t **start_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
 	size_t **count_pointer = (size_t **) malloc((nexp ? nexp : 1) * sizeof(size_t *));
+	size_t *actual_start_pointer = (size_t *) malloc((nexp ? nexp : 1) * sizeof(size_t));
 
 	//idDim controls the start array for the fragment
 	char flag = 0;
@@ -871,6 +872,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 					sizemax[j] = dim_unlim_size;
 				start_pointer[j] = &(start[i]);
 				count_pointer[j] = &(count2[i]);
+				actual_start_pointer[j] = dims_start[i];
 				flag = 1;
 				break;
 			}
@@ -965,11 +967,11 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 
 		// Check for fragmented explicit dimensions
 		for (j = 1; j < nexp; j++) {
-			residual = *start_pointer[j] + *count_pointer[j] - sizemax[j];
+			residual = (*start_pointer[j] - actual_start_pointer[j]) + *count_pointer[j] - sizemax[j];
 			if (sizemax[j] && (residual > 0))
 				break;
 		}
-		if (residual > 0)
+		if ((j < nexp) && (residual > 0))
 			*count_pointer[j] -= residual;
 
 		total = 1;
