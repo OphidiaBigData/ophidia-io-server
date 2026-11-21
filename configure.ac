@@ -196,7 +196,7 @@ fi
 have_netcdf=no
 NETCDF_CONFIG=
 AC_ARG_WITH(netcdf_path,
-           [  --with-netcdf-path=PATH  Set the netcdf root dir],
+           [  --with-netcdf-path=PATH     Set the netcdf root dir],
            [
                 netcdf_path="$withval"
 		have_netcdf=yes
@@ -258,18 +258,26 @@ AM_CONDITIONAL([HAVE_ESDM_PAV_KERNELS], [test "x$have_esdm_pav_kernels" = "xyes"
 #Enable parallel nc4 support
 parallel_nc4="no"
 AC_ARG_ENABLE(parallel_nc4,
-        [  --enable-parallel-nc4          turn on support for parallel nc4 loading],
+        [  --enable-parallel-nc4          Enable support for parallel nc4 loading (disabled by default)],
         [parallel_nc4="yes"],
         [parallel_nc4="no"]
         )
 AM_CONDITIONAL([PAR_NC4], [test "x$parallel_nc4" = "xyes" -a "x$have_netcdf" = "xyes"])
 AM_COND_IF([PAR_NC4], [AC_MSG_NOTICE(NetCDF4 parallel support enabled)], [AC_MSG_NOTICE(NetCDF4 parallel support disabled)])
 
+#Enable dynamic version
+AC_ARG_ENABLE(dynamic_version, 
+		[  --enable-dynamic-version       Enable dynamic version (disabled by default)], 
+		[dynamic_version="yes"
+        AC_MSG_WARN("Dynamic version activated")],
+        [dynamic_version="no"]
+		)
+AM_CONDITIONAL([DYNAMIC_VERSION], [test "x$dynamic_version" = "xyes"])
 
 #Enable optimization
 optimization="no"
 AC_ARG_ENABLE(optimization,
-        [  --enable-optimization          turn on optimization flags],
+        [  --enable-optimization          Turn on optimization flags],
         [optimization="yes"
         AC_MSG_WARN("Optimization activated")],
         [optimization="no"]
@@ -277,7 +285,7 @@ AC_ARG_ENABLE(optimization,
 
 #Enable debug mode
 AC_ARG_ENABLE(debug, 
-		[  --enable-debug 				Enable debug. (Disabled by default)], 
+		[  --enable-debug 				  Enable debug. (Disabled by default)], 
 		[debug="yes"        
     AC_MSG_WARN("Debug activated")],
     [debug="no"]

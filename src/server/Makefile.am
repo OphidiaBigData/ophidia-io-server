@@ -34,6 +34,9 @@ additional_LIBS += $(NETCDF_LIBS) -lm
 if PAR_NC4
 additional_CFLAGS += -DOPH_PAR_NC4
 endif
+if DYNAMIC_VERSION
+additional_CFLAGS += -DOPH_DYNAMIC_VERSION
+endif
 endif
 
 if HAVE_ESDM

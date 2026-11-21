@@ -2168,7 +2168,11 @@ int _oph_ioserver_esdm_read(char *src_path, char *measure_name, unsigned long lo
 		}
 	}
 
+#ifdef OPH_DYNAMIC_VERSION
 	if (dimension_ordered
+#else
+	if (0
+#endif
 #ifdef OPH_ESDM_PAV_KERNELS
 	    || esdm_is_a_reduce_func(sub_operation, sub_args)
 #endif

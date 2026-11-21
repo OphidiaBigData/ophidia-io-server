@@ -996,7 +996,7 @@ int _oph_ioserver_nc_read_v2(char is_netcdf4, char *src_path, char *measure_name
 			if (!dims_type[dim_unlim])
 				offset += lblocks[nblocks] * array_length;
 			*start_pointer[j - 1] += 1;
-			*start_pointer[j] = 0;
+			*start_pointer[j] = actual_start_pointer[j];
 			*count_pointer[j] = residual;
 		}
 
@@ -3120,10 +3120,10 @@ int _oph_ioserver_nc_read(char *src_path, char *measure_name, unsigned long long
 		_dims_start = &_dims_start_stored[k][0];
 		_dims_end = &_dims_end_stored[k][0];
 
-#ifdef OPH_IO_SERVER_FORCE_V0
-		if (0) {
-#else
+#ifdef OPH_DYNAMIC_VERSION
 		if (dimension_ordered) {
+#else
+		if (0) {
 #endif
 			if (is_netcdf4)
 				return_value =
